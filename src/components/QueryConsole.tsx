@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
+import { Prec } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 // Graylog speaks Lucene; the solr mode covers the same field:value, range and boolean syntax
 import { solr } from "@codemirror/legacy-modes/mode/solr";
@@ -43,15 +44,19 @@ export function QueryConsole({ tab }: { tab: Tab }) {
       autocompletion({ override: [complete], activateOnTyping: e.autocomplete }),
       EditorView.theme({ "&": { fontSize: `${e.fontSize}px` } }),
       ...(e.wrap ? [EditorView.lineWrapping] : []),
-      keymap.of([
-        {
-          key: "Mod-Enter",
-          run: () => {
-            void runQuery(tab.id);
-            return true;
+      // above the default keymap, which binds Mod-Enter to inserting a blank line: without
+      // the precedence it wins, and running the query leaves a new line behind every time
+      Prec.highest(
+        keymap.of([
+          {
+            key: "Mod-Enter",
+            run: () => {
+              void runQuery(tab.id);
+              return true;
+            },
           },
-        },
-      ]),
+        ]),
+      ),
     ];
   }, [tab.fields, tab.id, runQuery, e.autocomplete, e.fontSize, e.wrap]);
 

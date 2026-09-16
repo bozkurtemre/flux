@@ -36,7 +36,8 @@ export default function App() {
         if (e.key === "ArrowLeft") return (e.preventDefault(), void expandSelected(false));
         if (e.key === "Enter") return (e.preventDefault(), openSelected());
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && activeTab) {
+      // the console has its own Mod-Enter; running it here as well would start the query twice
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && activeTab && !typing) {
         e.preventDefault();
         void runQuery(activeTab);
       }
