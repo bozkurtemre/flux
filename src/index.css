@@ -221,3 +221,17 @@ button {
   background: var(--sel-focus);
   color: #ffffff;
 }
+
+/* An indeterminate task: the IDE slides a short segment rather than filling anything. */
+@keyframes progress-drift {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.progress-drift {
+  animation: progress-drift 1.1s ease-in-out infinite;
+}

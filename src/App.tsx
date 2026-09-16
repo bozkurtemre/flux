@@ -7,6 +7,7 @@ import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
 import { TerminalPanel } from "@/components/TerminalPanel";
+import { Notifications } from "@/components/Notifications";
 import { ConfirmDialog } from "@/components/ContextMenu";
 import { Checkbox } from "@/components/settings/controls";
 import { quitAction } from "@/lib/terminal";
@@ -147,6 +148,7 @@ export default function App() {
         <RightStripe />
       </div>
       <StatusBar />
+      <Notifications />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}
       {askQuit && <QuitPrompt remember={remember} setRemember={setRemember} onDone={() => setAskQuit(false)} />}

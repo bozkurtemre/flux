@@ -5,6 +5,7 @@ import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/end
 import * as cache from "@/lib/cache";
 import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { killTabCommand } from "@/lib/terminal";
+import { withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -70,6 +71,8 @@ interface State {
   projectFolders: Record<string, string>;
   /** Set once a tab has had to start without tmux, so quitting stops promising persistence. */
   tmuxMissing: boolean;
+  tasks: Task[];
+  notices: Notice[];
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -96,6 +99,11 @@ interface State {
   setProjectFolder: (projectId: string, folder: string) => void;
   setProjectFolders: (folders: Record<string, string>) => void;
   setTmuxMissing: () => void;
+  startTask: (title: string, cancel?: () => void) => string;
+  setTaskProgress: (id: string, progress: number) => void;
+  endTask: (id: string) => void;
+  notify: (kind: NoticeKind, title: string, message: string) => void;
+  dismissNotice: (id: string) => void;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -132,6 +140,8 @@ export const useApp = create<State>((set, get) => ({
   showTerminal: false,
   projectFolders: {},
   tmuxMissing: false,
+  tasks: [],
+  notices: [],
 
   init: async () => {
     let settings = DEFAULTS;
@@ -240,6 +250,17 @@ export const useApp = create<State>((set, get) => ({
 
   setTmuxMissing: () => set({ tmuxMissing: true }),
 
+  startTask: (title, cancel) => {
+    const id = crypto.randomUUID();
+    set({ tasks: [...get().tasks, { id, title, cancel }] });
+    return id;
+  },
+  setTaskProgress: (id, progress) => set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, progress } : t)) }),
+  endTask: (id) => set({ tasks: get().tasks.filter((t) => t.id !== id) }),
+
+  notify: (kind, title, message) => set({ notices: withNotice(get().notices, { id: crypto.randomUUID(), kind, title, message }) }),
+  dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
+
   setProjectFolders: (projectFolders) => {
     set({ projectFolders });
     persist(get);
@@ -260,18 +281,33 @@ export const useApp = create<State>((set, get) => ({
   indexAll: async () => {
     if (get().indexing) return;
     set({ indexing: true });
+    let cancelled = false;
+    const task = get().startTask("Indexing streams and endpoints", () => {
+      cancelled = true;
+    });
     try {
       for (const id of get().rootIds) {
+        if (cancelled) return;
         if (get().nodes[id]?.childrenIds === undefined) await loadChildren(id, set, get);
         for (const childId of get().nodes[id]?.childrenIds ?? []) {
+          if (cancelled) return;
           const child = get().nodes[childId];
           if (child?.kind === "project" && child.childrenIds === undefined) await loadChildren(childId, set, get);
         }
       }
       // streams can sit under a project or directly under a connection
       const streams = Object.values(get().nodes).filter((n) => n.kind === "stream" && n.childrenIds === undefined);
-      await Promise.all(streams.map((n) => loadChildren(n.id, set, get)));
+      // still in parallel, as it was: the count rises as each one lands rather than in turn,
+      // so the bar stays honest without making the slow part slower
+      let done = 0;
+      await Promise.all(
+        streams.map(async (n) => {
+          await loadChildren(n.id, set, get);
+          get().setTaskProgress(task, ++done / streams.length);
+        }),
+      );
     } finally {
+      get().endTask(task);
       set({ indexing: false });
     }
   },
@@ -388,6 +424,7 @@ export const useApp = create<State>((set, get) => ({
     const conn = settings.connections.find((c) => c.id === tab?.connId);
     if (!tab || !conn) return;
     patchTab(id, { running: true, error: undefined });
+    const task = get().startTask(`Running the query on ${tab.streamLabel}`);
     const started = performance.now();
     try {
       const clauses = [tab.query.trim()].filter(Boolean);
@@ -403,6 +440,9 @@ export const useApp = create<State>((set, get) => ({
       patchTab(id, { page, took: Math.round(performance.now() - started), running: false, selectedRow: undefined });
     } catch (e) {
       patchTab(id, { error: (e as Error).message, running: false, page: undefined });
+      get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+    } finally {
+      get().endTask(task);
     }
   },
 }));
@@ -508,6 +548,7 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
   const conn = get().settings.connections.find((c) => c.id === node.connId);
   if (!node || !conn) return;
   set({ loading: { ...get().loading, [id]: true } });
+  const task = get().startTask(node.kind === "connection" ? `Connecting to ${conn.name || conn.graylogUrl}` : `Loading ${node.label}`);
   try {
     const made =
       node.kind === "connection"
@@ -521,7 +562,9 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
     set({ nodes });
   } catch (e) {
     set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: (e as Error).message } } });
+    get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
   } finally {
+    get().endTask(task);
     set({ loading: { ...get().loading, [id]: false } });
   }
 }

@@ -3,6 +3,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { Bug, ChevronDown, Database, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, SquareTerminal, Wrench } from "lucide-react";
 import { Logo } from "./Logo";
 import { useApp } from "@/store";
+import { taskLabel, visibleTask } from "@/lib/progress";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
@@ -125,9 +126,39 @@ export function StatusBar() {
       ) : (
         <span>Ready</span>
       )}
-      <span className="ml-auto">{settings.connections.length} data sources</span>
-      {version && <span title="Flux version">v{version}</span>}
+      <span className="ml-auto flex items-center gap-3">
+        <BackgroundTask />
+        <span>{settings.connections.length} data sources</span>
+        {version && <span title="Flux version">v{version}</span>}
+      </span>
     </div>
+  );
+}
+
+/**
+ * What the window is doing right now: the newest job, how far along it is when it knows, and
+ * a stop button only when there is something to stop.
+ */
+function BackgroundTask() {
+  const { tasks } = useApp();
+  const task = visibleTask(tasks);
+  if (!task) return null;
+  const pct = task.progress === undefined ? undefined : Math.round(Math.min(1, Math.max(0, task.progress)) * 100);
+  return (
+    <span className="flex items-center gap-2">
+      <span className="max-w-[240px] truncate">{taskLabel(tasks)}</span>
+      <span className="relative h-1 w-[110px] overflow-hidden rounded-full" style={{ background: "var(--bg-raised)" }}>
+        <span
+          className={pct === undefined ? "progress-drift absolute inset-y-0 w-1/3 rounded-full" : "absolute inset-y-0 left-0 rounded-full"}
+          style={{ background: "var(--accent)", width: pct === undefined ? undefined : `${pct}%` }}
+        />
+      </span>
+      {task.cancel && (
+        <button onClick={task.cancel} title="Stop" className="flex size-4 items-center justify-center rounded-[3px] hover:bg-[var(--bg-hover)]">
+          <span className="size-[9px] rounded-[2px]" style={{ border: "1.5px solid var(--red)" }} />
+        </button>
+      )}
+    </span>
   );
 }
 
