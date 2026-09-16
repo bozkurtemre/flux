@@ -3,8 +3,8 @@
 @import "@fontsource-variable/jetbrains-mono";
 
 /*
- * JetBrains New UI tokens as used by DataGrip 2024+ (dark) and its light theme.
- * DataGrip uses Inter for chrome and JetBrains Mono for editors and data grids.
+ * Theme tokens. Inter carries the interface, JetBrains Mono everything that holds data.
+ * Both themes are built for long sessions: low-chroma surfaces, panels floating as islands.
  */
 @theme {
   --font-ui: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -140,7 +140,7 @@ button {
   background: transparent;
 }
 
-/* CodeMirror shaped like the DataGrip query console */
+/* CodeMirror shaped like the query console it sits in */
 .cm-editor {
   background: var(--bg-editor) !important;
   color: var(--text) !important;

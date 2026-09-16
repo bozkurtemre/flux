@@ -125,7 +125,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
   ];
 }
 
-/** DataGrip stacks a title row over a toolbar row, both inside the island. */
+/** A title row over a toolbar row, both inside the island. */
 function PanelHeader() {
   return (
     <div className="flex h-[28px] shrink-0 items-center px-3">

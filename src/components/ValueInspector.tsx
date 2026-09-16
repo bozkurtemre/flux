@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import type { Tab } from "@/store";
 
-/** DataGrip's value viewer: the selected row as text or as syntax-coloured JSON. */
+/** The selected row, as syntax-coloured JSON with strings that hold JSON expanded. */
 export function ValueInspector({ tab }: { tab: Tab }) {
   const [copied, setCopied] = useState(false);
   const row = tab.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;

@@ -4,7 +4,7 @@ import { useApp, type Tab } from "@/store";
 
 const NUM_W = 52;
 
-/** DataGrip's result grid: a row-number gutter, sortable headers, one-line cells. */
+/** The result grid: a row-number gutter, sortable headers, one-line cells. */
 export function ResultGrid({ tab }: { tab: Tab }) {
   const { patchTab, settings } = useApp();
   const r = settings.results;
