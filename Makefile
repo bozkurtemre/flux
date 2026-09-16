@@ -108,7 +108,7 @@ bump:
 	@$(MAKE) --no-print-directory check
 	@v=$$(node scripts/version.mjs $(PART)) && \
 		git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json && \
-		git commit -m "Release v$$v" && \
+		git commit -m "chore(release): v$$v" && \
 		git tag -a "v$$v" -m "v$$v" && \
 		echo "tagged v$$v — push it with: make publish"
 
