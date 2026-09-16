@@ -1,8 +1,10 @@
 import { create } from "zustand";
+import { invoke } from "@tauri-apps/api/core";
 import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
+import { killTabCommand } from "@/lib/terminal";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -11,6 +13,8 @@ export interface TreeNode {
   id: string;
   kind: NodeKind;
   label: string;
+  /** Only on a project node: the project this stands for, which its name does not identify. */
+  projectId?: string;
   sub?: string;
   connId: string;
   streamId?: string;
@@ -38,6 +42,13 @@ export interface Tab {
   columns: string[];
 }
 
+/** One view onto a project's terminal session. The shell itself lives in tmux. */
+export interface TerminalTab {
+  id: string;
+  projectId: string;
+  title: string;
+}
+
 interface State {
   settings: Settings;
   ready: boolean;
@@ -53,6 +64,12 @@ interface State {
   settingsPage?: string;
   settingsConnId?: string;
   showSearch: boolean;
+  terminals: TerminalTab[];
+  activeTerminal?: string;
+  showTerminal: boolean;
+  projectFolders: Record<string, string>;
+  /** Set once a tab has had to start without tmux, so quitting stops promising persistence. */
+  tmuxMissing: boolean;
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -71,6 +88,14 @@ interface State {
   runQuery: (id: string) => Promise<void>;
   setShowSettings: (v: boolean, page?: string, connId?: string) => void;
   setShowSearch: (v: boolean, tab?: string) => void;
+  openTerminal: (projectId: string, title: string) => void;
+  closeTerminal: (id: string) => void;
+  killAllTerminals: () => Promise<void>;
+  toggleTerminal: () => void;
+  setActiveTerminal: (id: string) => void;
+  setProjectFolder: (projectId: string, folder: string) => void;
+  setProjectFolders: (folders: Record<string, string>) => void;
+  setTmuxMissing: () => void;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -103,6 +128,10 @@ export const useApp = create<State>((set, get) => ({
   showSettings: false,
   showSearch: false,
   indexing: false,
+  terminals: [],
+  showTerminal: false,
+  projectFolders: {},
+  tmuxMissing: false,
 
   init: async () => {
     let settings = DEFAULTS;
@@ -135,7 +164,13 @@ export const useApp = create<State>((set, get) => ({
       nodes[id] = { id, kind: "connection", label: c.name || c.graylogUrl, sub: c.graylogUrl, connId: c.id, depth: 0 };
       rootIds.push(id);
     }
-    set({ settings, nodes, rootIds });
+    // a project that no longer exists should not leave its folder behind in the workspace
+    const folders = Object.fromEntries(Object.entries(get().projectFolders).filter(([id]) => settings.projects.some((p) => p.id === id)));
+    const pruned = Object.keys(folders).length !== Object.keys(get().projectFolders).length;
+    set({ settings, nodes, rootIds, projectFolders: folders });
+    // only when something was actually dropped: init calls this before the workspace has
+    // been restored, and an unconditional save there would write the empty state over it
+    if (pruned) persist(get);
 
     try {
       if (gone.length) await forgetSecrets(gone);
@@ -153,6 +188,70 @@ export const useApp = create<State>((set, get) => ({
   },
   setShowSettings: (showSettings, settingsPage, settingsConnId) => set({ showSettings, settingsPage, settingsConnId }),
   setShowSearch: (showSearch, searchTab) => set({ showSearch, searchTab }),
+
+  /** A project with nowhere to open sends you to where you say where it lives. */
+  openTerminal: (projectId, title) => {
+    if (!get().projectFolders[projectId]) {
+      get().setShowSettings(true, "projects");
+      return;
+    }
+    const tab: TerminalTab = { id: crypto.randomUUID(), projectId, title };
+    set({ terminals: [...get().terminals, tab], activeTerminal: tab.id, showTerminal: true });
+    persist(get);
+  },
+
+  /** Closing on purpose ends the shell; hiding the panel does not. */
+  closeTerminal: (id) => {
+    const tab = get().terminals.find((t) => t.id === id);
+    const terminals = get().terminals.filter((t) => t.id !== id);
+    const activeTerminal = get().activeTerminal === id ? terminals[terminals.length - 1]?.id : get().activeTerminal;
+    set({ terminals, activeTerminal });
+    // the pty belongs to the view, which closes it as it unmounts; the window is ours
+    if (tab) {
+      const kill = killTabCommand(get().settings.terminal, tab.projectId, tab.id);
+      if (kill) void invoke("terminal_run", { program: kill.program, args: kill.args }).catch(() => {});
+    }
+    persist(get);
+  },
+
+  /** Every session at once, for the question asked when the app is closing. */
+  killAllTerminals: async () => {
+    const { terminals, settings } = get();
+    await Promise.all(
+      terminals.map(async (t) => {
+        const kill = killTabCommand(settings.terminal, t.projectId, t.id);
+        if (kill) await invoke("terminal_run", { program: kill.program, args: kill.args }).catch(() => {});
+      }),
+    );
+    // the workspace still lists them otherwise, and the next launch reopens what was closed
+    set({ terminals: [], activeTerminal: undefined });
+    persist(get);
+  },
+
+  toggleTerminal: () => {
+    set({ showTerminal: !get().showTerminal });
+    persist(get);
+  },
+
+  setActiveTerminal: (id) => {
+    set({ activeTerminal: id });
+    persist(get);
+  },
+
+  setTmuxMissing: () => set({ tmuxMissing: true }),
+
+  setProjectFolders: (projectFolders) => {
+    set({ projectFolders });
+    persist(get);
+  },
+
+  setProjectFolder: (projectId, folder) => {
+    const projectFolders = { ...get().projectFolders };
+    if (folder) projectFolders[projectId] = folder;
+    else delete projectFolders[projectId];
+    set({ projectFolders });
+    persist(get);
+  },
 
   /**
    * Fill the node map for every connection, project and stream without expanding anything,
@@ -355,8 +454,17 @@ const savedShape = (t: Tab): SavedTab => ({
 });
 
 function persist(get: Getter) {
-  const { expanded, selectedNode, tabs, activeTab } = get();
-  saveWorkspace({ expanded, selectedNode, tabs: tabs.map(savedShape), activeTab });
+  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, projectFolders } = get();
+  saveWorkspace({
+    expanded,
+    selectedNode,
+    tabs: tabs.map(savedShape),
+    activeTab,
+    terminals,
+    activeTerminal,
+    showTerminal,
+    projectFolders,
+  });
 }
 
 /**
@@ -365,6 +473,17 @@ function persist(get: Getter) {
  */
 async function restoreWorkspace(set: Setter, get: Getter) {
   const w = await loadWorkspace();
+  // terminals come back before the early return below: a window with only a terminal open
+  // is a perfectly ordinary way to have left the app
+  const projects = new Set(get().settings.projects.map((p) => p.id));
+  const terminals = w.terminals.filter((t) => projects.has(t.projectId));
+  set({
+    projectFolders: w.projectFolders,
+    terminals,
+    activeTerminal: terminals.some((t) => t.id === w.activeTerminal) ? w.activeTerminal : terminals[0]?.id,
+    showTerminal: !!w.showTerminal && terminals.length > 0,
+  });
+
   const live = new Set(get().settings.connections.map((c) => c.id));
   const tabs: Tab[] = w.tabs
     .filter((t) => live.has(t.connId))
@@ -437,6 +556,7 @@ async function connectionChildren(node: TreeNode, conn: Connection, force: boole
     out.push({
       id: `p:${conn.id}:${p.name}`,
       kind: "project",
+      projectId: p.id,
       label: p.name,
       sub: p.github,
       connId: conn.id,

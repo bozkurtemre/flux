@@ -69,6 +69,16 @@ export interface AdvancedSettings {
   confirmOnClose: boolean;
 }
 
+/** What to do with terminal sessions that are still running when the app quits. */
+export type OnQuit = "ask" | "kill" | "leave";
+
+export interface TerminalSettings {
+  useTmux: boolean;
+  tmuxPath: string; // empty: found on PATH, through the login shell
+  shell: string; // empty: whichever login shell the machine gives us
+  onQuit: OnQuit;
+}
+
 export interface Settings {
   connections: Connection[];
   projects: Project[];
@@ -76,6 +86,7 @@ export interface Settings {
   tree: TreeSettings;
   editor: EditorSettings;
   results: ResultSettings;
+  terminal: TerminalSettings;
   advanced: AdvancedSettings;
 }
 
@@ -106,6 +117,7 @@ export const DEFAULTS: Settings = {
     rowHeight: 24,
     autoRefreshSeconds: 0,
   },
+  terminal: { useTmux: true, tmuxPath: "", shell: "", onQuit: "ask" },
   advanced: { requestTimeoutSeconds: 60, fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
@@ -126,6 +138,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
         ? { defaultRangeSeconds: (s as { defaultRangeSeconds: number }).defaultRangeSeconds }
         : {}),
     },
+    terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}) },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },
   };
 }

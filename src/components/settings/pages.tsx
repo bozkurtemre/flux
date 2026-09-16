@@ -4,7 +4,8 @@ import { Button, Checkbox, Num, Row, Section, Select, Swatches, Text } from "./c
 import { Graylog, QUICK_RANGES } from "@/lib/graylog";
 import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings } from "@/lib/settings";
 import * as cache from "@/lib/cache";
-import { clientFor } from "@/store";
+import { clientFor, useApp } from "@/store";
+import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
 
@@ -537,6 +538,7 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
               <Row label="GitHub repository" hint="Shown beside the project in the tree. Optional.">
                 <Text value={project.github ?? ""} onChange={(v) => field({ github: v || undefined })} placeholder="owner/repo" mono />
               </Row>
+              <ProjectFolderRow projectId={project.id} />
               <Row label="Streams" hint={loading ? "Loading the stream list…" : "A stream can belong to one project."}>
                 <div className="max-h-[220px] overflow-auto rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
                   {streams.map((st) => {
@@ -577,6 +579,70 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+/**
+ * Where this project is checked out here. It is the one thing on this page that belongs to
+ * the machine rather than to the project, so it is kept out of the shared settings file.
+ */
+function ProjectFolderRow({ projectId }: { projectId: string }) {
+  const { projectFolders, setProjectFolder } = useApp();
+  const folder = projectFolders[projectId] ?? "";
+  return (
+    <Row label="Project folder" hint="Where a terminal for this project opens. Stays on this machine.">
+      <div className="flex items-center gap-1.5">
+        <Text value={folder} onChange={(v) => setProjectFolder(projectId, v)} width={260} placeholder="~/src/payments-api" mono />
+        <Button
+          onClick={() =>
+            void openFolder({ directory: true, multiple: false }).then((picked) => {
+              if (typeof picked === "string") setProjectFolder(projectId, picked);
+            })
+          }
+        >
+          Choose…
+        </Button>
+      </div>
+    </Row>
+  );
+}
+
+/** The terminal's own settings: the engine behind it, and what quitting does to it. */
+export function TerminalPage({ s, patch }: { s: Settings; patch: Patch }) {
+  const t = s.terminal;
+  const set = <K extends keyof typeof t>(k: K, v: (typeof t)[K]) => patch((x) => ({ ...x, terminal: { ...x.terminal, [k]: v } }));
+  return (
+    <>
+      <Section title="Sessions">
+        <Row>
+          <Checkbox
+            checked={t.useTmux}
+            onChange={(v) => set("useTmux", v)}
+            label="Persist sessions with tmux"
+            hint="A terminal keeps running after Flux closes, and comes back where you left it."
+          />
+        </Row>
+        <Row label="tmux path" hint="Leave empty to find it on PATH, through your login shell.">
+          <Text value={t.tmuxPath} onChange={(v) => set("tmuxPath", v)} width={260} placeholder="/opt/homebrew/bin/tmux" mono />
+        </Row>
+        <Row label="On quit" hint="What happens to sessions still running when Flux closes.">
+          <Select
+            value={t.onQuit}
+            onChange={(v) => set("onQuit", v)}
+            options={[
+              { value: "ask", label: "Ask me" },
+              { value: "kill", label: "Close them" },
+              { value: "leave", label: "Leave them running" },
+            ]}
+          />
+        </Row>
+      </Section>
+      <Section title="Shell">
+        <Row label="Shell" hint="Leave empty for your login shell.">
+          <Text value={t.shell} onChange={(v) => set("shell", v)} width={260} placeholder="/bin/zsh" mono />
+        </Row>
+      </Section>
     </>
   );
 }

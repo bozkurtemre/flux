@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 import { Button } from "./controls";
-import { AdvancedPage, AppearancePage, DataSourcesPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, type Patch } from "./pages";
+import { AdvancedPage, AppearancePage, DataSourcesPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, TerminalPage, type Patch } from "./pages";
 import { applyAppearance, DEFAULTS, type Settings } from "@/lib/settings";
 import { useApp } from "@/store";
 
@@ -44,6 +44,12 @@ const PAGES: PageDef[] = [
     render: ({ s, patch }) => <ResultsPage s={s} patch={patch} />,
   },
   {
+    id: "terminal",
+    label: "Terminal",
+    keywords: "terminal tmux shell session pty path quit persist",
+    render: ({ s, patch }) => <TerminalPage s={s} patch={patch} />,
+  },
+  {
     id: "projects",
     label: "Projects",
     keywords: "project group stream github repository service",
@@ -79,8 +85,12 @@ export function SettingsDialog() {
     applyAppearance(draft.appearance);
   }, [draft.appearance]);
 
+  // project folders live in the workspace rather than in the draft, so Cancel has to put
+  // them back itself for this window to mean what it says
+  const foldersOnOpen = useRef(useApp.getState().projectFolders);
   const cancel = () => {
     applyAppearance(settings.appearance);
+    useApp.getState().setProjectFolders(foldersOnOpen.current);
     setShowSettings(false);
   };
   const apply = async () => {

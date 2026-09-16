@@ -1,14 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { DatabaseExplorer } from "@/components/DatabaseExplorer";
 import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
+import { TerminalPanel } from "@/components/TerminalPanel";
+import { ConfirmDialog } from "@/components/ContextMenu";
+import { Checkbox } from "@/components/settings/controls";
+import { quitAction } from "@/lib/terminal";
 import { useApp } from "@/store";
 
 export default function App() {
-  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings } = useApp();
+  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal } = useApp();
+  const [askQuit, setAskQuit] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   useEffect(() => {
     void init();
@@ -42,6 +49,11 @@ export default function App() {
         e.preventDefault();
         useApp.getState().setShowSearch(true);
       }
+      // ⌥F12, the shortcut the modelled IDE gives its terminal
+      if (e.altKey && e.key === "F12") {
+        e.preventDefault();
+        useApp.getState().toggleTerminal();
+      }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
         e.preventDefault();
         useApp.getState().setShowSearch(true, "endpoints");
@@ -50,6 +62,23 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [activeTab, runQuery]);
+
+  // Sessions outlive the app on purpose, so closing the window is a question, not a given.
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const pending = win.onCloseRequested((e) => {
+      const { terminals, settings, tmuxMissing, killAllTerminals } = useApp.getState();
+      const action = quitAction(settings.terminal.onQuit, terminals.length, settings.terminal.useTmux && !tmuxMissing);
+      if (action === "leave") return;
+      e.preventDefault(); // the answer needs a round trip, so the window waits for it
+      if (action === "kill") {
+        void killAllTerminals().then(() => win.destroy());
+        return;
+      }
+      setAskQuit(true);
+    });
+    return () => void pending.then((stop) => stop());
+  }, []);
 
   // a desktop app never shows the webview's own menu; text fields keep theirs
   useEffect(() => {
@@ -92,24 +121,63 @@ export default function App() {
       <TitleBar />
       <div className="flex min-h-0 flex-1">
         <LeftStripe />
-        <Group orientation="horizontal" className="min-h-0 flex-1">
-          <Panel defaultSize="26" minSize="14" maxSize="50">
-            <div className="island h-full">
-              <DatabaseExplorer />
-            </div>
+        <Group orientation="vertical" className="min-h-0 flex-1">
+          <Panel minSize="20">
+            <Group orientation="horizontal" className="h-full min-h-0">
+              <Panel defaultSize="26" minSize="14" maxSize="50">
+                <div className="island h-full">
+                  <DatabaseExplorer />
+                </div>
+              </Panel>
+              <Separator className="w-1.5" />
+              <Panel minSize="30">
+                <div className="island-editor h-full">
+                  <EditorArea />
+                </div>
+              </Panel>
+            </Group>
           </Panel>
-          <Separator className="w-1.5" />
-          <Panel minSize="30">
-            <div className="island-editor h-full">
-              <EditorArea />
-            </div>
-          </Panel>
+          {showTerminal && <Separator className="h-1.5" />}
+          {showTerminal && (
+            <Panel defaultSize="32" minSize="10" maxSize="80">
+              <TerminalPanel />
+            </Panel>
+          )}
         </Group>
         <RightStripe />
       </div>
       <StatusBar />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}
+      {askQuit && <QuitPrompt remember={remember} setRemember={setRemember} onDone={() => setAskQuit(false)} />}
     </div>
+  );
+}
+
+/**
+ * Asked once, and then only as often as you want: the remembered answer becomes the
+ * terminal's on-quit preference, which the settings window can change back.
+ */
+function QuitPrompt({ remember, setRemember, onDone }: { remember: boolean; setRemember: (v: boolean) => void; onDone: () => void }) {
+  const { terminals, settings, setSettings, killAllTerminals } = useApp();
+  const answer = async (kill: boolean) => {
+    if (remember) await setSettings({ ...settings, terminal: { ...settings.terminal, onQuit: kill ? "kill" : "leave" } });
+    if (kill) await killAllTerminals();
+    onDone();
+    await getCurrentWindow().destroy();
+  };
+  const run = (kill: boolean) => void answer(kill).catch((e: unknown) => console.error("could not close the window", e));
+  return (
+    <ConfirmDialog
+      title={`Close ${terminals.length} terminal ${terminals.length === 1 ? "session" : "sessions"}?`}
+      message="Left running, they keep working in tmux and come back the next time you open Flux."
+      confirmLabel="Close them"
+      cancelLabel="Leave them running"
+      danger={false}
+      extra={<Checkbox checked={remember} onChange={setRemember} label="Do not ask again" />}
+      onConfirm={() => run(true)}
+      onCancel={() => run(false)}
+      onDismiss={onDone}
+    />
   );
 }

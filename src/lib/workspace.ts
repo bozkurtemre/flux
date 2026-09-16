@@ -5,7 +5,7 @@ import { load, type Store } from "@tauri-apps/plugin-store";
 import type { EndpointRow } from "./endpoints";
 
 const FILE = "workspace.json";
-const FORMAT = 1;
+const FORMAT = 2;
 
 /** A tab without its results: those are re-run, never restored from disk. */
 export interface SavedTab {
@@ -20,15 +20,27 @@ export interface SavedTab {
   columns: string[];
 }
 
+/** A terminal tab is its project and its name; the shell behind it is tmux's problem. */
+export interface SavedTerminal {
+  id: string;
+  projectId: string;
+  title: string;
+}
+
 export interface Workspace {
   format: number;
   expanded: Record<string, boolean>;
   selectedNode?: string;
   tabs: SavedTab[];
   activeTab?: string;
+  /** Where each project is checked out on this machine, by project id. */
+  projectFolders: Record<string, string>;
+  terminals: SavedTerminal[];
+  activeTerminal?: string;
+  showTerminal?: boolean;
 }
 
-const empty: Workspace = { format: FORMAT, expanded: {}, tabs: [] };
+const empty: Workspace = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };
 
 let store: Store | undefined;
 async function file(): Promise<Store> {
@@ -39,8 +51,9 @@ async function file(): Promise<Store> {
 export async function loadWorkspace(): Promise<Workspace> {
   try {
     const saved = await (await file()).get<Workspace>("workspace");
-    // a format bump discards rather than migrates; nothing here is worth a migration
-    return saved?.format === FORMAT ? { ...empty, ...saved } : empty;
+    // a format bump discards rather than migrates, except the project folders: those were
+    // typed in by hand and are the one thing here nobody would thank us for dropping
+    return saved?.format === FORMAT ? { ...empty, ...saved } : { ...empty, projectFolders: saved?.projectFolders ?? {} };
   } catch {
     return empty;
   }

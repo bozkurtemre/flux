@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, ChevronDown, Database, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Play, Search, Wrench } from "lucide-react";
+import { Bug, ChevronDown, Database, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, SquareTerminal, Wrench } from "lucide-react";
 import { Logo } from "./Logo";
 import { useApp } from "@/store";
 
@@ -38,6 +38,7 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
+  const { showTerminal, toggleTerminal } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton active title="Database Explorer">
@@ -47,8 +48,8 @@ export function LeftStripe() {
         <MoreHorizontal size={16} />
       </StripeButton>
       <div className="flex-1" />
-      <StripeButton title="Run">
-        <Play size={16} style={{ color: "var(--green)" }} />
+      <StripeButton title="Terminal (⌥F12)" active={showTerminal} onClick={toggleTerminal}>
+        <SquareTerminal size={16} />
       </StripeButton>
       <StripeButton title="Version control">
         <GitBranch size={16} />

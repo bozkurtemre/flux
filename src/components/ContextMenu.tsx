@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 export interface MenuItem {
   label?: string;
@@ -104,26 +104,38 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel = "Delete",
+  cancelLabel = "Cancel",
+  danger = true,
+  extra,
   onConfirm,
   onCancel,
+  onDismiss,
 }: {
   title: string;
   message: string;
   confirmLabel?: string;
+  cancelLabel?: string;
+  /** False when the confirming button is not destroying anything. */
+  danger?: boolean;
+  /** A control that belongs to the question itself, such as "do not ask again". */
+  extra?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Escape and the backdrop, when walking away is not the same as the cancel button. */
+  onDismiss?: () => void;
 }) {
+  const dismiss = onDismiss ?? onCancel;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") dismiss();
       if (e.key === "Enter") onConfirm();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel, onConfirm]);
+  }, [dismiss, onConfirm]);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(0,0,0,.45)" }} onMouseDown={onCancel}>
+    <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(0,0,0,.45)" }} onMouseDown={dismiss}>
       <div
         onMouseDown={(e) => e.stopPropagation()}
         className="w-[420px] rounded-[10px] p-4"
@@ -133,18 +145,23 @@ export function ConfirmDialog({
         <p className="mt-1.5 text-[13px]" style={{ color: "var(--text-dim)" }}>
           {message}
         </p>
+        {extra && <div className="mt-3">{extra}</div>}
         <div className="mt-4 flex justify-end gap-2">
           <button
             onClick={onCancel}
             className="h-[26px] rounded-[4px] px-3 text-[13px]"
             style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
           >
-            Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             className="h-[26px] rounded-[4px] px-3 text-[13px]"
-            style={{ background: "var(--red)", border: "1px solid var(--red)", color: "#fff" }}
+            style={
+              danger
+                ? { background: "var(--red)", border: "1px solid var(--red)", color: "#fff" }
+                : { background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }
+            }
           >
             {confirmLabel}
           </button>

@@ -96,9 +96,16 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
   }
 
   if (node.kind === "project") {
+    const project = app.settings.projects.find((p) => p.id === node.projectId);
     return [
       { label: "Expand", onClick: () => void app.toggle(node.id) },
       { label: "Refresh", shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
+      { separator: true },
+      {
+        label: "Open Terminal",
+        disabled: !project,
+        onClick: () => project && app.openTerminal(project.id, project.name),
+      },
       { separator: true },
       { label: "Copy Name", onClick: () => copy(node.label) },
       { label: "Copy GitHub Repository", disabled: !node.sub, onClick: () => copy(node.sub ?? "") },
