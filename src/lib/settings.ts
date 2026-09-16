@@ -91,7 +91,7 @@ export const DEFAULTS: Settings = {
     colorByHealth: true,
     sortEndpointsBy: "traffic",
     endpointLimit: 500,
-    lookbackHours: 24,
+    lookbackHours: 1,
   },
   editor: { fontSize: 13, lineNumbers: true, wrap: true, autocomplete: true, highlightActiveLine: true, runOnOpen: true },
   results: {

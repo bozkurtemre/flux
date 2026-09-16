@@ -93,12 +93,17 @@ function StripeButton({ children, active, title, onClick }: { children: ReactNod
 }
 
 export function StatusBar() {
-  const { tabs, activeTab, settings } = useApp();
+  const { tabs, activeTab, settings, settingsError } = useApp();
   const version = useAppVersion();
   const tab = tabs.find((t) => t.id === activeTab);
   const conn = settings.connections.find((c) => c.id === tab?.connId);
   return (
     <div className="flex h-6 shrink-0 items-center gap-3 px-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+      {settingsError && (
+        <span className="truncate" style={{ color: "var(--red)" }} title={settingsError}>
+          {settingsError}
+        </span>
+      )}
       {tab ? (
         <>
           <span className="flex items-center gap-1.5">

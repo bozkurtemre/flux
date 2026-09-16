@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inferMapping, sortEndpoints, type EndpointRow } from "./endpoints";
+import { inferMapping, requestFilter, sortEndpoints, type EndpointRow } from "./endpoints";
 
 const f = (...names: string[]) => names.map((name) => ({ name, type: "string" }));
 
@@ -44,5 +44,16 @@ describe("sorting", () => {
     expect(sortEndpoints(rows, "traffic").map((r) => r.endpoint)).toEqual(["/a", "/b"]);
     expect(sortEndpoints(rows, "errors").map((r) => r.endpoint)).toEqual(["/b", "/a"]);
     expect(sortEndpoints(rows, "name").map((r) => r.endpoint)).toEqual(["/a", "/b"]);
+  });
+});
+
+describe("request filter", () => {
+  it("prefers a duration field, since a line with one is a finished request", () => {
+    expect(requestFilter({ route: "route", duration: "responseTime", durationIsSeconds: true })).toBe("_exists_:responseTime");
+  });
+
+  it("falls back to the status field, then to everything", () => {
+    expect(requestFilter({ route: "route", status: "httpStatusCode", durationIsSeconds: false })).toBe("_exists_:httpStatusCode");
+    expect(requestFilter({ route: "route", durationIsSeconds: false })).toBe("*");
   });
 });

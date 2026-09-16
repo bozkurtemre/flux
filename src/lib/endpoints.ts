@@ -28,6 +28,20 @@ export interface FieldMapping {
   durationIsSeconds: boolean;
 }
 
+/**
+ * Restrict the aggregation to the lines that represent a finished request.
+ *
+ * Without this, a service that logs several lines per request counts each of them:
+ * on one production stream the unfiltered query reported 24.7M "requests" against an
+ * actual 2.99M. A line carrying a duration is a completed request; a status is the next
+ * best proxy. It also scans far less, which halves the query time.
+ */
+export function requestFilter(map: FieldMapping): string {
+  if (map.duration) return `_exists_:${map.duration}`;
+  if (map.status) return `_exists_:${map.status}`;
+  return "*";
+}
+
 /** Pick the fields this stream actually has. Returns null when it carries no route at all. */
 export function inferMapping(fields: FieldInfo[]): FieldMapping | null {
   const has = (n: string) => fields.some((f) => f.name === n);
@@ -48,10 +62,14 @@ export function inferMapping(fields: FieldInfo[]): FieldMapping | null {
 /**
  * Two cheap aggregations rather than one expensive cube.
  *
- * Grouping route × method × status multiplies into hundreds of thousands of buckets on a
+ * Grouping route by method by status multiplies into hundreds of thousands of buckets on a
  * busy stream and times out. Grouping by route and method alone is a few thousand, and the
  * 5xx counts come from the same shape under a status filter, so the second query only ever
  * touches the error slice. Both run together.
+ *
+ * Cost is driven by the time range, not the bucket count: on the busiest production stream
+ * one hour takes about a second, six hours four, twenty-four hours ten. Measurements are in
+ * docs/research/graylog-cost.md.
  */
 export async function endpointsFromGraylog(
   g: Graylog,
@@ -69,11 +87,18 @@ export async function endpointsFromGraylog(
   if (map.duration) metrics.push({ function: "percentile", field: map.duration, configuration: { percentile: 95 } });
 
   const timerange = { type: "relative" as const, range: o.lookbackHours * 3600 };
+  const filter = requestFilter(map);
   const [totals, failures] = await Promise.all([
-    g.aggregate({ query: "*", streams: [streamId], timerange, groupBy, metrics }),
+    g.aggregate({ query: filter, streams: [streamId], timerange, groupBy, metrics }),
     map.status
       ? g
-          .aggregate({ query: `${map.status}:>=500`, streams: [streamId], timerange, groupBy, metrics: [{ function: "count" }] })
+          .aggregate({
+            query: `${filter} AND ${map.status}:>=500`,
+            streams: [streamId],
+            timerange,
+            groupBy,
+            metrics: [{ function: "count" }],
+          })
           .catch(() => ({ columns: [], rows: [] as unknown[][] }))
       : Promise.resolve({ columns: [], rows: [] as unknown[][] }),
   ]);

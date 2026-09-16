@@ -53,6 +53,8 @@ interface State {
   settingsConnId?: string;
   showSearch: boolean;
   searchTab?: string;
+  /** Set when settings could not be written, e.g. the credential store refused. */
+  settingsError?: string;
   indexing: boolean;
 
   init: () => Promise<void>;
@@ -102,17 +104,26 @@ export const useApp = create<State>((set, get) => ({
   indexing: false,
 
   init: async () => {
-    const settings = await loadSettings();
-    applyAppearance(settings.appearance);
-    setRequestTimeout(settings.advanced.requestTimeoutSeconds);
-    set({ settings, ready: true });
-    get().setSettings(settings);
+    let settings = DEFAULTS;
+    let settingsError: string | undefined;
+    try {
+      settings = await loadSettings();
+    } catch (e) {
+      // a broken settings file must still leave a usable window
+      settingsError = `Settings could not be read: ${(e as Error).message}`;
+    }
+    set({ ready: true, settingsError });
+    await get().setSettings(settings);
   },
 
+  /**
+   * The window reflects the settings first and persists them after. Writing can fail,
+   * the credential store in particular can refuse after the app is re-signed, and a
+   * failed write must never leave the explorer empty with no explanation.
+   */
   setSettings: async (settings) => {
     const gone = get().settings.connections.filter((old) => !settings.connections.some((c) => c.id === old.id));
-    if (gone.length) await forgetSecrets(gone);
-    await saveSettings(settings);
+
     applyAppearance(settings.appearance);
     setRequestTimeout(settings.advanced.requestTimeoutSeconds);
     const nodes: Record<string, TreeNode> = {};
@@ -123,6 +134,14 @@ export const useApp = create<State>((set, get) => ({
       rootIds.push(id);
     }
     set({ settings, nodes, rootIds });
+
+    try {
+      if (gone.length) await forgetSecrets(gone);
+      await saveSettings(settings);
+      set({ settingsError: undefined });
+    } catch (e) {
+      set({ settingsError: `Settings not saved: ${(e as Error).message}` });
+    }
   },
 
   setFilter: (filter) => set({ filter }),
@@ -318,7 +337,7 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
       node.kind === "connection"
         ? await connectionChildren(node, conn, force)
         : node.kind === "project"
-          ? projectChildren(node, get)
+          ? await projectChildren(node, get)
           : await streamChildren(node, conn, force);
     const nodes = { ...get().nodes };
     for (const n of made) nodes[n.id] = { ...(nodes[n.id] ?? {}), ...n };
@@ -374,15 +393,17 @@ async function connectionChildren(node: TreeNode, conn: Connection, force: boole
   return out;
 }
 
-function projectChildren(node: TreeNode, get: Getter): TreeNode[] {
+/** Streams a project claims. Titles come from the cached stream list, never the bare id. */
+async function projectChildren(node: TreeNode, get: Getter): Promise<TreeNode[]> {
   const conn = get().settings.connections.find((c) => c.id === node.connId)!;
   const ids = (node.streamId ?? "").split(",").filter(Boolean);
+  const byId = new Map((await cache.load(cache.cacheKey(conn.id))).streams.map((st) => [st.id, st]));
   const known = get().nodes;
   return ids.map((sid) => {
     const existing = known[`s:${conn.id}:${sid}`];
-    return existing
-      ? { ...existing, depth: 2 }
-      : { id: `s:${conn.id}:${sid}`, kind: "stream" as const, label: sid, connId: conn.id, streamId: sid, depth: 2 };
+    if (existing) return { ...existing, depth: 2 };
+    const st = byId.get(sid);
+    return streamNode(st ?? { id: sid, title: sid, disabled: false }, conn.id, 2);
   });
 }
 

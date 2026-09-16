@@ -93,7 +93,10 @@ export function TreePage({ s, patch }: { s: Settings; patch: Patch }) {
         <Row label="Endpoints per stream" hint="An upper bound on how many endpoints one stream contributes to the tree.">
           <Num value={t.endpointLimit} onChange={(v) => set("endpointLimit", v)} min={50} max={5000} step={50} width={110} />
         </Row>
-        <Row label="Look back" hint="The window used to decide which endpoints exist and how busy they are.">
+        <Row
+          label="Look back"
+          hint="The window that decides which endpoints exist and how busy they are. Cost grows with it: roughly a second at 1 hour, four at 6, ten at 24 on a busy stream. The result is cached, so only the first open and Refresh pay it."
+        >
           <Num value={t.lookbackHours} onChange={(v) => set("lookbackHours", v)} min={1} max={720} suffix="hours" />
         </Row>
       </Section>
