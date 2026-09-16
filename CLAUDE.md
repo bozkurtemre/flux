@@ -37,5 +37,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   escaped, and nothing uses `dangerouslySetInnerHTML` or `innerHTML`. With the terminal in
   the window this stopped being a style preference: the webview can run commands, so a
   script that executes there executes on the machine. See `docs/adr/0002`.
+- **Commit messages follow Conventional Commits**: `type: description`, from `feat`, `fix`,
+  `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The body
+  still carries the why, as it always did. `.githooks/commit-msg` refuses anything else.
 - **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier, Vitest and
   Clippy. `make hooks` runs the same gate before each commit.
