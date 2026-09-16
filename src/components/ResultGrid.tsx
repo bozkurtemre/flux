@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Columns3, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Columns3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useApp, type Tab } from "@/store";
 import { moveColumn } from "@/lib/columns";
@@ -201,9 +201,15 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   );
 }
 
+const PAGE_SIZES = [100, 250, 500, 1000];
+
 function GridFooter({ tab, count, columns }: { tab: Tab; count: number; columns: string[] }) {
-  const { runQuery } = useApp();
+  const { runQuery, settings, setPage, setPageSize } = useApp();
   const [picking, setPicking] = useState(false);
+  const [sizing, setSizing] = useState(false);
+  const size = settings.results.pageSize;
+  const offset = tab.offset ?? 0;
+  const step = "rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent";
   return (
     <div
       className="relative flex h-[26px] shrink-0 items-center gap-3 px-2 text-[11px]"
@@ -212,10 +218,40 @@ function GridFooter({ tab, count, columns }: { tab: Tab; count: number; columns:
       <button onClick={() => void runQuery(tab.id)} className="rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)]">
         Reload
       </button>
-      <span>{count} rows</span>
+      <button onClick={() => setSizing((v) => !v)} data-tip="Rows per page" className="rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)]">
+        {count} rows
+      </button>
+      {sizing && (
+        <Popup onClose={() => setSizing(false)} className="bottom-[30px] left-16 w-[120px]">
+          {PAGE_SIZES.map((n) => (
+            <button
+              key={n}
+              onClick={() => {
+                setPageSize(tab.id, n);
+                setSizing(false);
+              }}
+              className="flex h-[24px] w-full items-center gap-2 px-2.5 text-[12px] hover:bg-[var(--bg-hover)]"
+              style={{ color: "var(--text)" }}
+            >
+              <span style={{ width: 12, color: "var(--accent)" }}>{n === size ? "✓" : ""}</span>
+              {n} rows
+            </button>
+          ))}
+        </Popup>
+      )}
+      <span className="flex items-center gap-0.5">
+        <button className={step} disabled={offset === 0} onClick={() => setPage(tab.id, offset - size)} data-tip="Previous page">
+          <ChevronLeft size={13} />
+        </button>
+        <span className="tabular-nums" style={{ minWidth: 72, textAlign: "center" }}>
+          {count ? `${offset + 1}–${offset + count}` : "—"}
+        </span>
+        <button className={step} disabled={count < size} onClick={() => setPage(tab.id, offset + size)} data-tip="Next page">
+          <ChevronRight size={13} />
+        </button>
+      </span>
       {tab.took != null && <span>{tab.took} ms</span>}
       <span className="ml-auto flex items-center gap-2">
-        {count >= 500 ? "first 500 shown" : ""}
         <button
           onClick={() => setPicking((v) => !v)}
           data-tip="Columns"
@@ -231,14 +267,9 @@ function GridFooter({ tab, count, columns }: { tab: Tab; count: number; columns:
   );
 }
 
-/**
- * Which columns are on screen. The list is every field this stream has, so a field that the
- * last query did not ask for can be ticked here and fetched by the next one.
- */
-function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; onClose: () => void }) {
-  const { setColumns, resetColumns } = useApp();
+/** A small panel above the footer, closed by Escape or by clicking anywhere else. */
+function Popup({ children, onClose, className }: { children: ReactNode; onClose: () => void; className: string }) {
   const ref = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const away = (e: MouseEvent) => {
       if (!ref.current?.contains(e.target as Node)) onClose();
@@ -251,6 +282,23 @@ function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; 
       window.removeEventListener("keydown", onKey);
     };
   }, [onClose]);
+  return (
+    <div
+      ref={ref}
+      className={`absolute z-30 flex max-h-[320px] flex-col overflow-hidden rounded-[8px] py-1 ${className}`}
+      style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Which columns are on screen. The list is every field this stream has, so a field that the
+ * last query did not ask for can be ticked here and fetched by the next one.
+ */
+function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; onClose: () => void }) {
+  const { setColumns, resetColumns } = useApp();
 
   const available = useMemo(() => {
     const all = new Set([...columns, ...(tab.page?.columns ?? []), ...tab.fields.map((f) => f.name)]);
@@ -265,11 +313,7 @@ function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; 
   };
 
   return (
-    <div
-      ref={ref}
-      className="absolute right-2 bottom-[30px] z-30 flex max-h-[320px] w-[260px] flex-col rounded-[8px] py-1"
-      style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}
-    >
+    <Popup onClose={onClose} className="right-2 bottom-[30px] w-[260px]">
       <div className="min-h-0 flex-1 overflow-y-auto">
         {available.map((name) => (
           <label key={name} className="flex h-[24px] cursor-default items-center gap-2 px-2.5 text-[12px] hover:bg-[var(--bg-hover)]">
@@ -291,7 +335,7 @@ function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; 
         <RotateCcw size={11} />
         Reset to default
       </button>
-    </div>
+    </Popup>
   );
 }
 

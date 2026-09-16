@@ -44,6 +44,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** How far into the result the page on screen starts. */
+  offset?: number;
 }
 
 /** One view onto a project's terminal session. The shell itself lives in tmux. */
@@ -94,6 +96,8 @@ interface State {
   patchTab: (id: string, patch: Partial<Tab>) => void;
   setColumns: (tabId: string, layout: string[]) => void;
   resetColumns: (tabId: string) => void;
+  setPage: (tabId: string, offset: number) => void;
+  setPageSize: (tabId: string, size: number) => void;
   runQuery: (id: string) => Promise<void>;
   setShowSettings: (v: boolean, page?: string, connId?: string) => void;
   setShowSearch: (v: boolean, tab?: string) => void;
@@ -398,6 +402,8 @@ export const useApp = create<State>((set, get) => ({
   },
 
   patchTab: (id, patch) => {
+    // a different question is asked from the first page, not from wherever you had scrolled to
+    if (("query" in patch || "rangeSeconds" in patch) && !("offset" in patch)) patch = { ...patch, offset: 0 };
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
     // only the parts worth reopening with
     if ("query" in patch || "rangeSeconds" in patch || "columns" in patch || "layout" in patch) persist(get);
@@ -455,6 +461,19 @@ export const useApp = create<State>((set, get) => ({
     void get().setSettings({ ...get().settings, connections });
   },
 
+  /** Paging is a fresh search from a different offset: Graylog holds no cursor for us. */
+  setPage: (tabId, offset) => {
+    get().patchTab(tabId, { offset: Math.max(0, offset) });
+    void get().runQuery(tabId);
+  },
+
+  setPageSize: (tabId, pageSize) => {
+    const { settings } = get();
+    void get().setSettings({ ...settings, results: { ...settings.results, pageSize } });
+    get().patchTab(tabId, { offset: 0 });
+    void get().runQuery(tabId);
+  },
+
   runQuery: async (id) => {
     const { tabs, settings, patchTab } = get();
     const tab = tabs.find((t) => t.id === id);
@@ -474,6 +493,7 @@ export const useApp = create<State>((set, get) => ({
         timerange: absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to),
         fields: columnsForQuery(tab),
         size: settings.results.pageSize,
+        from: tab.offset ?? 0,
         signal: stop.signal,
       });
       patchTab(id, { page, took: Math.round(performance.now() - started), running: false, selectedRow: undefined });
