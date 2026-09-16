@@ -48,17 +48,33 @@ jobs:
           pnpm test
           cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings
 
-      # Signed and notarized when the secrets are present, unsigned when they are not, so
-      # a release never fails over a certificate the repository has not been given yet.
+      # Signed and notarized when the secrets exist, unsigned when they do not. A missing
+      # secret arrives as an empty string, and an empty APPLE_CERTIFICATE is worse than no
+      # certificate at all: Tauri sees the variable, imports nothing, and fails the build.
+      # So the variables are only exported once there is something in them.
       - name: Build
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm tauri build --bundles app,dmg
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          NOTARY_ID: ${{ secrets.APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          NOTARY_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$CERTIFICATE" ]; then
+            export APPLE_CERTIFICATE="$CERTIFICATE"
+            export APPLE_CERTIFICATE_PASSWORD="$CERTIFICATE_PASSWORD"
+            export APPLE_SIGNING_IDENTITY="$SIGNING_IDENTITY"
+            echo "signing with $SIGNING_IDENTITY"
+          else
+            echo "no signing certificate in this repository: building unsigned"
+          fi
+          if [ -n "$NOTARY_ID" ] && [ -n "$NOTARY_PASSWORD" ] && [ -n "$NOTARY_TEAM" ]; then
+            export APPLE_ID="$NOTARY_ID"
+            export APPLE_PASSWORD="$NOTARY_PASSWORD"
+            export APPLE_TEAM_ID="$NOTARY_TEAM"
+          fi
+          pnpm tauri build --bundles app,dmg
 
       - name: Package the .app
         run: |
