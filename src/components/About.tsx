@@ -33,9 +33,15 @@ export function About() {
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className="flex w-[320px] flex-col items-center rounded-[12px] px-6 py-7"
+        className="relative flex w-[320px] flex-col items-center rounded-[12px] px-6 pt-9 pb-5"
         style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 24px 64px rgba(0,0,0,.55)" }}
       >
+        {/* as the system panel has them: only closing is available, so only that one is lit */}
+        <div className="absolute top-3.5 left-3.5 flex gap-2">
+          <button onClick={() => setOpen(false)} title="Close" className="size-3 rounded-full" style={{ background: "#ff5f57" }} />
+          <span className="size-3 rounded-full" style={{ background: "var(--bg-raised)" }} />
+          <span className="size-3 rounded-full" style={{ background: "var(--bg-raised)" }} />
+        </div>
         <Logo size={72} radius={16} />
         <p className="mt-4 text-[15px] font-semibold">Flux</p>
         <p className="mt-1 text-[12px]" style={{ color: "var(--text-dim)" }}>
@@ -50,6 +56,13 @@ export function About() {
         <p className="mt-4 text-[11px]" style={{ color: "var(--text-muted)" }}>
           The modern log explorer, for Graylog
         </p>
+        <button
+          onClick={() => setOpen(false)}
+          className="mt-5 h-[26px] rounded-[4px] px-4 text-[13px]"
+          style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
+        >
+          Close
+        </button>
       </div>
     </div>
   );
