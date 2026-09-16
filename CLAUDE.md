@@ -33,5 +33,9 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   Graylog. Keep it that way, or expanding a node starts costing seconds again.
 - **Never group route by method by status in one aggregation.** It times out on a busy
   stream. `src/lib/endpoints.ts` splits it into two queries for this reason.
+- **Log content is never rendered as HTML.** Graylog fields reach the screen as React text,
+  escaped, and nothing uses `dangerouslySetInnerHTML` or `innerHTML`. With the terminal in
+  the window this stopped being a style preference: the webview can run commands, so a
+  script that executes there executes on the machine. See `docs/adr/0002`.
 - **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier, Vitest and
   Clippy. `make hooks` runs the same gate before each commit.
