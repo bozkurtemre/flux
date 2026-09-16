@@ -40,7 +40,10 @@ export interface Tab {
   took?: number;
   fields: FieldInfo[];
   selectedRow?: number;
+  /** The fields asked of Graylog. */
   columns: string[];
+  /** The columns on screen, in order. Absent means the grid arranges what came back. */
+  layout?: string[];
 }
 
 /** One view onto a project's terminal session. The shell itself lives in tmux. */
@@ -89,6 +92,8 @@ interface State {
   closeTab: (id: string) => void;
   setActive: (id: string) => void;
   patchTab: (id: string, patch: Partial<Tab>) => void;
+  setColumns: (tabId: string, layout: string[]) => void;
+  resetColumns: (tabId: string) => void;
   runQuery: (id: string) => Promise<void>;
   setShowSettings: (v: boolean, page?: string, connId?: string) => void;
   setShowSearch: (v: boolean, tab?: string) => void;
@@ -371,7 +376,8 @@ export const useApp = create<State>((set, get) => ({
       rangeSeconds: settings.results.defaultRangeSeconds,
       running: false,
       fields: [],
-      columns: DEFAULT_COLUMNS,
+      columns: conn.columns?.length ? conn.columns : DEFAULT_COLUMNS,
+      layout: conn.columns?.length ? conn.columns : undefined,
     };
     set({ tabs: [...tabs, tab], activeTab: tab.id });
     persist(get);
@@ -394,7 +400,7 @@ export const useApp = create<State>((set, get) => ({
   patchTab: (id, patch) => {
     set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
     // only the parts worth reopening with
-    if ("query" in patch || "rangeSeconds" in patch || "columns" in patch) persist(get);
+    if ("query" in patch || "rangeSeconds" in patch || "columns" in patch || "layout" in patch) persist(get);
   },
 
   /** Arrow-key navigation over the flattened visible rows, as in the IDE tree. */
@@ -425,6 +431,28 @@ export const useApp = create<State>((set, get) => ({
     const { selectedNode, nodes, openTab } = get();
     const node = selectedNode ? nodes[selectedNode] : undefined;
     if (node && (node.kind === "endpoint" || node.kind === "stream")) openTab(node);
+  },
+
+  /**
+   * A column layout is a property of the data source, not of the tab you happened to set it
+   * up in: every tab opened on that connection from now on starts arranged this way.
+   */
+  setColumns: (tabId, layout) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { layout, columns: layout });
+    const connections = get().settings.connections.map((c) => (c.id === tab.connId ? { ...c, columns: layout } : c));
+    void get().setSettings({ ...get().settings, connections });
+    // a column nobody asked Graylog for has nothing in it until the query runs again
+    if (layout.some((c) => !(tab.page?.columns ?? []).includes(c))) void get().runQuery(tabId);
+  },
+
+  resetColumns: (tabId) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { layout: undefined, columns: DEFAULT_COLUMNS });
+    const connections = get().settings.connections.map((c) => (c.id === tab.connId ? { ...c, columns: undefined } : c));
+    void get().setSettings({ ...get().settings, connections });
   },
 
   runQuery: async (id) => {
@@ -505,6 +533,7 @@ const savedShape = (t: Tab): SavedTab => ({
   query: t.query,
   rangeSeconds: t.rangeSeconds,
   columns: t.columns,
+  layout: t.layout,
 });
 
 function persist(get: Getter) {

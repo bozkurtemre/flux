@@ -18,6 +18,7 @@ export interface SavedTab {
   query: string;
   rangeSeconds: number;
   columns: string[];
+  layout?: string[];
 }
 
 /** A terminal tab is its project and its name; the shell behind it is tmux's problem. */

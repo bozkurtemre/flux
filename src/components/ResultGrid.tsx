@@ -1,19 +1,24 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Columns3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useApp, type Tab } from "@/store";
+import { moveColumn } from "@/lib/columns";
 
 const NUM_W = 52;
 
 /** The result grid: a row-number gutter, sortable headers, one-line cells. */
 export function ResultGrid({ tab }: { tab: Tab }) {
-  const { patchTab, settings } = useApp();
+  const { patchTab, settings, setColumns } = useApp();
   const r = settings.results;
   const ROW = r.rowHeight;
   const [sort, setSort] = useState<{ col: string; dir: 1 | -1 } | null>(null);
   const [widths, setWidths] = useState<Record<string, number>>({});
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dropOn, setDropOn] = useState<string | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(() => {
+    if (tab.layout?.length) return tab.layout;
     const cols = tab.page?.columns ?? [];
     const preferred = [
       "timestamp",
@@ -33,7 +38,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
       const ib = preferred.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
     });
-  }, [tab.page]);
+  }, [tab.page, tab.layout]);
 
   const rows = useMemo(() => {
     const r = tab.page?.rows ?? [];
@@ -74,14 +79,43 @@ export function ResultGrid({ tab }: { tab: Tab }) {
             {columns.map((c) => (
               <div
                 key={c}
+                draggable
+                onDragStart={() => setDragging(c)}
+                onDragEnd={() => {
+                  setDragging(null);
+                  setDropOn(null);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dragging && dragging !== c) setDropOn(c);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragging) setColumns(tab.id, moveColumn(columns, dragging, c));
+                  setDragging(null);
+                  setDropOn(null);
+                }}
                 onClick={() => setSort((s) => (s?.col === c ? { col: c, dir: s.dir === 1 ? -1 : 1 } : { col: c, dir: 1 }))}
                 className="flex shrink-0 items-center gap-1 truncate px-2 text-[11px] font-medium"
-                style={{ width: width(c), borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", color: "var(--text-dim)" }}
+                style={{
+                  width: width(c),
+                  borderRight: "1px solid var(--border)",
+                  borderBottom: "1px solid var(--border)",
+                  borderLeft: dropOn === c ? "2px solid var(--accent)" : undefined,
+                  color: "var(--text-dim)",
+                  opacity: dragging === c ? 0.4 : 1,
+                  cursor: "default",
+                }}
                 title={c}
               >
                 <span className="truncate">{c}</span>
                 {sort?.col === c && <span style={{ color: "var(--accent)" }}>{sort.dir === 1 ? "▲" : "▼"}</span>}
-                <span onMouseDown={(e) => startResize(e, c, width(c), setWidths)} className="ml-auto -mr-2 h-full w-2 cursor-col-resize" />
+                <span
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onMouseDown={(e) => startResize(e, c, width(c), setWidths)}
+                  className="ml-auto -mr-2 h-full w-2 cursor-col-resize"
+                />
               </div>
             ))}
           </div>
@@ -136,16 +170,17 @@ export function ResultGrid({ tab }: { tab: Tab }) {
           </div>
         </div>
       </div>
-      <GridFooter tab={tab} count={rows.length} />
+      <GridFooter tab={tab} count={rows.length} columns={columns} />
     </div>
   );
 }
 
-function GridFooter({ tab, count }: { tab: Tab; count: number }) {
+function GridFooter({ tab, count, columns }: { tab: Tab; count: number; columns: string[] }) {
   const { runQuery } = useApp();
+  const [picking, setPicking] = useState(false);
   return (
     <div
-      className="flex h-[26px] shrink-0 items-center gap-3 px-2 text-[11px]"
+      className="relative flex h-[26px] shrink-0 items-center gap-3 px-2 text-[11px]"
       style={{ borderTop: "1px solid var(--border)", color: "var(--text-muted)" }}
     >
       <button onClick={() => void runQuery(tab.id)} className="rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)]">
@@ -153,7 +188,83 @@ function GridFooter({ tab, count }: { tab: Tab; count: number }) {
       </button>
       <span>{count} rows</span>
       {tab.took != null && <span>{tab.took} ms</span>}
-      <span className="ml-auto">{count >= 500 ? "first 500 shown" : ""}</span>
+      <span className="ml-auto flex items-center gap-2">
+        {count >= 500 ? "first 500 shown" : ""}
+        <button
+          onClick={() => setPicking((v) => !v)}
+          data-tip="Columns"
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)]"
+          style={{ color: tab.layout?.length ? "var(--accent)" : undefined }}
+        >
+          <Columns3 size={12} />
+          Columns
+        </button>
+      </span>
+      {picking && <ColumnPicker tab={tab} columns={columns} onClose={() => setPicking(false)} />}
+    </div>
+  );
+}
+
+/**
+ * Which columns are on screen. The list is every field this stream has, so a field that the
+ * last query did not ask for can be ticked here and fetched by the next one.
+ */
+function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; onClose: () => void }) {
+  const { setColumns, resetColumns } = useApp();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const away = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("mousedown", away);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const available = useMemo(() => {
+    const all = new Set([...columns, ...(tab.page?.columns ?? []), ...tab.fields.map((f) => f.name)]);
+    return [...all].sort((a, b) => a.localeCompare(b));
+  }, [columns, tab.page, tab.fields]);
+
+  const toggle = (name: string) => {
+    const on = columns.includes(name);
+    // unticking the last one would leave a grid with nothing in it
+    if (on && columns.length === 1) return;
+    setColumns(tab.id, on ? columns.filter((c) => c !== name) : [...columns, name]);
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-2 bottom-[30px] z-30 flex max-h-[320px] w-[260px] flex-col rounded-[8px] py-1"
+      style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 14px 40px rgba(0,0,0,.55)" }}
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {available.map((name) => (
+          <label key={name} className="flex h-[24px] cursor-default items-center gap-2 px-2.5 text-[12px] hover:bg-[var(--bg-hover)]">
+            <input type="checkbox" checked={columns.includes(name)} onChange={() => toggle(name)} />
+            <span className="truncate" style={{ color: "var(--text)" }} title={name}>
+              {name}
+            </span>
+          </label>
+        ))}
+      </div>
+      <button
+        onClick={() => {
+          resetColumns(tab.id);
+          onClose();
+        }}
+        className="mx-1 mt-1 flex items-center gap-1.5 rounded px-1.5 py-1 text-[12px] hover:bg-[var(--bg-hover)]"
+        style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-dim)" }}
+      >
+        <RotateCcw size={11} />
+        Reset to default
+      </button>
     </div>
   );
 }

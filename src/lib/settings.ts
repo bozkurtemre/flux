@@ -12,6 +12,8 @@ export interface Connection {
    */
   graylogToken: string;
   secretStorage?: "keychain";
+  /** The result grid's columns, in order, as this data source was last left. */
+  columns?: string[];
 }
 
 /** A group of streams the user considers one service. Purely a tree convenience. */
