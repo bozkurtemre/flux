@@ -46,6 +46,8 @@ export interface Tab {
   layout?: string[];
   /** How far into the result the page on screen starts. */
   offset?: number;
+  /** Everything the query matches, not just the page on screen. */
+  total?: number;
 }
 
 /** One view onto a project's terminal session. The shell itself lives in tmux. */
@@ -487,16 +489,30 @@ export const useApp = create<State>((set, get) => ({
       const clauses = [tab.query.trim()].filter(Boolean);
       if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
       const to = new Date();
-      const page = await clientFor(conn).messages({
-        query: clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*",
-        streams: tab.streamIds,
-        timerange: absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to),
-        fields: columnsForQuery(tab),
-        size: settings.results.pageSize,
-        from: tab.offset ?? 0,
-        signal: stop.signal,
+      const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
+      const timerange = absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
+      const client = clientFor(conn);
+      // the total rides alongside rather than after: it is a second search, and waiting for
+      // it would put its time on every page turn
+      const [page, total] = await Promise.all([
+        client.messages({
+          query,
+          streams: tab.streamIds,
+          timerange,
+          fields: columnsForQuery(tab),
+          size: settings.results.pageSize,
+          from: tab.offset ?? 0,
+          signal: stop.signal,
+        }),
+        client.count({ query, streams: tab.streamIds, timerange, signal: stop.signal }),
+      ]);
+      patchTab(id, {
+        page,
+        total: total || undefined, // a count that failed comes back as zero, and zero rows say so themselves
+        took: Math.round(performance.now() - started),
+        running: false,
+        selectedRow: undefined,
       });
-      patchTab(id, { page, took: Math.round(performance.now() - started), running: false, selectedRow: undefined });
     } catch (e) {
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {

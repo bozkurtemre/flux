@@ -246,10 +246,17 @@ function GridFooter({ tab, count, columns }: { tab: Tab; count: number; columns:
         <span className="tabular-nums" style={{ minWidth: 72, textAlign: "center" }}>
           {count ? `${offset + 1}–${offset + count}` : "—"}
         </span>
-        <button className={step} disabled={count < size} onClick={() => setPage(tab.id, offset + size)} data-tip="Next page">
+        <button
+          className={step}
+          // a short page is the end of it; with a total we also know the end before reaching it
+          disabled={count < size || offset + count >= (tab.total ?? Infinity)}
+          onClick={() => setPage(tab.id, offset + size)}
+          data-tip="Next page"
+        >
           <ChevronRight size={13} />
         </button>
       </span>
+      {tab.total != null && <span>total {tab.total.toLocaleString()}</span>}
       {tab.took != null && <span>{tab.took} ms</span>}
       <span className="ml-auto flex items-center gap-2">
         <button
