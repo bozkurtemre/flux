@@ -5,7 +5,7 @@ import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/end
 import * as cache from "@/lib/cache";
 import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { killTabCommand } from "@/lib/terminal";
-import { withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
+import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -153,7 +153,7 @@ export const useApp = create<State>((set, get) => ({
       settings = await loadSettings();
     } catch (e) {
       // a broken settings file must still leave a usable window
-      settingsError = `Settings could not be read: ${(e as Error).message}`;
+      settingsError = `Settings could not be read: ${errorText(e)}`;
     }
     set({ ready: true, settingsError });
     await get().setSettings(settings);
@@ -190,7 +190,7 @@ export const useApp = create<State>((set, get) => ({
       await saveSettings(settings);
       set({ settingsError: undefined });
     } catch (e) {
-      set({ settingsError: `Settings not saved: ${(e as Error).message}` });
+      set({ settingsError: `Settings not saved: ${errorText(e)}` });
     }
   },
 
@@ -452,8 +452,8 @@ export const useApp = create<State>((set, get) => ({
     } catch (e) {
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {
-        patchTab(id, { error: (e as Error).message, running: false, page: undefined });
-        get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+        patchTab(id, { error: errorText(e), running: false, page: undefined });
+        get().notify("error", conn.name || conn.graylogUrl, `Query failed: ${failureReason(e)}`);
       }
     } finally {
       get().endTask(task);
@@ -584,8 +584,9 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
     if (stop.signal.aborted) {
       set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: undefined } } });
     } else {
-      set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: (e as Error).message } } });
-      get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+      set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: errorText(e) } } });
+      const what = node.kind === "connection" ? "Connection failed" : `Could not load ${node.label}`;
+      get().notify("error", conn.name || conn.graylogUrl, `${what}: ${failureReason(e)}`);
     }
   } finally {
     get().endTask(task);

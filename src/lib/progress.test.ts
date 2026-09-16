@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { taskLabel, visibleTask, withNotice, type Notice, type Task } from "./progress";
+import { errorText, failureReason, taskLabel, visibleTask, withNotice, type Notice, type Task } from "./progress";
 
 const task = (id: string, title: string): Task => ({ id, title });
 const notice = (title: string, message: string): Notice => ({ id: title + message, kind: "error", title, message });
@@ -29,5 +29,28 @@ describe("what the balloons show", () => {
   it("keeps a different failure from the same source", () => {
     const list = withNotice(withNotice([], notice("prod", "Operation timed out.")), notice("prod", "401 Unauthorized"));
     expect(list.map((n) => n.message)).toEqual(["Operation timed out.", "401 Unauthorized"]);
+  });
+});
+
+describe("what a failure says", () => {
+  it("reads whatever was thrown, including the plain strings Tauri rejects with", () => {
+    // the bug this guards: a balloon with a data source name and an empty line under it
+    expect(errorText("error sending request for url (https://graylog/api/streams)")).toContain("error sending request");
+    expect(errorText(new Error("401 /api/streams: token"))).toBe("401 /api/streams: token");
+    expect(errorText(new Error(" "))).toBe("No reason given.");
+    expect(errorText(undefined)).toBe("No reason given.");
+  });
+
+  it("says what went wrong rather than how the request was wrapped", () => {
+    expect(failureReason("error sending request for url (https://x): tcp connect error: Operation timed out (os error 60)")).toBe(
+      "Operation timed out.",
+    );
+    expect(failureReason("tcp connect error: Connection refused (os error 61)")).toBe("Connection refused.");
+    expect(failureReason(new Error("401 /api/streams: invalid token"))).toBe("The access token was rejected.");
+    expect(failureReason("dns error: failed to lookup address information")).toBe("The host name could not be resolved.");
+  });
+
+  it("passes an unfamiliar failure through untouched", () => {
+    expect(failureReason("the stream was deleted while we read it")).toBe("the stream was deleted while we read it");
   });
 });

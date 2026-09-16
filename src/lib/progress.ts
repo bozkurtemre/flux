@@ -39,3 +39,37 @@ export function withNotice(list: Notice[], notice: Notice): Notice[] {
   if (list.some((n) => n.kind === notice.kind && n.title === notice.title && n.message === notice.message)) return list;
   return [...list, notice];
 }
+
+/**
+ * Whatever was thrown, as something a person can read. Tauri rejects with the Rust error as
+ * a plain string rather than an Error, which is how a failed connection reached the screen
+ * as a balloon with a name on it and nothing underneath.
+ */
+export function errorText(e: unknown): string {
+  if (e instanceof Error && e.message.trim()) return e.message.trim();
+  if (typeof e === "string" && e.trim()) return e.trim();
+  if (e && typeof e === "object") {
+    const message = (e as { message?: unknown }).message;
+    if (typeof message === "string" && message.trim()) return message.trim();
+  }
+  return "No reason given.";
+}
+
+/** The handful of ways a Graylog behind a VPN actually fails, in words rather than in a
+ * chain of wrapped Rust errors. Anything else is passed through as it came. */
+const REASONS: [RegExp, string][] = [
+  [/timed out|timeout/i, "Operation timed out."],
+  [/connection refused/i, "Connection refused."],
+  [/no route to host|network is unreachable|host is down/i, "The host could not be reached."],
+  [/dns error|failed to lookup|nodename nor servname|name or service not known/i, "The host name could not be resolved."],
+  [/certificate|self-signed|tls|ssl/i, "The TLS certificate was rejected."],
+  [/\b401\b|unauthorized/i, "The access token was rejected."],
+  [/\b403\b|forbidden/i, "The access token is not allowed to read this."],
+  [/\b404\b/i, "Graylog has no such resource; check the URL."],
+];
+
+export function failureReason(e: unknown): string {
+  const text = errorText(e);
+  for (const [pattern, reason] of REASONS) if (pattern.test(text)) return reason;
+  return text;
+}

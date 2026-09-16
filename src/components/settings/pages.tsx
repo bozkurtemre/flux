@@ -5,6 +5,7 @@ import { Graylog, QUICK_RANGES } from "@/lib/graylog";
 import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings } from "@/lib/settings";
 import * as cache from "@/lib/cache";
 import { clientFor, useApp } from "@/store";
+import { failureReason } from "@/lib/progress";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
@@ -400,7 +401,7 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
                     const streams = await new Graylog(conn.graylogUrl, conn.graylogToken).streams();
                     setTest({ ok: `Graylog ${v} · ${streams.length} streams` });
                   } catch (err) {
-                    setTest({ err: (err as Error).message });
+                    setTest({ err: failureReason(err) });
                   }
                 }}
               >
