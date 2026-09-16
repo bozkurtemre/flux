@@ -8,6 +8,7 @@ import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
+import { About } from "@/components/About";
 import { Tooltips } from "@/components/Tooltip";
 import { ConfirmDialog } from "@/components/ContextMenu";
 import { Checkbox } from "@/components/settings/controls";
@@ -171,6 +172,7 @@ export default function App() {
         <RightStripe />
       </div>
       <StatusBar />
+      <About />
       <Notifications />
       <Tooltips />
       {showSearch && <SearchEverywhere />}

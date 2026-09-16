@@ -2,6 +2,9 @@ mod cache;
 mod secrets;
 mod terminal;
 
+use tauri::menu::{Menu, MenuItem, MenuItemKind};
+use tauri::{Emitter, Manager};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -24,6 +27,26 @@ pub fn run() {
             terminal::terminal_close,
             terminal::terminal_run,
         ])
+        .setup(|app| {
+            // The system's About panel draws the bundle's icon, which a development build does
+            // not have, and it cannot hold a link. Ours opens a window we draw ourselves.
+            let menu = Menu::default(app.handle())?;
+            if let Some(MenuItemKind::Submenu(app_menu)) = menu.items()?.into_iter().next() {
+                app_menu.remove_at(0)?;
+                let about =
+                    MenuItem::with_id(app.handle(), "about", "About Flux", true, None::<&str>)?;
+                app_menu.insert(&about, 0)?;
+            }
+            app.set_menu(menu)?;
+            Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id() == "about" {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.emit("about", ());
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
