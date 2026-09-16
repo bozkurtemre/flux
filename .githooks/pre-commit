@@ -15,6 +15,7 @@ if [ -n "$TS" ]; then
   echo "• prettier"; pnpm exec prettier --check $TS
   echo "• eslint";   pnpm exec eslint $TS
   echo "• tsc";      pnpm exec tsc --noEmit
+  echo "• vitest";   pnpm exec vitest run --silent
 fi
 
 if [ -n "$RS" ]; then

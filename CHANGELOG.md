@@ -5,6 +5,17 @@ Notable changes per release. Versions follow [semantic versioning](https://semve
 
 ## Unreleased
 
+### Changed
+
+- Flux no longer reads a MongoDB or a watchdog config file. Endpoint lists, traffic
+  counts and percentiles come from Graylog directly, and the results are kept in an
+  introspection cache so the tree still opens instantly.
+- Project grouping moved from a YAML file into **Settings › Projects**.
+
+### Removed
+
+- The Mongo bridge, along with the `mongodb`, `tokio`, `futures` and `chrono` crates.
+
 ### Added
 
 - Version tooling: one command writes `package.json`, `Cargo.toml`, `tauri.conf.json`
@@ -13,6 +24,9 @@ Notable changes per release. Versions follow [semantic versioning](https://semve
 - A pre-commit quality gate that runs Prettier, ESLint, `tsc`, `cargo fmt` and Clippy
   over the staged files. Install it with `make hooks`.
 - The running version in the status bar.
+- **Settings › Projects**, to group a connection's streams into services.
+- **Settings › Advanced › Invalidate Caches**, and the cache location beside it.
+- Unit tests, run by Vitest in the gate and in CI.
 
 ## 0.1.0
 
@@ -28,4 +42,4 @@ First release.
 - Search Everywhere over streams, endpoints, projects and actions.
 - Settings across seven pages, with live theme preview.
 - Right-click actions on tree nodes.
-- JetBrains Islands Dark and Light themes.
+- Dark and light themes.

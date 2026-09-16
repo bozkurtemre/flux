@@ -6,9 +6,15 @@ export interface Connection {
   name: string; // "prod", "stage"
   graylogUrl: string;
   graylogToken: string;
-  mongoUri?: string; // optional watchdog database, for endpoint lists and history
-  configPath?: string; // optional watchdog.config.yaml, for project grouping
-  env?: string; // which `env` value the watchdog data uses; defaults to `name`
+}
+
+/** A group of streams the user considers one service. Purely a tree convenience. */
+export interface Project {
+  id: string;
+  connectionId: string;
+  name: string;
+  github?: string; // owner/repo, shown beside the project in the tree
+  streams: string[]; // stream ids
 }
 
 export interface Appearance {
@@ -59,6 +65,7 @@ export interface AdvancedSettings {
 
 export interface Settings {
   connections: Connection[];
+  projects: Project[];
   appearance: Appearance;
   tree: TreeSettings;
   editor: EditorSettings;
@@ -68,6 +75,7 @@ export interface Settings {
 
 export const DEFAULTS: Settings = {
   connections: [],
+  projects: [],
   appearance: { theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
   tree: {
     rowHeight: 24,
@@ -100,6 +108,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
   const s = saved ?? {};
   return {
     connections: s.connections ?? [],
+    projects: s.projects ?? [],
     appearance: { ...DEFAULTS.appearance, ...(s.appearance ?? {}) },
     tree: { ...DEFAULTS.tree, ...(s.tree ?? {}) },
     editor: { ...DEFAULTS.editor, ...(s.editor ?? {}) },
@@ -141,6 +150,10 @@ export function newConnection(): Connection {
   return { id: crypto.randomUUID(), name: "", graylogUrl: "", graylogToken: "" };
 }
 
+export function newProject(connectionId: string): Project {
+  return { id: crypto.randomUUID(), connectionId, name: "", streams: [] };
+}
+
 /** The theme actually applied, resolving "system". */
 export function resolveTheme(t: Appearance["theme"]): "dark" | "light" {
   if (t !== "system") return t;
@@ -170,14 +183,7 @@ export function connectionsFromEnv(text: string): Connection[] {
     const url = env[`GRAYLOG_URL_${name.toUpperCase()}`] ?? (name === "stage" ? env.GRAYLOG_URL : undefined);
     const token = env[`GRAYLOG_TOKEN_${name.toUpperCase()}`] ?? (name === "stage" ? env.GRAYLOG_TOKEN : undefined);
     if (url && token) {
-      out.push({
-        id: crypto.randomUUID(),
-        name,
-        graylogUrl: url,
-        graylogToken: token,
-        env: name,
-        mongoUri: env.MONGODB_URI?.replace("mongodb://mongo:", "mongodb://localhost:"),
-      });
+      out.push({ id: crypto.randomUUID(), name, graylogUrl: url, graylogToken: token });
     }
   }
   return out;

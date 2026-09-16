@@ -60,8 +60,12 @@ fmt-check: ## Fail if anything is unformatted
 clippy: ## Lint Rust
 	cd $(CARGO_DIR) && cargo clippy --all-targets -- -D warnings
 
+.PHONY: test
+test: ## Run the unit tests
+	$(PNPM) test
+
 .PHONY: check
-check: typecheck lint fmt-check clippy ## Run every check CI runs
+check: typecheck lint fmt-check test clippy ## Run every check CI runs
 
 .PHONY: hooks
 hooks: ## Point git at the repo's hooks, so the quality gate runs before every commit

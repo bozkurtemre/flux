@@ -45,6 +45,7 @@ jobs:
           pnpm typecheck
           pnpm lint
           pnpm format:check
+          pnpm test
           cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings
 
       - name: Build

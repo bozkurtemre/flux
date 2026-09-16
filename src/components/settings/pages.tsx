@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Plug, Trash2 } from "lucide-react";
 import { Button, Checkbox, Num, Row, Section, Select, Swatches, Text } from "./controls";
 import { Graylog, QUICK_RANGES } from "@/lib/graylog";
-import { ping } from "@/lib/mongo";
-import { connectionsFromEnv, newConnection, SHORTCUTS, type Connection, type Settings } from "@/lib/settings";
+import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings } from "@/lib/settings";
+import * as cache from "@/lib/cache";
+import { clientFor } from "@/store";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
 
@@ -208,8 +209,46 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
 export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch; onReset: () => void }) {
   const a = s.advanced;
   const set = <K extends keyof typeof a>(k: K, v: (typeof a)[K]) => patch((x) => ({ ...x, advanced: { ...x.advanced, [k]: v } }));
+  const [cacheDir, setCacheDir] = useState("");
+  const [cleared, setCleared] = useState<number | null>(null);
+
+  useEffect(() => {
+    cache
+      .location()
+      .then(setCacheDir)
+      .catch(() => {});
+  }, []);
+
   return (
     <>
+      <Section title="Caches">
+        <Row
+          label="Introspection cache"
+          hint="Stream and endpoint lists, so the tree opens without waiting. Everything here is re-read from Graylog on demand, so deleting it is always safe."
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={async () => {
+                setCleared(await cache.clear());
+              }}
+            >
+              Invalidate Caches
+            </Button>
+            {cleared !== null && (
+              <span className="text-[12px]" style={{ color: "var(--green)" }}>
+                {cleared} removed; expand a stream to rebuild
+              </span>
+            )}
+          </div>
+        </Row>
+        {cacheDir && (
+          <Row label="Location">
+            <span className="selectable font-[var(--font-mono)] text-[11px] break-all" style={{ color: "var(--text-muted)" }}>
+              {cacheDir}
+            </span>
+          </Row>
+        )}
+      </Section>
       <Section title="Network">
         <Row label="Request timeout">
           <Num value={a.requestTimeoutSeconds} onChange={(v) => set("requestTimeoutSeconds", v)} min={5} max={600} suffix="seconds" />
@@ -341,35 +380,14 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
                 <Text value={conn.graylogToken} onChange={(v) => field({ graylogToken: v })} type="password" mono />
               </Row>
             </Section>
-            <Section title="watchdog integration">
-              <Row label="Environment" hint="Which `env` value the watchdog data uses. Defaults to the name above.">
-                <Text value={conn.env ?? ""} onChange={(v) => field({ env: v || undefined })} width={200} placeholder={conn.name} />
-              </Row>
-              <Row label="MongoDB URI" hint="Read-only. Supplies normalized endpoints and traffic counts.">
-                <Text
-                  value={conn.mongoUri ?? ""}
-                  onChange={(v) => field({ mongoUri: v || undefined })}
-                  placeholder="mongodb://localhost:27017/watchdog"
-                  mono
-                />
-              </Row>
-              <Row label="Config file" hint="Groups streams under the GitHub project that owns them.">
-                <Text
-                  value={conn.configPath ?? ""}
-                  onChange={(v) => field({ configPath: v || undefined })}
-                  placeholder="…/watchdog.config.yaml"
-                  mono
-                />
-              </Row>
-            </Section>
             <div className="flex flex-wrap items-center gap-2 pl-[162px]">
               <Button
                 onClick={async () => {
                   setTest({ busy: true });
                   try {
                     const v = await new Graylog(conn.graylogUrl, conn.graylogToken).version();
-                    const extra = conn.mongoUri ? ` · mongo ${await ping(conn.mongoUri)}` : "";
-                    setTest({ ok: `Graylog ${v}${extra}` });
+                    const streams = await new Graylog(conn.graylogUrl, conn.graylogToken).streams();
+                    setTest({ ok: `Graylog ${v} · ${streams.length} streams` });
                   } catch (err) {
                     setTest({ err: (err as Error).message });
                   }
@@ -396,5 +414,159 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Projects group a connection's streams into the services they belong to, which is what
+ * gives the tree its third level. Purely a naming convenience: no project means the
+ * streams simply sit under the connection.
+ */
+export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
+  const [connId, setConnId] = useState(s.connections[0]?.id ?? "");
+  const [streams, setStreams] = useState<{ id: string; title: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const conn = s.connections.find((c) => c.id === connId);
+  const projects = s.projects.filter((p) => p.connectionId === connId);
+  const project = projects.find((p) => p.id === selected) ?? projects[0];
+  const setList = (next: typeof s.projects) => patch((x) => ({ ...x, projects: next }));
+  const field = (p: Partial<(typeof s.projects)[number]>) => setList(s.projects.map((x) => (x.id === project?.id ? { ...x, ...p } : x)));
+
+  // the stream list comes from the cache, and only reaches Graylog when there is none
+  useEffect(() => {
+    if (!conn) return;
+    let alive = true;
+    void (async () => {
+      setLoading(true);
+      const cached = await cache.load(cache.cacheKey(conn.id));
+      if (alive && cached.streams.length) setStreams(cached.streams);
+      try {
+        const fresh = await clientFor(conn).streams();
+        await cache.putStreams(cache.cacheKey(conn.id), fresh);
+        if (alive) setStreams(fresh);
+      } catch {
+        /* keep whatever the cache had */
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [conn]);
+
+  const claimedElsewhere = (streamId: string) => projects.some((p) => p.id !== project?.id && p.streams.includes(streamId));
+
+  if (!s.connections.length) {
+    return (
+      <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+        Add a data source first; projects group the streams it exposes.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <Section title="Projects">
+        <Row label="Data source">
+          <Select
+            value={connId}
+            onChange={(v) => {
+              setConnId(v);
+              setSelected(null);
+            }}
+            options={s.connections.map((c) => ({ value: c.id, label: c.name || c.graylogUrl }))}
+          />
+        </Row>
+      </Section>
+
+      <div className="flex min-h-0 gap-3">
+        <div className="flex w-[190px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+          <div className="min-h-0 flex-1 overflow-auto py-1">
+            {projects.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => setSelected(p.id)}
+                className="mx-1 flex h-[24px] items-center gap-2 rounded px-2 text-[13px]"
+                style={{ background: p.id === project?.id ? "var(--sel-focus)" : undefined, color: p.id === project?.id ? "#fff" : undefined }}
+              >
+                <span className="truncate">{p.name || "untitled"}</span>
+                <span className="ml-auto shrink-0 text-[11px] opacity-70">{p.streams.length}</span>
+              </div>
+            ))}
+            {!projects.length && (
+              <p className="px-2 py-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+                No projects
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1 p-1.5" style={{ borderTop: "1px solid var(--border)" }}>
+            <Button
+              onClick={() => {
+                const created = { ...newProject(connId), name: `project-${projects.length + 1}` };
+                setList([...s.projects, created]);
+                setSelected(created.id);
+              }}
+            >
+              ＋
+            </Button>
+            <Button disabled={!project} onClick={() => project && setList(s.projects.filter((x) => x.id !== project.id))}>
+              <Trash2 size={12} />
+            </Button>
+          </div>
+        </div>
+
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
+          {project ? (
+            <>
+              <Row label="Name">
+                <Text value={project.name} onChange={(v) => field({ name: v })} width={200} placeholder="payments-api" />
+              </Row>
+              <Row label="GitHub repository" hint="Shown beside the project in the tree. Optional.">
+                <Text value={project.github ?? ""} onChange={(v) => field({ github: v || undefined })} placeholder="owner/repo" mono />
+              </Row>
+              <Row label="Streams" hint={loading ? "Loading the stream list…" : "A stream can belong to one project."}>
+                <div className="max-h-[220px] overflow-auto rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+                  {streams.map((st) => {
+                    const taken = claimedElsewhere(st.id);
+                    const on = project.streams.includes(st.id);
+                    return (
+                      <label
+                        key={st.id}
+                        className="flex h-[24px] items-center gap-2 px-2 text-[12px]"
+                        style={{ opacity: taken ? 0.45 : 1 }}
+                        title={taken ? "Already in another project" : st.id}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={taken}
+                          onChange={() => field({ streams: on ? project.streams.filter((x) => x !== st.id) : [...project.streams, st.id] })}
+                        />
+                        <span className="truncate">{st.title}</span>
+                        <span className="ml-auto shrink-0 font-[var(--font-mono)] text-[10px]" style={{ color: "var(--text-muted)" }}>
+                          {st.id.slice(0, 8)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                  {!streams.length && !loading && (
+                    <p className="px-2 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}>
+                      No streams; check the connection.
+                    </p>
+                  )}
+                </div>
+              </Row>
+            </>
+          ) : (
+            <p className="pt-2 text-[13px]" style={{ color: "var(--text-muted)" }}>
+              Add a project with ＋, then tick the streams it owns.
+            </p>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

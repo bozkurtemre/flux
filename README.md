@@ -4,10 +4,9 @@
 
 # Flux
 
-**A desktop log explorer for Graylog, shaped like JetBrains DataGrip.**
+**The modern log explorer.**
 
-Browse connections, projects, streams and endpoints in a tree. Click an endpoint,
-get a query console and a result grid scoped to it.
+Navigate your logs by structure instead of retyping filters.
 
 </div>
 
@@ -15,11 +14,14 @@ get a query console and a result grid scoped to it.
 
 ## Why
 
-Graylog's own search is fine for one query at a time, but it forgets what you were
-looking at. Flux treats a Graylog instance the way DataGrip treats a database: a
-persistent explorer on the left, tabs in the middle, and a console per thing you
-opened. Endpoints become first-class objects you can navigate to, not strings you
-retype into a filter.
+A search box treats logs as one flat river of text. You type a query, read the answer,
+and the tool forgets everything the moment you look somewhere else. The structure that
+actually matters, which service, which stream, which endpoint, survives only as strings
+you retype.
+
+Flux keeps that structure. Streams and endpoints are objects you navigate to. Each one
+opens its own console and result grid, and each stays open while you work elsewhere, so
+comparing two endpoints is two tabs rather than two rounds of editing a filter.
 
 ## What it does
 
@@ -51,20 +53,13 @@ make app         # build Flux.app
 
 ## First run
 
-Open **Settings › Data Sources** (`⌘,`) and add a Graylog URL with an access token
-from _Graylog profile › Edit tokens_. If you already run
-[watchdog](https://github.com/bozkurtemre/watchdog), use **Import** and point it at
-that project's `.env` to pull both environments in at once.
+Open **Settings › Data Sources** (`⌘,`) and add a Graylog URL with an access token from
+_Graylog profile › Edit tokens_. That is the whole setup; Flux talks to Graylog and
+nothing else.
 
-Two optional fields make the tree richer, and Flux works without either:
-
-| Field           | What it adds                                                                         |
-| --------------- | ------------------------------------------------------------------------------------ |
-| **MongoDB URI** | Normalized endpoint names and traffic counts from watchdog's database, read-only     |
-| **Config file** | `watchdog.config.yaml`, which groups streams under the GitHub project that owns them |
-
-Without them Flux lists streams straight from Graylog and derives endpoints from a
-live aggregation.
+**Settings › Projects** is optional. Group a connection's streams into the services they
+belong to and the tree grows a third level, `Connection › Project › Stream › Endpoint`.
+Skip it and streams sit directly under the connection.
 
 ## Shortcuts
 
@@ -81,28 +76,43 @@ live aggregation.
 ## How it is built
 
 Tauri v2 (Rust) with a React 19 front end in TypeScript, bundled by Vite and styled
-with Tailwind v4. The theme is JetBrains "Islands Dark" and its light counterpart,
-Inter for chrome and JetBrains Mono for editors and data.
+with Tailwind v4. Dark and light themes, both built for long sessions: low-chroma
+surfaces, panels that float as rounded islands, Inter for the interface and JetBrains
+Mono for everything that holds data.
 
-Two details are worth knowing before changing anything:
+Three details are worth knowing before changing anything:
 
-- **Graylog calls go through `@tauri-apps/plugin-http`**, so they are issued from
-  Rust. There is no CORS preflight and no proxy server to run.
-- **MongoDB cannot be spoken from a webview**, so it is reached through three
-  read-only Rust commands in `src-tauri/src/mongo.rs`. They refuse any collection
-  outside an allowlist and any pipeline containing `$out` or `$merge`.
+- **Graylog calls go through `@tauri-apps/plugin-http`**, so they are issued from Rust.
+  There is no CORS preflight and no proxy server to run.
+- **The tree is served from a cache, not from Graylog.** Expanding a stream reads the
+  endpoint list off disk and shows it immediately; Refresh is what re-reads the source.
+  The cache lives in the OS cache directory and is safe to delete at any time, which is
+  what makes **Settings › Advanced › Invalidate Caches** a supported operation rather
+  than a repair. Bumping `FORMAT` in `src/lib/cache.ts` discards every entry.
+- **Endpoints are templates, not paths.** `/users/123` and `/users/456` are one endpoint,
+  `/users/:id`. The collapsing happens per path segment, never on a substring; see
+  `src/lib/normalize.ts` and the tests beside it for why that distinction matters.
+
+Traffic figures come from two aggregations per stream: one grouped by route and method for
+totals and the 95th percentile, one under a `status:>=500` filter for the error counts.
+Grouping route by method by status in a single query multiplies into hundreds of thousands
+of buckets on a busy stream and times out.
 
 ```
 src/
   lib/graylog.ts          Graylog 5.2 client: search, aggregate, streams, fields
-  lib/mongo.ts            read-only views over watchdog's database
+  lib/endpoints.ts        endpoint rows derived from two aggregations
+  lib/normalize.ts        path segments to endpoint templates
+  lib/cache.ts            the introspection cache, keyed by connection
   lib/settings.ts         the settings model, persisted with the store plugin
-  lib/watchdog-config.ts  optional project mapping from watchdog.config.yaml
   store.ts                tree, tabs and query state (zustand)
   components/             one file per region of the window
   components/settings/    the Settings window and its pages
-src-tauri/src/mongo.rs    the Mongo bridge and a file reader
+src-tauri/src/cache.rs    reads and writes the OS cache directory
 ```
+
+`docs/research/jetbrains-storage.md` records the storage model this follows: readable
+files for what a person authored, a deletable cache for what a machine derived.
 
 ## Development
 
@@ -139,8 +149,8 @@ Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 ## Security
 
 Tokens live in the Tauri store on the machine that entered them and are never sent
-anywhere except the Graylog instance they belong to. Flux never writes to Graylog or
-to MongoDB.
+anywhere except the Graylog instance they belong to. Flux only ever reads: it issues
+searches and aggregations, and never writes to Graylog.
 
 ## Licence
 

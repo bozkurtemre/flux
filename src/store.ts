@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
-import { endpointsForStream, projectsFromMongo, type EndpointRow } from "@/lib/mongo";
-import { loadProjectMapping } from "@/lib/watchdog-config";
+import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
+import * as cache from "@/lib/cache";
 import { applyAppearance, DEFAULTS, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -177,7 +177,7 @@ export const useApp = create<State>((set, get) => ({
     const node = get().nodes[id];
     if (!node) return;
     set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: undefined, error: undefined } } });
-    await loadChildren(id, set, get);
+    await loadChildren(id, set, get, true);
   },
 
   openTab: (node) => {
@@ -278,6 +278,8 @@ async function loadFields(tabId: string, set: Setter, get: Getter) {
   const conn = get().settings.connections.find((c) => c.id === tab?.connId);
   if (!tab || !conn || !tab.streamIds.length) return;
   try {
+    const cached = (await cache.load(cache.cacheKey(conn.id))).byStream[tab.streamIds[0]];
+    if (cached?.fields.length) get().patchTab(tabId, { fields: cached.fields });
     const fields = await clientFor(conn).fields(tab.streamIds[0]);
     get().patchTab(tabId, { fields });
   } catch {
@@ -304,7 +306,7 @@ export function endpointClause(ep: EndpointRow): string {
 type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void;
 type Getter = () => State;
 
-async function loadChildren(id: string, set: Setter, get: Getter) {
+async function loadChildren(id: string, set: Setter, get: Getter, force = false) {
   const node = get().nodes[id];
   const conn = get().settings.connections.find((c) => c.id === node.connId);
   if (!node || !conn) return;
@@ -312,10 +314,10 @@ async function loadChildren(id: string, set: Setter, get: Getter) {
   try {
     const made =
       node.kind === "connection"
-        ? await connectionChildren(node, conn)
+        ? await connectionChildren(node, conn, force)
         : node.kind === "project"
           ? projectChildren(node, get)
-          : await streamChildren(node, conn);
+          : await streamChildren(node, conn, force);
     const nodes = { ...get().nodes };
     for (const n of made) nodes[n.id] = { ...(nodes[n.id] ?? {}), ...n };
     nodes[id] = { ...nodes[id], childrenIds: made.map((n) => n.id), error: undefined };
@@ -327,42 +329,45 @@ async function loadChildren(id: string, set: Setter, get: Getter) {
   }
 }
 
-/** Connection children: projects when a mapping is available, otherwise the streams themselves. */
-async function connectionChildren(node: TreeNode, conn: Connection): Promise<TreeNode[]> {
-  const streams = await clientFor(conn).streams();
-  const byId = new Map(streams.map((s) => [s.id, s]));
-  const env = conn.env ?? conn.name;
+/**
+ * Connection children: the projects the user defined, then any stream no project claims.
+ * Streams come from the cache first so the tree opens instantly, and refresh behind it.
+ */
+async function connectionChildren(node: TreeNode, conn: Connection, force: boolean): Promise<TreeNode[]> {
+  const cached = await cache.load(cache.cacheKey(conn.id));
+  let streams = cached.streams;
+  if (force || !streams.length) {
+    streams = await clientFor(conn).streams();
+    await cache.putStreams(cache.cacheKey(conn.id), streams);
+  } else {
+    // warm the cache for next time without making this expansion wait
+    void clientFor(conn)
+      .streams()
+      .then((fresh) => cache.putStreams(cache.cacheKey(conn.id), fresh))
+      .catch(() => {});
+  }
 
-  let mapping: { name: string; github?: string; streams: string[] }[] = [];
-  if (conn.configPath) {
-    mapping = await loadProjectMapping(conn.configPath, env).catch(() => []);
-  }
-  if (!mapping.length && conn.mongoUri) {
-    mapping = (await projectsFromMongo(conn.mongoUri, env).catch(() => [])).map((p) => ({ name: p.project, streams: p.streams }));
-  }
+  const byId = new Map(streams.map((s) => [s.id, s]));
+  const projects = useApp.getState().settings.projects.filter((p) => p.connectionId === conn.id);
 
   const out: TreeNode[] = [];
   const claimed = new Set<string>();
-  for (const p of mapping) {
+  for (const p of projects) {
     const owned = p.streams.filter((s) => byId.has(s));
     if (!owned.length) continue;
     owned.forEach((s) => claimed.add(s));
-    const id = `p:${conn.id}:${p.name}`;
     out.push({
-      id,
+      id: `p:${conn.id}:${p.name}`,
       kind: "project",
       label: p.name,
       sub: p.github,
       connId: conn.id,
       depth: 1,
       childrenIds: undefined,
-      // stash for projectChildren
-      endpoint: undefined,
-      streamId: owned.join(","),
+      streamId: owned.join(","), // stashed for projectChildren
     });
   }
-  const loose = streams.filter((s) => !claimed.has(s.id));
-  for (const s of loose) out.push(streamNode(s, conn.id, mapping.length ? 1 : 1));
+  for (const s of streams.filter((s) => !claimed.has(s.id))) out.push(streamNode(s, conn.id, 1));
   void node;
   return out;
 }
@@ -383,62 +388,37 @@ function streamNode(s: Stream, connId: string, depth: number): TreeNode {
   return { id: `s:${connId}:${s.id}`, kind: "stream", label: s.title, sub: s.id.slice(0, 8), connId, streamId: s.id, depth };
 }
 
-/** Stream children: endpoints from the watchdog database, else from a Graylog aggregation. */
-async function streamChildren(node: TreeNode, conn: Connection): Promise<TreeNode[]> {
-  const env = conn.env ?? conn.name;
+/**
+ * Stream children: one aggregation over the stream's traffic, normalized into endpoint
+ * templates. Served from the cache when there is one, exactly as the IDE serves an
+ * introspected schema; Refresh is what re-reads the source.
+ */
+async function streamChildren(node: TreeNode, conn: Connection, force: boolean): Promise<TreeNode[]> {
   const t = useApp.getState().settings.tree;
-  const since = new Date(Date.now() - t.lookbackHours * 3600_000);
-  let rows: EndpointRow[] = [];
+  const key = cache.cacheKey(conn.id);
+  const streamId = node.streamId!;
+  const cached = (await cache.load(key)).byStream[streamId];
 
-  if (conn.mongoUri) {
-    rows = await endpointsForStream(conn.mongoUri, env, node.streamId!, since).catch(() => []);
+  let rows = cached?.endpoints;
+  if (force || !rows) {
+    const g = clientFor(conn);
+    const fields = await g.fields(streamId).catch(() => []);
+    rows = await endpointsFromGraylog(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit });
+    await cache.putStream(key, streamId, { endpoints: rows, fields });
   }
-  if (!rows.length) rows = await endpointsFromGraylog(conn, node.streamId!);
 
-  rows = sortEndpoints(rows, t.sortEndpointsBy).slice(0, t.endpointLimit);
-
-  return rows.map((r) => ({
-    id: `e:${conn.id}:${node.streamId}:${r.method}:${r.endpoint}`,
-    kind: "endpoint" as const,
-    label: r.endpoint,
-    sub: r.method,
-    connId: conn.id,
-    streamId: node.streamId,
-    endpoint: r,
-    depth: node.depth + 1,
-  }));
-}
-
-function sortEndpoints(rows: EndpointRow[], by: "traffic" | "name" | "errors"): EndpointRow[] {
-  const copy = [...rows];
-  if (by === "name") return copy.sort((a, b) => a.endpoint.localeCompare(b.endpoint) || a.method.localeCompare(b.method));
-  if (by === "errors") return copy.sort((a, b) => b.errorRatePct - a.errorRatePct || b.requests - a.requests);
-  return copy.sort((a, b) => b.requests - a.requests);
-}
-
-/** Fallback when there is no watchdog database: group live logs by their route field. */
-async function endpointsFromGraylog(conn: Connection, streamId: string): Promise<EndpointRow[]> {
-  const g = clientFor(conn);
-  const fields = await g.fields(streamId).catch(() => []);
-  const routeField = ["route", "uri", "path", "request_path"].find((f) => fields.some((x) => x.name === f));
-  if (!routeField) return [];
-  const methodField = fields.some((f) => f.name === "method") ? "method" : undefined;
-  const r = await g.aggregate({
-    query: "*",
-    streams: [streamId],
-    timerange: { type: "relative", range: 86400 },
-    groupBy: [{ field: routeField, limit: 500 }, ...(methodField ? [{ field: methodField, limit: 10 }] : [])],
-    metrics: [{ function: "count" }],
-  });
-  return r.rows
-    .map((row) => {
-      const endpoint = String(row[0] ?? "");
-      const method = methodField ? String(row[1] ?? "") : "";
-      const requests = Number(row[row.length - 1]) || 0;
-      return { endpoint, method: method === "(Empty Value)" ? "" : method, requests, errors: 0, errorRatePct: 0, p95Ms: null };
-    })
-    .filter((r) => r.endpoint && r.endpoint !== "(Empty Value)")
-    .sort((a, b) => b.requests - a.requests);
+  return sortEndpoints(rows, t.sortEndpointsBy)
+    .slice(0, t.endpointLimit)
+    .map((r) => ({
+      id: `e:${conn.id}:${streamId}:${r.method}:${r.endpoint}`,
+      kind: "endpoint" as const,
+      label: r.endpoint,
+      sub: r.method,
+      connId: conn.id,
+      streamId,
+      endpoint: r,
+      depth: node.depth + 1,
+    }));
 }
 
 /** Flatten the tree into the rows the virtualizer draws. */

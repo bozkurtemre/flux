@@ -1,7 +1,7 @@
 # Flux
 
-Desktop log explorer for Graylog, shaped like JetBrains DataGrip. See `README.md` for
-what it does and how to run it.
+The modern log explorer, for Graylog. See `README.md` for what it does and how to run
+it, and `docs/research/jetbrains-storage.md` for the storage model it borrows.
 
 ## Agent skills
 
@@ -21,8 +21,13 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 
 - **Graylog calls go through `@tauri-apps/plugin-http`**, so they are issued from Rust.
   Do not reach for `window.fetch`; it would reintroduce CORS.
-- **MongoDB cannot be spoken from a webview.** It is read through the commands in
-  `src-tauri/src/mongo.rs`, which are read-only by construction: an allowlist of
-  collections and a refusal of any pipeline containing `$out` or `$merge`. Keep it
-  that way.
-- **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier and Clippy.
+- **Graylog is the only backend.** There is no database and no background service. If
+  something needs to persist, decide which tier it belongs to first: authored settings go
+  to the config directory, derived data to the cache directory. See
+  `docs/research/jetbrains-storage.md`.
+- **The tree reads the cache, not the network.** Only Refresh and a cold cache reach
+  Graylog. Keep it that way, or expanding a node starts costing seconds again.
+- **Never group route by method by status in one aggregation.** It times out on a busy
+  stream. `src/lib/endpoints.ts` splits it into two queries for this reason.
+- **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier, Vitest and
+  Clippy. `make hooks` runs the same gate before each commit.

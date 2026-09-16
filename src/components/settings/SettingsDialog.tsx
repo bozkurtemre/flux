@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 import { Button } from "./controls";
-import { AdvancedPage, AppearancePage, DataSourcesPage, EditorPage, KeymapPage, ResultsPage, type Patch } from "./pages";
+import { AdvancedPage, AppearancePage, DataSourcesPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, type Patch } from "./pages";
 import { applyAppearance, DEFAULTS, type Settings } from "@/lib/settings";
 import { useApp } from "@/store";
 
@@ -42,6 +42,12 @@ const PAGES: PageDef[] = [
     parent: "Editor",
     keywords: "grid rows page size timezone timestamp format striped null refresh range",
     render: ({ s, patch }) => <ResultsPage s={s} patch={patch} />,
+  },
+  {
+    id: "projects",
+    label: "Projects",
+    keywords: "project group stream github repository service",
+    render: ({ s, patch }) => <ProjectsPage s={s} patch={patch} />,
   },
   {
     id: "datasources",
