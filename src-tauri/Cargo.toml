@@ -14,6 +14,13 @@ edition = "2021"
 name = "flux_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[[bin]]
+# macOS names an unbundled process after its executable file, so this is what `make dev`
+# shows in the Dock and the menu bar. The bundle reads CFBundleName instead, which is why
+# the two disagreed while the binary was called `flux`.
+name = "Flux"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
