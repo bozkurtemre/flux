@@ -21,13 +21,13 @@ export function TitleBar() {
         <ChevronDown size={12} />
       </button>
       <div className="ml-auto flex items-center gap-0.5">
-        <button className={icon} title="Settings (⌘,)" onClick={() => setShowSettings(true)}>
+        <button className={icon} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
           <Wrench size={15} style={{ color: "var(--text-dim)" }} />
         </button>
         <button className={icon}>
           <Bug size={15} style={{ color: "var(--text-dim)" }} />
         </button>
-        <button className={icon} title="Search Everywhere (⇧⇧)" onClick={() => setShowSearch(true)}>
+        <button className={icon} data-tip="Search Everywhere" data-tip-key="⇧⇧" onClick={() => setShowSearch(true)}>
           <Search size={15} style={{ color: "var(--text-dim)" }} />
         </button>
         <button className={icon}>
@@ -42,17 +42,17 @@ export function LeftStripe() {
   const { showTerminal, toggleTerminal } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
-      <StripeButton active title="Database Explorer">
+      <StripeButton active tip="Database Explorer">
         <Database size={16} />
       </StripeButton>
-      <StripeButton title="More tool windows">
+      <StripeButton tip="More tool windows">
         <MoreHorizontal size={16} />
       </StripeButton>
       <div className="flex-1" />
-      <StripeButton title="Terminal (⌥F12)" active={showTerminal} onClick={toggleTerminal}>
+      <StripeButton tip="Terminal" tipKey="⌥F12" active={showTerminal} onClick={toggleTerminal}>
         <SquareTerminal size={16} />
       </StripeButton>
-      <StripeButton title="Version control">
+      <StripeButton tip="Version control">
         <GitBranch size={16} />
       </StripeButton>
     </div>
@@ -65,7 +65,7 @@ export function RightStripe() {
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton
-        title="Value inspector"
+        tip="Value inspector"
         active={!!tab?.selectedRow || tab?.selectedRow === 0}
         onClick={() => tab && patchTab(tab.id, { selectedRow: tab.selectedRow == null ? 0 : undefined })}
       >
@@ -75,10 +75,23 @@ export function RightStripe() {
   );
 }
 
-function StripeButton({ children, active, title, onClick }: { children: ReactNode; active?: boolean; title?: string; onClick?: () => void }) {
+function StripeButton({
+  children,
+  active,
+  tip,
+  tipKey,
+  onClick,
+}: {
+  children: ReactNode;
+  active?: boolean;
+  tip?: string;
+  tipKey?: string;
+  onClick?: () => void;
+}) {
   return (
     <button
-      title={title}
+      data-tip={tip}
+      data-tip-key={tipKey}
       onClick={onClick}
       className="flex size-7 items-center justify-center rounded-md"
       style={{ background: active ? "var(--stripe-active)" : undefined, color: "var(--text-dim)" }}
@@ -129,7 +142,7 @@ export function StatusBar() {
       <span className="ml-auto flex items-center gap-3">
         <BackgroundTask />
         <span>{settings.connections.length} data sources</span>
-        {version && <span title="Flux version">v{version}</span>}
+        {version && <span data-tip="Flux version">v{version}</span>}
       </span>
     </div>
   );
@@ -154,7 +167,7 @@ function BackgroundTask() {
         />
       </span>
       {task.cancel && (
-        <button onClick={task.cancel} title="Stop" className="flex size-4 items-center justify-center rounded-[3px] hover:bg-[var(--bg-hover)]">
+        <button onClick={task.cancel} data-tip="Stop" className="flex size-4 items-center justify-center rounded-[3px] hover:bg-[var(--bg-hover)]">
           <span className="size-[9px] rounded-[2px]" style={{ border: "1.5px solid var(--red)" }} />
         </button>
       )}

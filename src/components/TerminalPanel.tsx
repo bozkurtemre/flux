@@ -45,7 +45,7 @@ export function TerminalPanel() {
         ))}
         <button
           className="flex size-6 items-center justify-center rounded-md hover:bg-[var(--bg-hover)]"
-          title="New terminal"
+          data-tip="New terminal"
           onClick={(e) => setMenu({ x: e.currentTarget.getBoundingClientRect().left, y: e.currentTarget.getBoundingClientRect().bottom + 4 })}
           style={{ color: "var(--text-dim)" }}
         >
