@@ -137,7 +137,14 @@ before every commit. It is the same set of checks CI runs, scoped to what change
 a commit that passes locally passes on the server. `git commit --no-verify` skips it
 when you genuinely need to, but CI will still fail.
 
-CI runs the full gate on every pull request and bundles the app on pushes to `main`.
+`make dev-signed` is `make dev` with the binary signed between the link and the run, by a
+cargo runner (`scripts/sign-and-run.sh`). macOS binds a Keychain "Always Allow" to the
+signature of whoever asked, and cargo re-links a differently-hashed ad-hoc binary on every
+build, so an unsigned dev run is a new caller each time and asks for the token again. The
+identity comes from `SIGN_ID`, which defaults to the codesigning identity on this machine.
+
+CI runs the full gate on every pull request and bundles the app on pushes to `main`. That
+bundle is a test artifact and stays unsigned.
 
 ## Releasing
 
@@ -154,6 +161,12 @@ Pushing a `v*` tag runs the release workflow, which re-runs the quality gate, bu
 `Flux.app` and a `.dmg`, and publishes them as a GitHub Release with generated notes.
 The workflow refuses a tag that disagrees with the version in the tree, so the tag and
 the binary can never describe different builds.
+
+The release is signed when the repository holds `APPLE_CERTIFICATE` (a base64 `.p12`),
+`APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, and notarized when `APPLE_ID`,
+`APPLE_PASSWORD` and `APPLE_TEAM_ID` are there too. Without them the release still builds
+and publishes, unsigned. Signing for other machines needs a Developer ID Application
+certificate; an Apple Development one only satisfies Gatekeeper on the Mac that issued it.
 
 Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
