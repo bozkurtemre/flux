@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="fluxTeal" x1="150" y1="120" x2="900" y2="910" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8CF7E2"/>
+      <stop offset="0.35" stop-color="#22C8B2"/>
+      <stop offset="0.72" stop-color="#109AA0"/>
+      <stop offset="1" stop-color="#0A6180"/>
+    </linearGradient>
+  </defs>
+  <rect x="106" y="106" width="812" height="812" rx="184" fill="url(#fluxTeal)"/>
+  <rect x="196" y="196" width="632" height="632" rx="94" fill="#111214"/>
+  <path d="M397 362H627V438H467V476H592V549H467V662H397Z" fill="#ffffff"/>
+</svg>

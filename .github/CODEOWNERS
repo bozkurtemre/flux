@@ -1,0 +1,8 @@
+# Default owner for everything in this repository.
+*                       @bozkurtemre
+
+# Areas that carry the most risk if they change silently.
+/src-tauri/             @bozkurtemre
+/.github/               @bozkurtemre
+/src/lib/graylog.ts     @bozkurtemre
+/src/lib/mongo.ts       @bozkurtemre

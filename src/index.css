@@ -1,0 +1,223 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+/*
+ * JetBrains New UI tokens as used by DataGrip 2024+ (dark) and its light theme.
+ * DataGrip uses Inter for chrome and JetBrains Mono for editors and data grids.
+ */
+@theme {
+  --font-ui: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root,
+:root[data-theme="dark"] {
+  /* Islands Dark: panels float as rounded islands on a near-black window */
+  --bg-window: #111214;
+  --bg-editor: #1e1f22;
+  --bg-tool: #26282c;
+  --bg-raised: #393b40;
+  --bg-input: #1e1f22;
+  --bg-hover: #303236;
+  --bg-active: #393b40;
+  --sel-focus: #2f5aa8;
+  --sel-blur: #3a3d42;
+  --border: #303337;
+  --border-soft: #26282c;
+  --island-radius: 12px;
+  --stripe-active: #33363b;
+  --text: #dfe1e5;
+  --text-dim: #9da0a8;
+  --text-muted: #6f737a;
+  --accent: #3574f0;
+  --accent-text: #ffffff;
+  --green: #5fad65;
+  --amber: #d9a343;
+  --red: #e55765;
+  --purple: #c77dbb;
+  --cyan: #56a8f5;
+  --syn-key: #56a8f5;
+  --syn-str: #6aab73;
+  --syn-num: #2aacb8;
+  --syn-op: #bcbec4;
+  --syn-comment: #7a7e85;
+  --gutter-text: #606366;
+  --row-alt: #232427;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg-window: #e4e6eb;
+  --bg-editor: #ffffff;
+  --bg-tool: #f7f8fa;
+  --bg-raised: #ebecf0;
+  --bg-input: #ffffff;
+  --bg-hover: #e8eaef;
+  --bg-active: #dfe1e6;
+  --sel-focus: #3574f0;
+  --sel-blur: #d8dade;
+  --border: #d3d5db;
+  --border-soft: #ebecf0;
+  --island-radius: 10px;
+  --stripe-active: #dcdee3;
+  --text: #1e1f22;
+  --text-dim: #5a5d63;
+  --text-muted: #818594;
+  --accent: #3574f0;
+  --accent-text: #ffffff;
+  --green: #3d8b40;
+  --amber: #a6791f;
+  --red: #c9364a;
+  --purple: #871094;
+  --cyan: #1750eb;
+  --syn-key: #0033b3;
+  --syn-str: #067d17;
+  --syn-num: #1750eb;
+  --syn-op: #1e1f22;
+  --syn-comment: #8c8c8c;
+  --gutter-text: #adadad;
+  --row-alt: #fafbfc;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+:root {
+  --ui-font-size: 13px;
+  --density: 1;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-window);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--ui-font-size);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+.selectable,
+.cm-editor {
+  user-select: text;
+}
+
+/* JetBrains scrollbars: thumb only, no track */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-raised);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  min-height: 40px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* CodeMirror shaped like the DataGrip query console */
+.cm-editor {
+  background: var(--bg-editor) !important;
+  color: var(--text) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 13px !important;
+  height: 100%;
+}
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+.cm-scroller {
+  font-family: var(--font-mono) !important;
+  line-height: 1.5 !important;
+}
+.cm-gutters {
+  background: var(--bg-editor) !important;
+  color: var(--gutter-text) !important;
+  border-right: none !important;
+  font-family: var(--font-mono) !important;
+}
+.cm-activeLine {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+:root[data-theme="light"] .cm-activeLine {
+  background: rgba(0, 0, 0, 0.028) !important;
+}
+.cm-activeLineGutter {
+  background: transparent !important;
+  color: var(--text-dim) !important;
+}
+.cm-content {
+  caret-color: var(--text) !important;
+  padding: 5px 0 !important;
+}
+.cm-cursor {
+  border-left-color: var(--text) !important;
+}
+.cm-selectionBackground,
+.cm-editor ::selection {
+  background: var(--sel-focus) !important;
+}
+.cm-tooltip.cm-tooltip-autocomplete {
+  background: var(--bg-tool) !important;
+  border: 1px solid var(--border) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--accent) !important;
+  color: var(--accent-text) !important;
+}
+
+/* JetBrains splitters */
+/* The gap between islands is the splitter; it only tints while actually dragging. */
+[data-separator] {
+  background: transparent;
+  transition: background 120ms;
+}
+[data-separator][data-active] {
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+}
+
+/* An island: a floating rounded panel, separated by gaps rather than borders */
+.island {
+  background: var(--bg-tool);
+  border-radius: var(--island-radius);
+  overflow: hidden;
+}
+.island-editor {
+  background: var(--bg-editor);
+  border-radius: var(--island-radius);
+  overflow: hidden;
+}
+
+/* Tree and list selection is a rounded pill inset from the panel edge */
+.row-sel {
+  background: var(--sel-focus);
+  color: #ffffff;
+}
