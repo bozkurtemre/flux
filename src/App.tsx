@@ -72,7 +72,9 @@ export default function App() {
     if (!panel) return;
     if (showTerminal) {
       panel.expand();
-      panel.resize(terminalSize);
+      // a bare number is pixels to this library, and 32 pixels is below the minimum, which
+      // collapsed the panel again the moment it was asked to open
+      panel.resize(`${Math.min(80, Math.max(10, terminalSize))}%`);
     } else {
       panel.collapse();
     }
