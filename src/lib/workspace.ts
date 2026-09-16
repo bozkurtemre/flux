@@ -38,6 +38,8 @@ export interface Workspace {
   terminals: SavedTerminal[];
   activeTerminal?: string;
   showTerminal?: boolean;
+  /** Height of the terminal panel, as a percentage of the window. */
+  terminalSize?: number;
 }
 
 const empty: Workspace = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };

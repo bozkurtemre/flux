@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { useEffect, useRef, useState } from "react";
+import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ConnectionExplorer } from "@/components/ConnectionExplorer";
 import { EditorArea } from "@/components/EditorArea";
@@ -15,7 +15,8 @@ import { quitAction } from "@/lib/terminal";
 import { useApp } from "@/store";
 
 export default function App() {
-  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal } = useApp();
+  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal, terminalSize, setTerminalSize } = useApp();
+  const terminalPanel = useRef<PanelImperativeHandle>(null);
   const [askQuit, setAskQuit] = useState(false);
   const [remember, setRemember] = useState(false);
 
@@ -64,6 +65,24 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [activeTab, runQuery]);
+
+  // the panel answers the stripe button, at the height it was left at
+  useEffect(() => {
+    const panel = terminalPanel.current;
+    if (!panel) return;
+    if (showTerminal) {
+      panel.expand();
+      panel.resize(terminalSize);
+    } else {
+      panel.collapse();
+    }
+    // terminalSize is deliberately absent: dragging must not re-drive the panel it came from
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTerminal]);
+
+  const onTerminalResize = (size: { asPercentage: number }) => {
+    if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
+  };
 
   // Sessions outlive the app on purpose, so closing the window is a question, not a given.
   useEffect(() => {
@@ -139,12 +158,12 @@ export default function App() {
               </Panel>
             </Group>
           </Panel>
-          {showTerminal && <Separator className="h-1.5" />}
-          {showTerminal && (
-            <Panel defaultSize="32" minSize="10" maxSize="80">
-              <TerminalPanel />
-            </Panel>
-          )}
+          <Separator className="h-1.5" style={{ display: showTerminal ? undefined : "none" }} />
+          {/* collapsed rather than unmounted: the height you dragged it to survives hiding it,
+              and so do the terminals, which would otherwise be torn down and started again */}
+          <Panel panelRef={terminalPanel} collapsible collapsedSize={0} defaultSize={0} minSize="10" maxSize="80" onResize={onTerminalResize}>
+            <TerminalPanel />
+          </Panel>
         </Group>
         <RightStripe />
       </div>

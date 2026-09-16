@@ -163,7 +163,8 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
     })();
 
     const observer = new ResizeObserver(() => {
-      if (hiddenRef.current) return;
+      // hidden tab, or a collapsed panel: fitting to nothing confuses both xterm and tmux
+      if (hiddenRef.current || !host.current?.clientHeight || !host.current.clientWidth) return;
       fit.fit();
       void invoke("terminal_resize", { id: pty, cols: term.cols, rows: term.rows }).catch(() => {});
     });
