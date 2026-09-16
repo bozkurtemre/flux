@@ -355,7 +355,7 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
           >
             <Trash2 size={12} />
           </Button>
-          <label className="ml-auto cursor-pointer text-[11px]" style={{ color: "var(--accent)" }} title="Import a watchdog .env">
+          <label className="ml-auto cursor-pointer text-[11px]" style={{ color: "var(--accent)" }} title="Read connections from a .env file">
             Import
             <input
               type="file"
@@ -419,7 +419,7 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
           </>
         ) : (
           <p className="pt-4 text-[13px]" style={{ color: "var(--text-muted)" }}>
-            Add a data source with ＋, or import one from a watchdog .env file.
+            Add a data source with ＋, or import one from a .env file.
           </p>
         )}
       </div>

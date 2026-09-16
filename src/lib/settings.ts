@@ -268,7 +268,10 @@ export function applyAppearance(a: Appearance) {
   root.style.setProperty("--accent", a.accent);
 }
 
-/** `.env`-style text to a connection pair, for importing a watchdog setup. */
+/**
+ * Read connections out of `.env`-style text. Any file with `GRAYLOG_URL_<ENV>` and
+ * `GRAYLOG_TOKEN_<ENV>` pairs works; it saves typing a URL and a token by hand.
+ */
 export function connectionsFromEnv(text: string): Connection[] {
   const env: Record<string, string> = {};
   for (const line of text.split("\n")) {

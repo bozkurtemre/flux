@@ -52,7 +52,7 @@ const PAGES: PageDef[] = [
   {
     id: "datasources",
     label: "Data Sources",
-    keywords: "connection graylog token mongodb watchdog url env import",
+    keywords: "connection graylog token url env import credential keychain",
     render: ({ s, patch, connId }) => <DataSourcesPage s={s} patch={patch} selectId={connId} />,
   },
   {
