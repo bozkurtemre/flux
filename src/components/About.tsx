@@ -1,7 +1,7 @@
 // Our own About window. The system's panel takes its icon from the app bundle, which a
 // development build has none of, and its credits are plain text with nowhere to click.
 import { useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
+import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Logo } from "./Logo";
@@ -11,6 +11,7 @@ const AUTHOR = "https://github.com/bozkurtemre";
 export function About() {
   const [open, setOpen] = useState(false);
   const [version, setVersion] = useState("");
+  const [tauri, setTauri] = useState("");
 
   useEffect(() => {
     const pending = listen("about", () => setOpen(true));
@@ -18,11 +19,18 @@ export function About() {
   }, []);
 
   useEffect(() => {
-    if (open) void getVersion().then(setVersion);
+    if (open) {
+      void getVersion().then(setVersion);
+      void getTauriVersion().then(setTauri);
+    }
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  /** What a bug report needs and nobody can be expected to look up by hand. */
+  const report = () =>
+    [`Flux ${version || "unknown"}`, `Tauri ${tauri || "unknown"}`, navigator.userAgent, `Language: ${navigator.language}`].join("\n");
 
   if (!open) return null;
   return (
@@ -53,16 +61,25 @@ export function About() {
             Emre Bozkurt
           </button>
         </p>
-        <p className="mt-4 text-[11px]" style={{ color: "var(--text-muted)" }}>
-          The modern log explorer, for Graylog
-        </p>
-        <button
-          onClick={() => setOpen(false)}
-          className="mt-5 h-[26px] rounded-[4px] px-4 text-[13px]"
-          style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
-        >
-          Close
-        </button>
+        <div className="mt-6 flex w-full justify-end gap-2">
+          <button
+            onClick={() => {
+              void navigator.clipboard.writeText(report()).finally(() => setOpen(false));
+            }}
+            title="Copy the version details a bug report needs"
+            className="h-[26px] rounded-[4px] px-3 text-[13px]"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
+          >
+            Copy and Close
+          </button>
+          <button
+            onClick={() => setOpen(false)}
+            className="h-[26px] rounded-[4px] px-4 text-[13px]"
+            style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }}
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
