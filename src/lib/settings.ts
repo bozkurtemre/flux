@@ -303,10 +303,10 @@ export function connectionsFromEnv(text: string): Connection[] {
 }
 
 export const SHORTCUTS: { group: string; keys: string; action: string }[] = [
-  { group: "Database Explorer", keys: "↑ ↓", action: "Move selection" },
-  { group: "Database Explorer", keys: "→", action: "Expand node" },
-  { group: "Database Explorer", keys: "←", action: "Collapse node" },
-  { group: "Database Explorer", keys: "Enter", action: "Open in a new tab" },
+  { group: "Connection Explorer", keys: "↑ ↓", action: "Move selection" },
+  { group: "Connection Explorer", keys: "→", action: "Expand node" },
+  { group: "Connection Explorer", keys: "←", action: "Collapse node" },
+  { group: "Connection Explorer", keys: "Enter", action: "Open in a new tab" },
   { group: "Query Console", keys: "⌘⏎", action: "Execute query" },
   { group: "Query Console", keys: "⌃Space", action: "Complete field name" },
   { group: "Search", keys: "⇧⇧", action: "Search Everywhere" },

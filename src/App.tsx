@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { DatabaseExplorer } from "@/components/DatabaseExplorer";
+import { ConnectionExplorer } from "@/components/ConnectionExplorer";
 import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
@@ -128,7 +128,7 @@ export default function App() {
             <Group orientation="horizontal" className="h-full min-h-0">
               <Panel defaultSize="26" minSize="14" maxSize="50">
                 <div className="island h-full">
-                  <DatabaseExplorer />
+                  <ConnectionExplorer />
                 </div>
               </Panel>
               <Separator className="w-1.5" />

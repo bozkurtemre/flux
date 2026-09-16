@@ -1,5 +1,5 @@
-// 16px flat icons shaped like the JetBrains set: a cylinder for a connection,
-// a box for a schema-level grouping, a grid for a table, a column for a field.
+// 16px flat icons shaped like the JetBrains set: a rack for a connection, which is a host
+// we query rather than a database, a box for a grouping, a grid for a stream.
 
 const S = { width: 16, height: 16, viewBox: "0 0 16 16", fill: "none" } as const;
 
@@ -7,9 +7,10 @@ export function ConnectionIcon({ live }: { live?: boolean }) {
   const c = live ? "var(--green)" : "var(--text-muted)";
   return (
     <svg {...S}>
-      <ellipse cx="8" cy="4" rx="5.5" ry="2.2" fill={c} opacity={0.9} />
-      <path d="M2.5 4v8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2V4" stroke={c} strokeWidth="1.3" />
-      <path d="M2.5 8c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2" stroke={c} strokeWidth="1.3" />
+      <rect x="2" y="2.6" width="12" height="4.6" rx="1.2" fill={c} opacity={0.9} />
+      <rect x="2" y="8.8" width="12" height="4.6" rx="1.2" fill={c} opacity={0.9} />
+      <circle cx="4.4" cy="4.9" r="0.85" fill="var(--bg-tool)" />
+      <circle cx="4.4" cy="11.1" r="0.85" fill="var(--bg-tool)" />
     </svg>
   );
 }

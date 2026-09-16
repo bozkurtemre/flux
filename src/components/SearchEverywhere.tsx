@@ -62,7 +62,7 @@ export function SearchEverywhere() {
       {
         key: "a:collapse",
         group: "Actions",
-        title: "Collapse all in Database Explorer",
+        title: "Collapse all in Connection Explorer",
         score: 0,
         icon: <FoldVertical size={14} style={{ color: "var(--text-dim)" }} />,
         run: () => useApp.setState({ expanded: {} }),

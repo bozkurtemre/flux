@@ -23,7 +23,7 @@ const PAGES: PageDef[] = [
   },
   {
     id: "tree",
-    label: "Database Explorer",
+    label: "Connection Explorer",
     parent: "Appearance & Behavior",
     keywords: "tree row height indent endpoints sort counts error rate lookback",
     render: ({ s, patch }) => <TreePageLazy s={s} patch={patch} />,

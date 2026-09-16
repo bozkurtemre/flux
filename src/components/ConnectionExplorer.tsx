@@ -5,7 +5,7 @@ import { Chevron, ConnectionIcon, EndpointIcon, ProjectIcon, Spinner, StreamIcon
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp, visibleRows, type TreeNode } from "@/store";
 
-export function DatabaseExplorer() {
+export function ConnectionExplorer() {
   const state = useApp();
   const rows = visibleRows(state);
   const [menu, setMenu] = useState<{ x: number; y: number; node: TreeNode } | null>(null);
@@ -137,7 +137,7 @@ function PanelHeader() {
   return (
     <div className="flex h-[28px] shrink-0 items-center px-3">
       <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>
-        Database Explorer
+        Connection Explorer
       </span>
     </div>
   );

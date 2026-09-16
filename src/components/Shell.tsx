@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { Bug, ChevronDown, Database, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, SquareTerminal, Wrench } from "lucide-react";
+import { Bug, ChevronDown, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, Server, SquareTerminal, Wrench } from "lucide-react";
 import { Logo } from "./Logo";
 import { useApp } from "@/store";
 import { taskLabel, visibleTask } from "@/lib/progress";
@@ -42,8 +42,8 @@ export function LeftStripe() {
   const { showTerminal, toggleTerminal } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
-      <StripeButton active tip="Database Explorer">
-        <Database size={16} />
+      <StripeButton active tip="Connection Explorer">
+        <Server size={16} />
       </StripeButton>
       <StripeButton tip="More tool windows">
         <MoreHorizontal size={16} />
@@ -122,7 +122,7 @@ export function StatusBar() {
       {tab ? (
         <>
           <span className="flex items-center gap-1.5">
-            <Database size={11} />
+            <Server size={11} />
             {conn?.name ?? "—"}
           </span>
           <span className="truncate">{tab.streamLabel}</span>
