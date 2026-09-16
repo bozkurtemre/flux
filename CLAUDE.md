@@ -1,7 +1,7 @@
 # Flux
 
-The modern log explorer, for Graylog. See `README.md` for what it does and how to run
-it, and `docs/research/jetbrains-storage.md` for the storage model it borrows.
+The modern log explorer, for Graylog. See `README.md` for what it does, how to run it,
+and where it keeps your data.
 
 ## Agent skills
 
@@ -27,8 +27,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - **Graylog is the only backend.** There is no database and no background service. If
   something needs to persist, decide which tier it belongs to first: authored settings go
   to the config directory, one file per concern, derived data to the cache directory, and
-  anything that belongs to one machine to `workspace.json`. See
-  `docs/research/jetbrains-storage.md`.
+  anything that belongs to one machine to `workspace.json`. "Where your data lives" in
+  `README.md` has the table.
 - **The tree reads the cache, not the network.** Only Refresh and a cold cache reach
   Graylog. Keep it that way, or expanding a node starts costing seconds again.
 - **Never group route by method by status in one aggregation.** It times out on a busy

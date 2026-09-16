@@ -113,8 +113,7 @@ src-tauri/src/cache.rs    reads and writes the OS cache directory
 
 ## Where your data lives
 
-Three tiers, split by what happens if a file is lost. The model is described in
-`docs/research/jetbrains-storage.md`.
+Three tiers, split by what happens if a file is lost.
 
 | What                                | Where               | Lost if deleted                                           |
 | ----------------------------------- | ------------------- | --------------------------------------------------------- |
