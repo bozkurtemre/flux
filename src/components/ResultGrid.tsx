@@ -15,6 +15,40 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [dragging, setDragging] = useState<string | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
+  const draggedRef = useRef(false);
+
+  /**
+   * Moving a column, on plain pointer events: the webview swallows HTML5 drag, and this
+   * follows the cursor from the first few pixels rather than after the browser decides a
+   * drag has begun. Under the threshold it stays a click, which sorts.
+   */
+  const startColumnDrag = (e: React.MouseEvent, col: string) => {
+    if (e.button !== 0) return;
+    const from = e.clientX;
+    draggedRef.current = false;
+    let over: string | null = null;
+
+    const move = (ev: MouseEvent) => {
+      if (!draggedRef.current && Math.abs(ev.clientX - from) < 4) return;
+      draggedRef.current = true;
+      setDragging(col);
+      const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-col]");
+      const name = under instanceof HTMLElement ? (under.dataset.col ?? null) : null;
+      over = name && name !== col ? name : null;
+      setDropOn(over);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      if (draggedRef.current && over) setColumns(tab.id, moveColumn(columns, col, over));
+      setDragging(null);
+      setDropOn(null);
+      // let the click that follows this mouse-up see the flag, then forget it
+      setTimeout(() => (draggedRef.current = false), 0);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
   const parentRef = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(() => {
@@ -79,23 +113,13 @@ export function ResultGrid({ tab }: { tab: Tab }) {
             {columns.map((c) => (
               <div
                 key={c}
-                draggable
-                onDragStart={() => setDragging(c)}
-                onDragEnd={() => {
-                  setDragging(null);
-                  setDropOn(null);
+                data-col={c}
+                onMouseDown={(e) => startColumnDrag(e, c)}
+                onClick={() => {
+                  // the mouse-up that ends a drag also fires a click; that one is not a sort
+                  if (draggedRef.current) return;
+                  setSort((s) => (s?.col === c ? { col: c, dir: s.dir === 1 ? -1 : 1 } : { col: c, dir: 1 }));
                 }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (dragging && dragging !== c) setDropOn(c);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  if (dragging) setColumns(tab.id, moveColumn(columns, dragging, c));
-                  setDragging(null);
-                  setDropOn(null);
-                }}
-                onClick={() => setSort((s) => (s?.col === c ? { col: c, dir: s.dir === 1 ? -1 : 1 } : { col: c, dir: 1 }))}
                 className="flex shrink-0 items-center gap-1 truncate px-2 text-[11px] font-medium"
                 style={{
                   width: width(c),
@@ -104,16 +128,18 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                   borderLeft: dropOn === c ? "2px solid var(--accent)" : undefined,
                   color: "var(--text-dim)",
                   opacity: dragging === c ? 0.4 : 1,
-                  cursor: "default",
+                  cursor: dragging ? "grabbing" : "default",
+                  userSelect: "none",
                 }}
                 title={c}
               >
                 <span className="truncate">{c}</span>
                 {sort?.col === c && <span style={{ color: "var(--accent)" }}>{sort.dir === 1 ? "▲" : "▼"}</span>}
                 <span
-                  draggable={false}
-                  onDragStart={(e) => e.preventDefault()}
-                  onMouseDown={(e) => startResize(e, c, width(c), setWidths)}
+                  onMouseDown={(e) => {
+                    e.stopPropagation(); // the edge resizes the column, it does not move it
+                    startResize(e, c, width(c), setWidths);
+                  }}
                   className="ml-auto -mr-2 h-full w-2 cursor-col-resize"
                 />
               </div>
