@@ -1,11 +1,17 @@
 // Persisted app settings. Tokens live in the Tauri store on this machine only.
 import { load, type Store } from "@tauri-apps/plugin-store";
+import { deleteSecret, getSecret, setSecret } from "./secrets";
 
 export interface Connection {
   id: string;
   name: string; // "prod", "stage"
   graylogUrl: string;
+  /**
+   * Held in memory only. It is written to the OS credential store on save and read back
+   * on load; what lands in settings.json is `secretStorage`, never this.
+   */
   graylogToken: string;
+  secretStorage?: "keychain";
 }
 
 /** A group of streams the user considers one service. Purely a tree convenience. */
@@ -137,13 +143,45 @@ export async function loadSettings(): Promise<Settings> {
   const merged = withDefaults(saved);
   // pre-1.0 stored the theme at the top level
   if (saved?.theme && !saved.appearance) merged.appearance.theme = saved.theme;
+
+  let migrated = false;
+  for (const c of merged.connections) {
+    if (c.graylogToken) {
+      // an older settings file still holds the token in the clear; move it out and forget it
+      await setSecret(c.id, c.graylogToken).catch(() => {});
+      c.secretStorage = "keychain";
+      migrated = true;
+      continue;
+    }
+    c.graylogToken = (await getSecret(c.id).catch(() => null)) ?? "";
+    if (c.graylogToken) c.secretStorage = "keychain";
+  }
+  if (migrated) await saveSettings(merged);
   return merged;
 }
 
+/**
+ * Tokens go to the credential store; the file gets a pointer. Writing the file first
+ * would leave the secret on disk if the keychain call failed, so the order matters.
+ */
 export async function saveSettings(settings: Settings): Promise<void> {
+  const stored: Settings = {
+    ...settings,
+    connections: await Promise.all(
+      settings.connections.map(async (c) => {
+        if (c.graylogToken) await setSecret(c.id, c.graylogToken);
+        return { ...c, graylogToken: "", secretStorage: c.graylogToken ? ("keychain" as const) : undefined };
+      }),
+    ),
+  };
   const s = await get();
-  await s.set("settings", settings);
+  await s.set("settings", stored);
   await s.save();
+}
+
+/** Called when a data source is deleted, so its token does not outlive it. */
+export async function forgetSecrets(removed: Connection[]): Promise<void> {
+  await Promise.all(removed.map((c) => deleteSecret(c.id).catch(() => {})));
 }
 
 export function newConnection(): Connection {

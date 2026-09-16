@@ -1,4 +1,5 @@
 mod cache;
+mod secrets;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,6 +12,9 @@ pub fn run() {
             cache::cache_write,
             cache::cache_clear,
             cache::cache_location,
+            secrets::secret_set,
+            secrets::secret_get,
+            secrets::secret_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

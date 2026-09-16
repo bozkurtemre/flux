@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
-import { applyAppearance, DEFAULTS, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
+import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
 
@@ -110,6 +110,8 @@ export const useApp = create<State>((set, get) => ({
   },
 
   setSettings: async (settings) => {
+    const gone = get().settings.connections.filter((old) => !settings.connections.some((c) => c.id === old.id));
+    if (gone.length) await forgetSecrets(gone);
     await saveSettings(settings);
     applyAppearance(settings.appearance);
     setRequestTimeout(settings.advanced.requestTimeoutSeconds);

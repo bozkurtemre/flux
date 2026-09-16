@@ -148,9 +148,12 @@ Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
 
-Tokens live in the Tauri store on the machine that entered them and are never sent
-anywhere except the Graylog instance they belong to. Flux only ever reads: it issues
-searches and aggregations, and never writes to Graylog.
+Access tokens go to the operating system's credential store, the macOS Keychain on this
+platform, addressed by connection id. Flux's own settings file records only that a secret
+exists, never the secret. Deleting a data source deletes its token with it.
+
+Tokens are sent nowhere except the Graylog instance they belong to. Flux only ever reads:
+it issues searches and aggregations, and never writes to Graylog.
 
 ## Licence
 

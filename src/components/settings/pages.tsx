@@ -376,7 +376,14 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
               <Row label="Graylog URL">
                 <Text value={conn.graylogUrl} onChange={(v) => field({ graylogUrl: v })} placeholder="https://graylog.example.com:9000" mono />
               </Row>
-              <Row label="Access token" hint="Graylog profile › Edit tokens. Stored on this machine only.">
+              <Row
+                label="Access token"
+                hint={
+                  conn.secretStorage === "keychain"
+                    ? "Held in your OS credential store, not in Flux's settings file. Type a new one to replace it."
+                    : "Graylog profile › Edit tokens. Saved to your OS credential store."
+                }
+              >
                 <Text value={conn.graylogToken} onChange={(v) => field({ graylogToken: v })} type="password" mono />
               </Row>
             </Section>

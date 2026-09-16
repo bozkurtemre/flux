@@ -5,6 +5,11 @@ Notable changes per release. Versions follow [semantic versioning](https://semve
 
 ## Unreleased
 
+### Security
+
+- Access tokens moved out of the settings file and into the OS credential store. An
+  existing settings file is migrated on first launch and the plaintext token removed.
+
 ### Changed
 
 - Flux no longer reads a MongoDB or a watchdog config file. Endpoint lists, traffic
