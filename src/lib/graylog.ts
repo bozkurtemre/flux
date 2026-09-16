@@ -46,6 +46,9 @@ export class Graylog {
 
   private async call<T>(path: string, init: RequestInit & { mediaType?: string } = {}): Promise<T> {
     const mediaType = init.mediaType ?? "application/json";
+    // two ways to give up: the timeout, and whoever started this deciding they are done
+    // waiting. They are told apart afterwards, because only one of them is a failure.
+    const timeout = AbortSignal.timeout(requestTimeoutMs);
     const res = await fetch(this.url + path, {
       ...init,
       headers: {
@@ -55,7 +58,10 @@ export class Graylog {
         "X-Requested-By": "Flux",
         ...(init.headers ?? {}),
       },
-      signal: AbortSignal.timeout(requestTimeoutMs),
+      signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
+    }).catch((e: unknown) => {
+      if (timeout.aborted) throw new Error("Operation timed out.");
+      throw e;
     });
     if (!res.ok) {
       const body = await res.text();
@@ -64,18 +70,19 @@ export class Graylog {
     return (await res.json()) as T;
   }
 
-  async version(): Promise<string> {
-    const r = await this.call<{ version: string }>("/api/system");
+  async version(signal?: AbortSignal): Promise<string> {
+    const r = await this.call<{ version: string }>("/api/system", { signal });
     return r.version;
   }
 
-  async streams(): Promise<Stream[]> {
-    const r = await this.call<{ streams: Stream[] }>("/api/streams");
+  async streams(signal?: AbortSignal): Promise<Stream[]> {
+    const r = await this.call<{ streams: Stream[] }>("/api/streams", { signal });
     return r.streams.filter((s) => !s.disabled).sort((a, b) => a.title.localeCompare(b.title));
   }
 
-  async fields(streamId: string, rangeSec = 604800): Promise<FieldInfo[]> {
+  async fields(streamId: string, rangeSec = 604800, signal?: AbortSignal): Promise<FieldInfo[]> {
     const r = await this.call<{ name: string; type: { type: string } }[]>("/api/views/fields", {
+      signal,
       method: "POST",
       body: JSON.stringify({ streams: [streamId], timerange: { type: "relative", range: rangeSec } }),
     });
@@ -91,8 +98,10 @@ export class Graylog {
     size?: number;
     from?: number;
     sortOrder?: "asc" | "desc";
+    signal?: AbortSignal;
   }): Promise<MessagePage> {
     const r = await this.call<{ schema: { name: string }[]; datarows: unknown[][] }>("/api/search/messages", {
+      signal: o.signal,
       method: "POST",
       body: JSON.stringify({
         query: o.query || "*",
@@ -119,8 +128,10 @@ export class Graylog {
     timerange: TimeRange;
     groupBy: { field: string; limit?: number }[];
     metrics: { function: string; field?: string; configuration?: Record<string, number> }[];
+    signal?: AbortSignal;
   }): Promise<{ columns: string[]; rows: unknown[][] }> {
     const r = await this.call<{ schema: { name: string }[]; datarows: unknown[][] }>("/api/search/aggregate", {
+      signal: o.signal,
       method: "POST",
       body: JSON.stringify({
         query: o.query || "*",
@@ -134,7 +145,7 @@ export class Graylog {
   }
 
   /** Total messages matching a query, used for result counts. */
-  async count(o: { query: string; streams: string[]; timerange: TimeRange }): Promise<number> {
+  async count(o: { query: string; streams: string[]; timerange: TimeRange; signal?: AbortSignal }): Promise<number> {
     const r = await this.aggregate({ ...o, groupBy: [], metrics: [{ function: "count" }] }).catch(() => null);
     if (r?.rows.length) return Number(r.rows[0][r.rows[0].length - 1]) || 0;
     return 0;

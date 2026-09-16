@@ -424,7 +424,8 @@ export const useApp = create<State>((set, get) => ({
     const conn = settings.connections.find((c) => c.id === tab?.connId);
     if (!tab || !conn) return;
     patchTab(id, { running: true, error: undefined });
-    const task = get().startTask(`Running the query on ${tab.streamLabel}`);
+    const stop = new AbortController();
+    const task = get().startTask(`Running the query on ${tab.streamLabel}`, () => stop.abort());
     const started = performance.now();
     try {
       const clauses = [tab.query.trim()].filter(Boolean);
@@ -436,11 +437,15 @@ export const useApp = create<State>((set, get) => ({
         timerange: absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to),
         fields: columnsForQuery(tab),
         size: settings.results.pageSize,
+        signal: stop.signal,
       });
       patchTab(id, { page, took: Math.round(performance.now() - started), running: false, selectedRow: undefined });
     } catch (e) {
-      patchTab(id, { error: (e as Error).message, running: false, page: undefined });
-      get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+      if (stop.signal.aborted) patchTab(id, { running: false });
+      else {
+        patchTab(id, { error: (e as Error).message, running: false, page: undefined });
+        get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+      }
     } finally {
       get().endTask(task);
     }
@@ -548,21 +553,29 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
   const conn = get().settings.connections.find((c) => c.id === node.connId);
   if (!node || !conn) return;
   set({ loading: { ...get().loading, [id]: true } });
-  const task = get().startTask(node.kind === "connection" ? `Connecting to ${conn.name || conn.graylogUrl}` : `Loading ${node.label}`);
+  const stop = new AbortController();
+  const task = get().startTask(node.kind === "connection" ? `Connecting to ${conn.name || conn.graylogUrl}` : `Loading ${node.label}`, () =>
+    stop.abort(),
+  );
   try {
     const made =
       node.kind === "connection"
-        ? await connectionChildren(node, conn, force)
+        ? await connectionChildren(node, conn, force, stop.signal)
         : node.kind === "project"
           ? await projectChildren(node, get)
-          : await streamChildren(node, conn, force);
+          : await streamChildren(node, conn, force, stop.signal);
     const nodes = { ...get().nodes };
     for (const n of made) nodes[n.id] = { ...(nodes[n.id] ?? {}), ...n };
     nodes[id] = { ...nodes[id], childrenIds: made.map((n) => n.id), error: undefined };
     set({ nodes });
   } catch (e) {
-    set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: (e as Error).message } } });
-    get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+    // stopping on purpose is not news: leave the node as it was and say nothing
+    if (stop.signal.aborted) {
+      set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: undefined } } });
+    } else {
+      set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: (e as Error).message } } });
+      get().notify("error", conn.name || conn.graylogUrl, (e as Error).message);
+    }
   } finally {
     get().endTask(task);
     set({ loading: { ...get().loading, [id]: false } });
@@ -573,11 +586,11 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
  * Connection children: the projects the user defined, then any stream no project claims.
  * Streams come from the cache first so the tree opens instantly, and refresh behind it.
  */
-async function connectionChildren(node: TreeNode, conn: Connection, force: boolean): Promise<TreeNode[]> {
+async function connectionChildren(node: TreeNode, conn: Connection, force: boolean, signal?: AbortSignal): Promise<TreeNode[]> {
   const cached = await cache.load(cache.cacheKey(conn.id));
   let streams = cached.streams;
   if (force || !streams.length) {
-    streams = await clientFor(conn).streams();
+    streams = await clientFor(conn).streams(signal);
     await cache.putStreams(cache.cacheKey(conn.id), streams);
   } else {
     // warm the cache for next time without making this expansion wait
@@ -636,7 +649,7 @@ function streamNode(s: Stream, connId: string, depth: number): TreeNode {
  * templates. Served from the cache when there is one, exactly as the IDE serves an
  * introspected schema; Refresh is what re-reads the source.
  */
-async function streamChildren(node: TreeNode, conn: Connection, force: boolean): Promise<TreeNode[]> {
+async function streamChildren(node: TreeNode, conn: Connection, force: boolean, signal?: AbortSignal): Promise<TreeNode[]> {
   const t = useApp.getState().settings.tree;
   const key = cache.cacheKey(conn.id);
   const streamId = node.streamId!;
@@ -645,8 +658,8 @@ async function streamChildren(node: TreeNode, conn: Connection, force: boolean):
   let rows = cached?.endpoints;
   if (force || !rows) {
     const g = clientFor(conn);
-    const fields = await g.fields(streamId).catch(() => []);
-    rows = await endpointsFromGraylog(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit });
+    const fields = await g.fields(streamId, undefined, signal).catch(() => []);
+    rows = await endpointsFromGraylog(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit, signal });
     await cache.putStream(key, streamId, { endpoints: rows, fields });
   }
 

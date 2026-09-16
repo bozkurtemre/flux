@@ -75,7 +75,7 @@ export async function endpointsFromGraylog(
   g: Graylog,
   streamId: string,
   fields: FieldInfo[],
-  o: { lookbackHours: number; limit: number; rules?: [string, string][] },
+  o: { lookbackHours: number; limit: number; rules?: [string, string][]; signal?: AbortSignal },
 ): Promise<EndpointRow[]> {
   const map = inferMapping(fields);
   if (!map) return [];
@@ -89,7 +89,7 @@ export async function endpointsFromGraylog(
   const timerange = { type: "relative" as const, range: o.lookbackHours * 3600 };
   const filter = requestFilter(map);
   const [totals, failures] = await Promise.all([
-    g.aggregate({ query: filter, streams: [streamId], timerange, groupBy, metrics }),
+    g.aggregate({ query: filter, streams: [streamId], timerange, groupBy, metrics, signal: o.signal }),
     map.status
       ? g
           .aggregate({
@@ -98,6 +98,7 @@ export async function endpointsFromGraylog(
             timerange,
             groupBy,
             metrics: [{ function: "count" }],
+            signal: o.signal,
           })
           .catch(() => ({ columns: [], rows: [] as unknown[][] }))
       : Promise.resolve({ columns: [], rows: [] as unknown[][] }),
