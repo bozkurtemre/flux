@@ -257,7 +257,7 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       onMouseLeave={(e) => {
         if (!selected) e.currentTarget.style.background = "";
       }}
-      title={node.error ?? `${node.label}${node.sub ? ` · ${node.sub}` : ""}`}
+      title={`${node.label}${node.sub ? ` · ${node.sub}` : ""}`}
     >
       <span
         className="flex size-4 shrink-0 items-center justify-center"
@@ -270,7 +270,7 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       </span>
       <span className="flex size-4 shrink-0 items-center justify-center">
         {node.kind === "connection" ? (
-          <ConnectionIcon live={!!node.childrenIds} />
+          <ConnectionIcon live={!!node.childrenIds && !node.error} failed={!!node.error} />
         ) : node.kind === "project" ? (
           <ProjectIcon />
         ) : node.kind === "stream" ? (
@@ -290,11 +290,7 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       >
         {node.label}
       </span>
-      {node.error ? (
-        <span className="ml-1 truncate text-[11px]" style={{ color: "var(--red)" }}>
-          {node.error}
-        </span>
-      ) : node.kind === "endpoint" && node.endpoint && (t.showCounts || t.showErrorRate) ? (
+      {node.kind === "endpoint" && node.endpoint && (t.showCounts || t.showErrorRate) ? (
         <span className="ml-auto shrink-0 pl-2 text-[11px] tabular-nums" style={{ color: tone === "bad" ? "var(--red)" : "var(--text-muted)" }}>
           {t.showCounts ? compact(node.endpoint.requests) : ""}
           {t.showErrorRate && node.endpoint.errorRatePct >= 1 ? `${t.showCounts ? " · " : ""}${node.endpoint.errorRatePct.toFixed(1)}%` : ""}

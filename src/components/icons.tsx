@@ -3,8 +3,9 @@
 
 const S = { width: 16, height: 16, viewBox: "0 0 16 16", fill: "none" } as const;
 
-export function ConnectionIcon({ live }: { live?: boolean }) {
-  const c = live ? "var(--green)" : "var(--text-muted)";
+export function ConnectionIcon({ live, failed }: { live?: boolean; failed?: boolean }) {
+  // the only thing the tree says about a failure: red here, the reason is in the balloon
+  const c = failed ? "var(--red)" : live ? "var(--green)" : "var(--text-muted)";
   return (
     <svg {...S}>
       <rect x="2" y="2.6" width="12" height="4.6" rx="1.2" fill={c} opacity={0.9} />
