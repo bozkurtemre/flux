@@ -111,8 +111,20 @@ src/
 src-tauri/src/cache.rs    reads and writes the OS cache directory
 ```
 
-`docs/research/jetbrains-storage.md` records the storage model this follows: readable
-files for what a person authored, a deletable cache for what a machine derived.
+## Where your data lives
+
+Three tiers, split by what happens if a file is lost. The model is described in
+`docs/research/jetbrains-storage.md`.
+
+| What                                | Where               | Lost if deleted                                           |
+| ----------------------------------- | ------------------- | --------------------------------------------------------- |
+| `connections.json`, `projects.json` | config directory    | what you set up; worth sharing with a team                |
+| `preferences.json`                  | config directory    | how you like the window                                   |
+| `workspace.json`                    | config directory    | which tabs and branches were open; belongs to one machine |
+| Access tokens                       | OS credential store | nothing Flux can recover; re-enter them                   |
+| Introspection cache                 | OS cache directory  | nothing, it is re-read from Graylog                       |
+
+No file carries a secret, and the cache directory is safe to delete at any time.
 
 ## Development
 

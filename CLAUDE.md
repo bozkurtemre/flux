@@ -26,7 +26,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   another credential, follow the same route.
 - **Graylog is the only backend.** There is no database and no background service. If
   something needs to persist, decide which tier it belongs to first: authored settings go
-  to the config directory, derived data to the cache directory. See
+  to the config directory, one file per concern, derived data to the cache directory, and
+  anything that belongs to one machine to `workspace.json`. See
   `docs/research/jetbrains-storage.md`.
 - **The tree reads the cache, not the network.** Only Refresh and a cold cache reach
   Graylog. Keep it that way, or expanding a node starts costing seconds again.

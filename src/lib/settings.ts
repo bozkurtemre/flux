@@ -130,53 +130,112 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
   };
 }
 
-let store: Store | undefined;
+/**
+ * One file per concern, as the IDE does, rather than one blob.
+ *
+ * `connections.json` and `projects.json` describe what you set up and are the two a team
+ * could share; `preferences.json` is how you like the window. None of them carries a
+ * secret. Machine-specific state lives in `workspace.json`, see workspace.ts.
+ */
+const FILES = {
+  connections: "connections.json",
+  projects: "projects.json",
+  preferences: "preferences.json",
+} as const;
 
-async function get(): Promise<Store> {
-  store ??= await load("settings.json", { autoSave: true });
-  return store;
+/** Bump when a file's shape changes in a way older readers cannot handle. */
+export const FORMAT_VERSION = 1;
+
+const LEGACY = "settings.json";
+
+const stores = new Map<string, Store>();
+async function file(name: string): Promise<Store> {
+  let s = stores.get(name);
+  if (!s) {
+    s = await load(name, { autoSave: true });
+    stores.set(name, s);
+  }
+  return s;
+}
+
+async function readFile<T>(name: string, key: string): Promise<T | undefined> {
+  const s = await file(name);
+  return (await s.get<T>(key)) ?? undefined;
+}
+
+async function writeFile(name: string, key: string, value: unknown): Promise<void> {
+  const s = await file(name);
+  await s.set("formatVersion", FORMAT_VERSION);
+  await s.set(key, value);
+  await s.save();
+}
+
+/** Pre-split installs kept everything under one key; read it once so nothing is lost. */
+async function readLegacy(): Promise<(Partial<Settings> & { theme?: "dark" | "light" }) | undefined> {
+  try {
+    const s = await load(LEGACY, { autoSave: false });
+    return (await s.get<Partial<Settings> & { theme?: "dark" | "light" }>("settings")) ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export async function loadSettings(): Promise<Settings> {
-  const s = await get();
-  const saved = await s.get<Partial<Settings> & { theme?: "dark" | "light" }>("settings");
-  const merged = withDefaults(saved);
-  // pre-1.0 stored the theme at the top level
-  if (saved?.theme && !saved.appearance) merged.appearance.theme = saved.theme;
+  const [connections, projects, preferences] = await Promise.all([
+    readFile<Connection[]>(FILES.connections, "connections"),
+    readFile<Project[]>(FILES.projects, "projects"),
+    readFile<Omit<Settings, "connections" | "projects">>(FILES.preferences, "preferences"),
+  ]);
 
-  let migrated = false;
+  let merged: Settings;
+  let needsWrite = false;
+
+  if (connections || projects || preferences) {
+    merged = withDefaults({ connections, projects, ...(preferences ?? {}) });
+  } else {
+    const legacy = await readLegacy();
+    merged = withDefaults(legacy);
+    // pre-1.0 stored the theme at the top level
+    if (legacy?.theme && !legacy.appearance) merged.appearance.theme = legacy.theme;
+    needsWrite = !!legacy;
+  }
+
   for (const c of merged.connections) {
     if (c.graylogToken) {
-      // an older settings file still holds the token in the clear; move it out and forget it
+      // an older file still holds the token in the clear; move it out and forget it
       await setSecret(c.id, c.graylogToken).catch(() => {});
       c.secretStorage = "keychain";
-      migrated = true;
+      needsWrite = true;
       continue;
     }
     c.graylogToken = (await getSecret(c.id).catch(() => null)) ?? "";
     if (c.graylogToken) c.secretStorage = "keychain";
   }
-  if (migrated) await saveSettings(merged);
+
+  if (needsWrite) await saveSettings(merged);
   return merged;
 }
 
 /**
- * Tokens go to the credential store; the file gets a pointer. Writing the file first
- * would leave the secret on disk if the keychain call failed, so the order matters.
+ * Tokens go to the credential store and the files get a pointer. The secret is written
+ * first: the other order would leave it on disk when the credential store refuses.
  */
 export async function saveSettings(settings: Settings): Promise<void> {
-  const stored: Settings = {
-    ...settings,
-    connections: await Promise.all(
-      settings.connections.map(async (c) => {
-        if (c.graylogToken) await setSecret(c.id, c.graylogToken);
-        return { ...c, graylogToken: "", secretStorage: c.graylogToken ? ("keychain" as const) : undefined };
-      }),
-    ),
-  };
-  const s = await get();
-  await s.set("settings", stored);
-  await s.save();
+  const connections = await Promise.all(
+    settings.connections.map(async (c) => {
+      if (c.graylogToken) await setSecret(c.id, c.graylogToken);
+      return { ...c, graylogToken: "", secretStorage: c.graylogToken ? ("keychain" as const) : undefined };
+    }),
+  );
+  const { connections: _c, projects, ..._preferences } = settings;
+  const preferences = { ..._preferences } as Omit<Settings, "connections" | "projects">;
+  void _c;
+
+  await Promise.all([
+    writeFile(FILES.connections, "connections", connections),
+    writeFile(FILES.projects, "projects", projects),
+    writeFile(FILES.preferences, "preferences", preferences),
+  ]);
 }
 
 /** Called when a data source is deleted, so its token does not outlive it. */

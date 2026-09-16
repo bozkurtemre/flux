@@ -12,6 +12,10 @@ Notable changes per release. Versions follow [semantic versioning](https://semve
 
 ### Changed
 
+- Settings split into one file per concern, `connections.json`, `projects.json` and
+  `preferences.json`, with machine-specific state in `workspace.json`. An existing
+  `settings.json` is read once and migrated.
+
 - Flux no longer reads a MongoDB or a watchdog config file. Endpoint lists, traffic
   counts and percentiles come from Graylog directly, and the results are kept in an
   introspection cache so the tree still opens instantly.
@@ -32,6 +36,7 @@ Notable changes per release. Versions follow [semantic versioning](https://semve
 - **Settings › Projects**, to group a connection's streams into services.
 - **Settings › Advanced › Invalidate Caches**, and the cache location beside it.
 - Unit tests, run by Vitest in the gate and in CI.
+- Open tabs and expanded branches are restored on the next launch.
 
 ## 0.1.0
 

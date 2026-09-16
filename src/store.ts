@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
+import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -114,6 +115,7 @@ export const useApp = create<State>((set, get) => ({
     }
     set({ ready: true, settingsError });
     await get().setSettings(settings);
+    await restoreWorkspace(set, get);
   },
 
   /**
@@ -145,7 +147,10 @@ export const useApp = create<State>((set, get) => ({
   },
 
   setFilter: (filter) => set({ filter }),
-  select: (selectedNode) => set({ selectedNode }),
+  select: (selectedNode) => {
+    set({ selectedNode });
+    persist(get);
+  },
   setShowSettings: (showSettings, settingsPage, settingsConnId) => set({ showSettings, settingsPage, settingsConnId }),
   setShowSearch: (showSearch, searchTab) => set({ showSearch, searchTab }),
 
@@ -191,6 +196,7 @@ export const useApp = create<State>((set, get) => ({
     if (!node || node.kind === "endpoint") return;
     const open = !expanded[id];
     set({ expanded: { ...expanded, [id]: open } });
+    persist(get);
     if (open && node.childrenIds === undefined) await loadChildren(id, set, get);
   },
 
@@ -224,6 +230,7 @@ export const useApp = create<State>((set, get) => ({
       columns: DEFAULT_COLUMNS,
     };
     set({ tabs: [...tabs, tab], activeTab: tab.id });
+    persist(get);
     void loadFields(tab.id, set, get);
     if (settings.editor.runOnOpen) void get().runQuery(tab.id);
   },
@@ -232,11 +239,19 @@ export const useApp = create<State>((set, get) => ({
     const { tabs, activeTab } = get();
     const rest = tabs.filter((t) => t.id !== id);
     set({ tabs: rest, activeTab: activeTab === id ? rest[rest.length - 1]?.id : activeTab });
+    persist(get);
   },
 
-  setActive: (activeTab) => set({ activeTab }),
+  setActive: (activeTab) => {
+    set({ activeTab });
+    persist(get);
+  },
 
-  patchTab: (id, patch) => set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) }),
+  patchTab: (id, patch) => {
+    set({ tabs: get().tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
+    // only the parts worth reopening with
+    if ("query" in patch || "rangeSeconds" in patch || "columns" in patch) persist(get);
+  },
 
   /** Arrow-key navigation over the flattened visible rows, as in the IDE tree. */
   move: (delta) => {
@@ -326,6 +341,48 @@ export function endpointClause(ep: EndpointRow): string {
 
 type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void;
 type Getter = () => State;
+
+const savedShape = (t: Tab): SavedTab => ({
+  id: t.id,
+  title: t.title,
+  connId: t.connId,
+  streamIds: t.streamIds,
+  streamLabel: t.streamLabel,
+  endpoint: t.endpoint,
+  query: t.query,
+  rangeSeconds: t.rangeSeconds,
+  columns: t.columns,
+});
+
+function persist(get: Getter) {
+  const { expanded, selectedNode, tabs, activeTab } = get();
+  saveWorkspace({ expanded, selectedNode, tabs: tabs.map(savedShape), activeTab });
+}
+
+/**
+ * Reopen what was open. Tabs come back with their query and range but no results, so the
+ * active one re-runs and the rest wait until they are looked at, as the IDE does.
+ */
+async function restoreWorkspace(set: Setter, get: Getter) {
+  const w = await loadWorkspace();
+  const live = new Set(get().settings.connections.map((c) => c.id));
+  const tabs: Tab[] = w.tabs
+    .filter((t) => live.has(t.connId))
+    .map((t) => ({ ...t, running: false, fields: [], columns: t.columns?.length ? t.columns : DEFAULT_COLUMNS }));
+  if (!tabs.length && !Object.keys(w.expanded).length) return;
+
+  const activeTab = tabs.some((t) => t.id === w.activeTab) ? w.activeTab : tabs[tabs.length - 1]?.id;
+  set({ tabs, activeTab, selectedNode: w.selectedNode });
+
+  // re-open the branches that were open, which also refills them from the cache
+  for (const id of Object.keys(w.expanded).filter((k) => w.expanded[k])) {
+    if (get().nodes[id]) await get().toggle(id);
+  }
+  if (activeTab) {
+    void loadFields(activeTab, set, get);
+    void get().runQuery(activeTab);
+  }
+}
 
 async function loadChildren(id: string, set: Setter, get: Getter, force = false) {
   const node = get().nodes[id];
