@@ -42,6 +42,7 @@ Requires [Node 24+](https://nodejs.org), [pnpm 11+](https://pnpm.io) and a
 
 ```sh
 make install     # dependencies
+make hooks       # install the pre-commit quality gate
 make dev         # run with hot reload
 make app         # build Flux.app
 ```
@@ -110,8 +111,30 @@ make check    # typecheck, eslint, prettier and clippy, exactly what CI runs
 make fmt      # format TypeScript and Rust in place
 ```
 
-CI runs the same checks on every pull request and bundles the app on pushes to
-`main`.
+`make hooks` points git at `.githooks`, so the same gate runs over your staged files
+before every commit. It is the same set of checks CI runs, scoped to what changed, so
+a commit that passes locally passes on the server. `git commit --no-verify` skips it
+when you genuinely need to, but CI will still fail.
+
+CI runs the full gate on every pull request and bundles the app on pushes to `main`.
+
+## Releasing
+
+The version lives in four files. One command keeps them in step, runs the quality gate,
+commits and tags:
+
+```sh
+make version       # what is the current version
+make bump-patch    # 0.1.0 -> 0.1.1, commit and tag
+make publish       # push the branch and the tag
+```
+
+Pushing a `v*` tag runs the release workflow, which re-runs the quality gate, builds
+`Flux.app` and a `.dmg`, and publishes them as a GitHub Release with generated notes.
+The workflow refuses a tag that disagrees with the version in the tree, so the tag and
+the binary can never describe different builds.
+
+Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
 

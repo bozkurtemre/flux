@@ -1,0 +1,31 @@
+#!/bin/sh
+# Quality gate, run on what is actually staged so it stays fast.
+# Install with `make hooks`; bypass in an emergency with `git commit --no-verify`.
+set -e
+
+staged() { git diff --cached --name-only --diff-filter=ACMR -- "$@"; }
+
+TS=$(staged '*.ts' '*.tsx')
+RS=$(staged '*.rs')
+ANY=$(staged .)
+
+[ -z "$ANY" ] && exit 0
+
+if [ -n "$TS" ]; then
+  echo "• prettier"; pnpm exec prettier --check $TS
+  echo "• eslint";   pnpm exec eslint $TS
+  echo "• tsc";      pnpm exec tsc --noEmit
+fi
+
+if [ -n "$RS" ]; then
+  echo "• cargo fmt"; (cd src-tauri && cargo fmt --check)
+  echo "• clippy";    (cd src-tauri && cargo clippy --all-targets -- -D warnings)
+fi
+
+# JSON, YAML, Markdown and the rest still have to be formatted
+OTHER=$(staged '*.json' '*.md' '*.yml' '*.yaml' '*.css' '*.html')
+if [ -n "$OTHER" ]; then
+  echo "• prettier (other)"; pnpm exec prettier --check $OTHER
+fi
+
+echo "quality gate passed"

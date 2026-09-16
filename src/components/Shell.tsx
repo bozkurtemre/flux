@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { getVersion } from "@tauri-apps/api/app";
 import { Bug, ChevronDown, Database, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Play, Search, Wrench } from "lucide-react";
 import { Logo } from "./Logo";
 import { useApp } from "@/store";
@@ -93,6 +94,7 @@ function StripeButton({ children, active, title, onClick }: { children: ReactNod
 
 export function StatusBar() {
   const { tabs, activeTab, settings } = useApp();
+  const version = useAppVersion();
   const tab = tabs.find((t) => t.id === activeTab);
   const conn = settings.connections.find((c) => c.id === tab?.connId);
   return (
@@ -118,6 +120,18 @@ export function StatusBar() {
         <span>Ready</span>
       )}
       <span className="ml-auto">{settings.connections.length} data sources</span>
+      {version && <span title="Flux version">v{version}</span>}
     </div>
   );
+}
+
+/** The version baked into the bundle, which `make bump-*` keeps in step with the git tag. */
+function useAppVersion(): string {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    getVersion()
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
+  return version;
 }
