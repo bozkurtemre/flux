@@ -185,7 +185,6 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                         borderRight: "1px solid var(--border-soft)",
                         color: selected ? "#fff" : r.colorBySeverity ? cellColor(c, row[c]) : undefined,
                       }}
-                      title={String(row[c] ?? "")}
                     >
                       {render(row[c], c, r)}
                     </div>
