@@ -106,9 +106,23 @@ export function ResultGrid({ tab }: { tab: Tab }) {
     );
   }
 
+  // Arrows walk the rows once the grid has the focus. The window handler moves the tree
+  // with the same keys, so the event stops here rather than doing both at once.
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    if (!rows.length) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    const at = tab.selectedRow ?? (step === 1 ? -1 : rows.length);
+    const next = Math.max(0, Math.min(rows.length - 1, at + step));
+    patchTab(tab.id, { selectedRow: next });
+    v.scrollToIndex(next, { align: "auto" });
+  };
+
   return (
     <div className="flex h-full flex-col">
-      <div ref={parentRef} className="min-h-0 flex-1 overflow-auto">
+      <div ref={parentRef} tabIndex={0} onKeyDown={onKey} className="min-h-0 flex-1 overflow-auto outline-none">
         <div style={{ width: NUM_W + columns.reduce((a, c) => a + width(c), 0), minWidth: "100%" }}>
           {/* header */}
           <div className="sticky top-0 z-10 flex h-[26px]" style={{ background: "var(--bg-tool)" }}>
@@ -159,7 +173,10 @@ export function ResultGrid({ tab }: { tab: Tab }) {
               return (
                 <div
                   key={item.key}
-                  onClick={() => patchTab(tab.id, { selectedRow: item.index })}
+                  onClick={() => {
+                    parentRef.current?.focus(); // so the arrows belong to the grid from here on
+                    patchTab(tab.id, { selectedRow: item.index });
+                  }}
                   className="absolute left-0 flex w-full"
                   style={{
                     height: ROW,
