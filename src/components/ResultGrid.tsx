@@ -4,7 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useApp, type Tab } from "@/store";
 import { moveBefore } from "@/lib/reorder";
 
-const NUM_W = 52;
+export const NUM_W = 52;
 
 /** The result grid: a row-number gutter, sortable headers, one-line cells. */
 export function ResultGrid({ tab }: { tab: Tab }) {
@@ -368,7 +368,7 @@ function ColumnPicker({ tab, columns, onClose }: { tab: Tab; columns: string[]; 
   );
 }
 
-function defaultWidth(c: string) {
+export function defaultWidth(c: string) {
   if (c === "timestamp") return 190;
   if (c === "message" || c === "full_message") return 640;
   if (c === "source") return 200;
@@ -395,7 +395,7 @@ function cellColor(col: string, v: unknown) {
   return undefined;
 }
 
-function render(v: unknown, col: string, r: { nullText: string; timezone: "local" | "utc"; timestampFormat: "iso" | "short" | "time" }) {
+export function render(v: unknown, col: string, r: { nullText: string; timezone: "local" | "utc"; timestampFormat: "iso" | "short" | "time" }) {
   if (v == null || v === "") return <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>{r.nullText}</span>;
   if (col === "timestamp" || /(^|_)(time|date)$/i.test(col)) {
     const d = new Date(String(v));
