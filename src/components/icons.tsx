@@ -74,3 +74,19 @@ export function RunIcon({ size = 14 }: { size?: number }) {
     </svg>
   );
 }
+
+/**
+ * The Model Context Protocol mark, from the protocol's own favicon: three strokes, drawn in
+ * whatever colour the caller is using rather than on its black tile.
+ */
+export function McpIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 180 180" fill="none" aria-label="MCP">
+      <g stroke="currentColor" strokeWidth="14" strokeLinecap="round" fill="none">
+        <path d="M23.6 85.25 86.2 22.65c8.64-8.64 22.66-8.64 31.3 0 8.64 8.64 8.64 22.66 0 31.3L70.23 101.23" />
+        <path d="M70.88 100.58 117.5 53.95c8.64-8.64 22.66-8.64 31.3 0l.33.33c8.64 8.64 8.64 22.66 0 31.3l-56.62 56.62c-2.88 2.88-2.88 7.55 0 10.43l11.63 11.63" />
+        <path d="M101.85 38.3 55.55 84.6c-8.64 8.64-8.64 22.66 0 31.3 8.65 8.64 22.66 8.64 31.3 0l46.3-46.3" />
+      </g>
+    </svg>
+  );
+}

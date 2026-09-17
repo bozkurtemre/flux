@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   MoreVertical,
   PanelRight,
-  Plug,
   Search,
   Server,
   Settings2,
@@ -14,6 +13,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { Logo } from "./Logo";
+import { McpIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import { taskLabel, visibleTask } from "@/lib/progress";
@@ -254,7 +254,7 @@ export function StatusBar() {
             className="flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
             style={{ color: settings.mcp.enabled ? "var(--green)" : "var(--text-muted)" }}
           >
-            <Plug size={12} />
+            <McpIcon size={13} />
           </button>
           {mcpOpen && <McpPopover onClose={() => setMcpOpen(false)} />}
         </span>
