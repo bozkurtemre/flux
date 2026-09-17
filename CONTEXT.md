@@ -37,6 +37,21 @@ A shell bound to one project folder. It outlives the window that shows it and th
 opened it, and ends only when it is killed on purpose.
 _Avoid_: shell, console, pane
 
+**Update channel**:
+The set of versions an installed copy is offered. Flux has one, and it carries only
+finished releases.
+_Avoid_: track, branch, stream
+
+**Update manifest**:
+The single file an installed copy reads to learn what the newest version is, where to fetch
+it, and how long a version waits before being offered.
+_Avoid_: feed, index, appcast
+
+**Soak time**:
+How long a published version waits before any installed copy is offered it. It exists so a
+release that turns out to be wrong can be withdrawn before anyone is asked to install it.
+_Avoid_: delay, grace period, cooldown
+
 **Terminal tab**:
 One view onto a terminal session, shown in the terminal panel. Several tabs on the same
 project are independent shells inside that project's one session.
