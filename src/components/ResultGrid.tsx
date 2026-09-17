@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Columns3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useApp, type Tab } from "@/store";
-import { moveColumn } from "@/lib/columns";
+import { moveBefore } from "@/lib/reorder";
 
 const NUM_W = 52;
 
@@ -40,7 +40,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
     const up = () => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
-      if (draggedRef.current && over) setColumns(tab.id, moveColumn(columns, col, over));
+      if (draggedRef.current && over) setColumns(tab.id, moveBefore(columns, col, over));
       setDragging(null);
       setDropOn(null);
       // let the click that follows this mouse-up see the flag, then forget it

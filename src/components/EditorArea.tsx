@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { MoreVertical, X } from "lucide-react";
 import { QueryConsole } from "./QueryConsole";
@@ -21,7 +21,43 @@ export function EditorArea() {
 }
 
 function TabStrip() {
-  const { tabs, activeTab, setActive, closeTab } = useApp();
+  const { tabs, activeTab, setActive, closeTab, moveTab } = useApp();
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [dropOn, setDropOn] = useState<string | null>(null);
+  const dragged = useRef(false);
+
+  /**
+   * Moving a tab, on plain mouse events: this webview swallows HTML5 drag, and the tab
+   * should follow the pointer from the first few pixels rather than when the browser decides
+   * a drag has begun. Under the threshold it stays a click, which selects the tab.
+   */
+  const startDrag = (e: React.MouseEvent, id: string) => {
+    if (e.button !== 0) return;
+    const from = e.clientX;
+    dragged.current = false;
+    let over: string | null = null;
+
+    const move = (ev: MouseEvent) => {
+      if (!dragged.current && Math.abs(ev.clientX - from) < 4) return;
+      dragged.current = true;
+      setDragging(id);
+      const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-tab]");
+      const name = under instanceof HTMLElement ? (under.dataset.tab ?? null) : null;
+      over = name && name !== id ? name : null;
+      setDropOn(over);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      if (dragged.current && over) moveTab(id, over);
+      setDragging(null);
+      setDropOn(null);
+      setTimeout(() => (dragged.current = false), 0);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
+
   if (!tabs.length) return <div className="h-[34px] shrink-0" />;
   return (
     <div className="flex h-[34px] shrink-0 items-center gap-1 overflow-x-auto px-1.5 pt-1.5">
@@ -30,10 +66,19 @@ function TabStrip() {
         return (
           <div
             key={t.id}
+            data-tab={t.id}
+            onMouseDown={(e) => startDrag(e, t.id)}
             onClick={() => setActive(t.id)}
             onAuxClick={(e) => e.button === 1 && closeTab(t.id)}
             className="group flex h-[26px] max-w-[260px] shrink-0 items-center gap-1.5 rounded-md px-2 text-[12px]"
-            style={{ background: active ? "var(--bg-raised)" : "transparent", color: active ? "var(--text)" : "var(--text-dim)" }}
+            style={{
+              background: active ? "var(--bg-raised)" : "transparent",
+              color: active ? "var(--text)" : "var(--text-dim)",
+              opacity: dragging === t.id ? 0.4 : 1,
+              boxShadow: dropOn === t.id ? "inset 2px 0 0 var(--accent)" : undefined,
+              cursor: dragging ? "grabbing" : "default",
+              userSelect: "none",
+            }}
             title={`${t.streamLabel} · ${t.title}`}
           >
             <span className="flex size-3.5 shrink-0 items-center justify-center">{t.endpoint ? <EndpointIcon /> : <StreamIcon />}</span>

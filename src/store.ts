@@ -7,6 +7,7 @@ import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { offerable, type Manifest } from "@/lib/updates";
+import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -101,6 +102,7 @@ interface State {
   openTab: (node: TreeNode) => void;
   closeTab: (id: string) => void;
   setActive: (id: string) => void;
+  moveTab: (id: string, onto: string) => void;
   patchTab: (id: string, patch: Partial<Tab>) => void;
   setColumns: (tabId: string, layout: string[]) => void;
   resetColumns: (tabId: string) => void;
@@ -491,6 +493,17 @@ export const useApp = create<State>((set, get) => ({
 
   setActive: (activeTab) => {
     set({ activeTab });
+    persist(get);
+  },
+
+  /** Drag a tab in front of another. The order is part of what the workspace restores. */
+  moveTab: (id, onto) => {
+    const order = moveBefore(
+      get().tabs.map((t) => t.id),
+      id,
+      onto,
+    );
+    set({ tabs: order.map((tabId) => get().tabs.find((t) => t.id === tabId)!) });
     persist(get);
   },
 
