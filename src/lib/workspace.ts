@@ -41,6 +41,8 @@ export interface Workspace {
   showTerminal?: boolean;
   /** Height of the terminal panel, as a percentage of the window. */
   terminalSize?: number;
+  /** Width of the value inspector, as a percentage of the results area. */
+  inspectorSize?: number;
 }
 
 const empty: Workspace = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };

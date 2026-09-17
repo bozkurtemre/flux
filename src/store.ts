@@ -77,6 +77,7 @@ interface State {
   activeTerminal?: string;
   showTerminal: boolean;
   terminalSize: number;
+  inspectorSize: number;
   projectFolders: Record<string, string>;
   /** Set once a tab has had to start without tmux, so quitting stops promising persistence. */
   tmuxMissing: boolean;
@@ -113,6 +114,7 @@ interface State {
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
   setTerminalSize: (size: number) => void;
+  setInspectorSize: (size: number) => void;
   setActiveTerminal: (id: string) => void;
   setProjectFolder: (projectId: string, folder: string) => void;
   setProjectFolders: (folders: Record<string, string>) => void;
@@ -162,6 +164,7 @@ export const useApp = create<State>((set, get) => ({
   terminals: [],
   showTerminal: false,
   terminalSize: 32,
+  inspectorSize: 30,
   projectFolders: {},
   tmuxMissing: false,
   tasks: [],
@@ -272,6 +275,12 @@ export const useApp = create<State>((set, get) => ({
   setTerminalSize: (terminalSize) => {
     if (Math.abs(terminalSize - get().terminalSize) < 0.5) return;
     set({ terminalSize });
+    persist(get);
+  },
+
+  setInspectorSize: (inspectorSize) => {
+    if (Math.abs(inspectorSize - get().inspectorSize) < 0.5) return;
+    set({ inspectorSize });
     persist(get);
   },
 
@@ -673,7 +682,7 @@ async function manifestFor(version: string, date: string | undefined, notes: str
 }
 
 function persist(get: Getter) {
-  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, projectFolders } = get();
+  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, inspectorSize, projectFolders } = get();
   saveWorkspace({
     expanded,
     selectedNode,
@@ -683,6 +692,7 @@ function persist(get: Getter) {
     activeTerminal,
     showTerminal,
     terminalSize,
+    inspectorSize,
     projectFolders,
   });
 }
@@ -703,6 +713,7 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     activeTerminal: terminals.some((t) => t.id === w.activeTerminal) ? w.activeTerminal : terminals[0]?.id,
     showTerminal: !!w.showTerminal && terminals.length > 0,
     terminalSize: w.terminalSize ?? 32,
+    inspectorSize: w.inspectorSize ?? 30,
   });
 
   const live = new Set(get().settings.connections.map((c) => c.id));

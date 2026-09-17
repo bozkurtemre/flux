@@ -1,4 +1,5 @@
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { useEffect, useRef } from "react";
+import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { MoreVertical, X } from "lucide-react";
 import { QueryConsole } from "./QueryConsole";
 import { ResultGrid } from "./ResultGrid";
@@ -57,7 +58,26 @@ function TabStrip() {
 }
 
 function TabBody({ tab }: { tab: Tab }) {
+  const { inspectorSize, setInspectorSize } = useApp();
   const showInspector = tab.selectedRow != null && !!tab.page;
+  const inspector = useRef<PanelImperativeHandle>(null);
+
+  // collapsed rather than unmounted, so the width you dragged it to survives closing it.
+  // A bare number is pixels to this library, which is how the terminal panel once opened
+  // flat against the bottom of the window.
+  useEffect(() => {
+    const panel = inspector.current;
+    if (!panel) return;
+    if (showInspector) {
+      panel.expand();
+      panel.resize(`${Math.min(70, Math.max(15, inspectorSize))}%`);
+    } else {
+      panel.collapse();
+    }
+    // inspectorSize is deliberately absent: dragging must not re-drive the panel it came from
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showInspector]);
+
   return (
     <Group orientation="vertical" className="min-h-0 flex-1">
       <Panel defaultSize="28" minSize="12">
@@ -69,14 +89,18 @@ function TabBody({ tab }: { tab: Tab }) {
           <Panel minSize="30">
             <ResultGrid tab={tab} />
           </Panel>
-          {showInspector && (
-            <>
-              <Separator className="w-px" />
-              <Panel defaultSize="30" minSize="15">
-                <ValueInspector tab={tab} />
-              </Panel>
-            </>
-          )}
+          <Separator className="w-px" style={{ display: showInspector ? undefined : "none" }} />
+          <Panel
+            panelRef={inspector}
+            collapsible
+            collapsedSize={0}
+            defaultSize={0}
+            minSize="15"
+            maxSize="70"
+            onResize={(size) => showInspector && size.asPercentage > 1 && setInspectorSize(size.asPercentage)}
+          >
+            <ValueInspector tab={tab} />
+          </Panel>
         </Group>
       </Panel>
     </Group>
