@@ -3,6 +3,26 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.5.0
+
+### Changed
+
+- **Access tokens are kept in `connections.json` now**, in the clear, rather than in the
+  macOS Keychain. The Keychain grants access to a binary rather than to an application, so
+  every update asked permission again for a token Flux had stored itself. An existing
+  install has its token moved into the file on the next launch and stops being asked.
+  **Treat `connections.json` as a credential**: do not commit it, share it or sync it. The
+  reasoning, and what would justify reversing it, is in
+  [docs/adr/0005](docs/adr/0005-the-token-lives-in-the-settings-file.md).
+- Release notes are shown as notes rather than as their Markdown source.
+- Asking for updates while a version is still soaking says Flux is up to date, rather than
+  naming a version it will not install yet.
+
+### Removed
+
+- `make dev-signed`, along with the cargo runner behind it. It existed to stop the Keychain
+  asking after every rebuild, which nothing does any more.
+
 ## 0.4.0
 
 ### Added
