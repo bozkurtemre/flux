@@ -13,7 +13,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   const ROW = r.rowHeight;
   const [sort, setSort] = useState<{ col: string; dir: 1 | -1 } | null>(null);
   const [widths, setWidths] = useState<Record<string, number>>({});
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{ col: string; dx: number } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
   const draggedRef = useRef(false);
 
@@ -24,6 +24,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
    */
   const startColumnDrag = (e: React.MouseEvent, col: string) => {
     if (e.button !== 0) return;
+    e.preventDefault(); // otherwise the press begins selecting the header's own name
     const from = e.clientX;
     draggedRef.current = false;
     let over: string | null = null;
@@ -31,7 +32,9 @@ export function ResultGrid({ tab }: { tab: Tab }) {
     const move = (ev: MouseEvent) => {
       if (!draggedRef.current && Math.abs(ev.clientX - from) < 4) return;
       draggedRef.current = true;
-      setDragging(col);
+      // the header follows the pointer, and is pointer-transparent while it does, so the
+      // column found underneath is the one it is being dropped on rather than itself
+      setDrag({ col, dx: ev.clientX - from });
       const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-col]");
       const name = under instanceof HTMLElement ? (under.dataset.col ?? null) : null;
       over = name && name !== col ? name : null;
@@ -41,7 +44,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
       if (draggedRef.current && over) setColumns(tab.id, moveBefore(columns, col, over));
-      setDragging(null);
+      setDrag(null);
       setDropOn(null);
       // let the click that follows this mouse-up see the flag, then forget it
       setTimeout(() => (draggedRef.current = false), 0);
@@ -127,9 +130,12 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                   borderBottom: "1px solid var(--border)",
                   borderLeft: dropOn === c ? "2px solid var(--accent)" : undefined,
                   color: "var(--text-dim)",
-                  opacity: dragging === c ? 0.4 : 1,
-                  cursor: dragging ? "grabbing" : "default",
+                  cursor: drag ? "grabbing" : "default",
                   userSelect: "none",
+                  background: drag?.col === c ? "var(--bg-raised)" : undefined,
+                  ...(drag?.col === c
+                    ? { transform: `translateX(${drag.dx}px)`, zIndex: 20, pointerEvents: "none" as const, opacity: 0.85 }
+                    : { transition: "transform 120ms ease" }),
                 }}
                 title={c}
               >
