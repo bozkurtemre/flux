@@ -39,8 +39,7 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 
 ## Install
 
-Download the latest `.dmg` from
-[updates.emreb.dev](https://updates.emreb.dev/updates/latest.json) or the
+Download the latest `.dmg` from the
 [releases](https://github.com/bozkurtemre/flux/releases), drag Flux to `/Applications`, and
 clear the quarantine flag before opening it:
 
