@@ -2,7 +2,7 @@ mod cache;
 mod secrets;
 mod terminal;
 
-use tauri::menu::{Menu, MenuItem, MenuItemKind};
+use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem};
 use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -44,7 +44,15 @@ pub fn run() {
                     true,
                     None::<&str>,
                 )?;
-                app_menu.insert_items(&[&about, &updates], 0)?;
+                let settings = MenuItem::with_id(
+                    app.handle(),
+                    "settings",
+                    "Settings…",
+                    true,
+                    Some("CmdOrCtrl+,"),
+                )?;
+                let divider = PredefinedMenuItem::separator(app.handle())?;
+                app_menu.insert_items(&[&about, &updates, &divider, &settings], 0)?;
             }
             app.set_menu(menu)?;
             Ok(())
@@ -54,6 +62,7 @@ pub fn run() {
             let name = match event.id().0.as_str() {
                 "about" => "about",
                 "check-updates" => "check-updates",
+                "settings" => "settings",
                 _ => return,
             };
             if let Some(window) = app.get_webview_window("main") {

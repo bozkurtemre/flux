@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { ConnectionExplorer } from "@/components/ConnectionExplorer";
 import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
@@ -90,6 +91,17 @@ export default function App() {
   const onTerminalResize = (size: { asPercentage: number }) => {
     if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
   };
+
+  // The application menu is built in Rust and answered here, where the windows are drawn.
+  useEffect(() => {
+    const app = useApp.getState();
+    const pending = [
+      listen("about", () => app.setShowAbout(true)),
+      listen("check-updates", () => void app.checkForUpdates(true)),
+      listen("settings", () => app.setShowSettings(true)),
+    ];
+    return () => void Promise.all(pending).then((stops) => stops.forEach((stop) => stop()));
+  }, []);
 
   // Sessions outlive the app on purpose, so closing the window is a question, not a given.
   useEffect(() => {

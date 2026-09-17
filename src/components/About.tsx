@@ -2,7 +2,6 @@
 // development build has none of, and its credits are plain text with nowhere to click.
 import { useEffect, useState } from "react";
 import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Logo } from "./Logo";
 import { useApp } from "@/store";
@@ -10,14 +9,11 @@ import { useApp } from "@/store";
 const AUTHOR = "https://github.com/bozkurtemre";
 
 export function About() {
-  const [open, setOpen] = useState(false);
+  const { showAbout, setShowAbout } = useApp();
   const [version, setVersion] = useState("");
+  const open = showAbout;
+  const setOpen = setShowAbout;
   const [tauri, setTauri] = useState("");
-
-  useEffect(() => {
-    const pending = [listen("about", () => setOpen(true)), listen("check-updates", () => void useApp.getState().checkForUpdates(true))];
-    return () => void Promise.all(pending).then((stops) => stops.forEach((stop) => stop()));
-  }, []);
 
   useEffect(() => {
     if (open) {
@@ -27,7 +23,7 @@ export function About() {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, setOpen]);
 
   /** What a bug report needs and nobody can be expected to look up by hand. */
   const report = () =>

@@ -85,6 +85,7 @@ interface State {
   /** The version waiting to be installed, once it has soaked. */
   update?: Manifest;
   showUpdateNotes: boolean;
+  showAbout: boolean;
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -125,6 +126,7 @@ interface State {
   installUpdate: () => Promise<void>;
   dismissUpdate: () => void;
   setShowUpdateNotes: (v: boolean) => void;
+  setShowAbout: (v: boolean) => void;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -165,6 +167,7 @@ export const useApp = create<State>((set, get) => ({
   tasks: [],
   notices: [],
   showUpdateNotes: false,
+  showAbout: false,
 
   init: async () => {
     let settings = DEFAULTS;
@@ -370,6 +373,7 @@ export const useApp = create<State>((set, get) => ({
   },
 
   setShowUpdateNotes: (showUpdateNotes) => set({ showUpdateNotes }),
+  setShowAbout: (showAbout) => set({ showAbout }),
 
   dismissUpdate: () => {
     const version = get().update?.version;
