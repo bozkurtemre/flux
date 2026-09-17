@@ -5,12 +5,50 @@ import { Logo } from "./Logo";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import { taskLabel, visibleTask } from "@/lib/progress";
+import { shortPath, workspaceName } from "@/lib/workspaces";
+import { open as pickFolder } from "@tauri-apps/plugin-dialog";
+import { homeDir } from "@tauri-apps/api/path";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
   const { setShowSettings, setShowSearch, refreshAll, disconnectAll, reconnectAll } = useApp();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [connections, setConnections] = useState<{ x: number; y: number } | null>(null);
+  const [workspaces, setWorkspaces] = useState<{ x: number; y: number } | null>(null);
+  const [home, setHome] = useState("");
+  const { workspaceFolder, recentWorkspaces, openWorkspace, closeWorkspace } = useApp();
+
+  useEffect(() => {
+    void homeDir().then((h) => setHome(h.replace(/\/$/, "")));
+  }, []);
+
+  const choose = async () => {
+    const picked = await pickFolder({ directory: true, multiple: false });
+    if (typeof picked === "string") await openWorkspace(picked);
+  };
+
+  // the folder that is open, then the ones before it, as the IDE lists them
+  const workspaceItems: MenuItem[] = [
+    { label: "Open…", onClick: () => void choose() },
+    ...(workspaceFolder
+      ? ([
+          { separator: true },
+          { label: "Current Workspace", disabled: true },
+          { label: workspaceName(workspaceFolder), shortcut: shortPath(workspaceFolder, home), disabled: true },
+          { label: "Close Workspace", onClick: () => void closeWorkspace() },
+        ] as MenuItem[])
+      : []),
+    ...(recentWorkspaces.filter((r) => r.folder !== workspaceFolder).length
+      ? ([{ separator: true }, { label: "Recent Workspaces", disabled: true }] as MenuItem[])
+      : []),
+    ...recentWorkspaces
+      .filter((r) => r.folder !== workspaceFolder)
+      .map((r) => ({
+        label: workspaceName(r.folder),
+        shortcut: shortPath(r.folder, home),
+        onClick: () => void openWorkspace(r.folder),
+      })),
+  ];
 
   // Flux keeps no connection open, so these are about what the window knows: re-read what is
   // on screen, forget it, or forget it and fetch it again.
@@ -32,11 +70,18 @@ export function TitleBar() {
   const icon = "flex size-7 items-center justify-center rounded-md hover:bg-[var(--bg-hover)]";
   return (
     <div data-tauri-drag-region className="flex h-9 shrink-0 items-center gap-2 pr-1 pl-[78px]">
-      <button className="flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-[var(--bg-hover)]">
+      <button
+        className="flex items-center gap-1.5 rounded-md px-1.5 py-1 hover:bg-[var(--bg-hover)]"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setWorkspaces({ x: r.left, y: r.bottom + 4 });
+        }}
+      >
         <Logo size={18} radius={40} />
-        <span className="text-[13px]">Flux</span>
+        <span className="text-[13px]">{workspaceFolder ? workspaceName(workspaceFolder) : "Flux"}</span>
         <ChevronDown size={12} style={{ color: "var(--text-dim)" }} />
       </button>
+      {workspaces && <ContextMenu x={workspaces.x} y={workspaces.y} items={workspaceItems} onClose={() => setWorkspaces(null)} />}
       <button
         className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] hover:bg-[var(--bg-hover)]"
         style={{ color: "var(--text-dim)" }}

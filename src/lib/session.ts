@@ -1,10 +1,12 @@
-// What you had open, as opposed to how you have things configured. This file belongs to
-// one machine and is never worth sharing, which is exactly why the IDE keeps its
-// equivalent out of the shareable settings.
+// What you had open, as opposed to how you have things configured. It belongs to one machine
+// and is never worth sharing. Where it is written depends on whether a workspace is open: in
+// the workspace's own `.flux` directory when there is one, in the config directory when there
+// is not — so switching folders switches what is on screen with them.
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { EndpointRow } from "./endpoints";
+import { readWorkspaceFile, writeWorkspaceFile, SESSION_FILE } from "./workspaces";
 
-const FILE = "workspace.json";
+const FILE = "session.json";
 const FORMAT = 2;
 
 /** A tab without its results: those are re-run, never restored from disk. */
@@ -28,7 +30,7 @@ export interface SavedTerminal {
   title: string;
 }
 
-export interface Workspace {
+export interface Session {
   format: number;
   expanded: Record<string, boolean>;
   selectedNode?: string;
@@ -45,7 +47,7 @@ export interface Workspace {
   inspectorSize?: number;
 }
 
-const empty: Workspace = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };
+const empty: Session = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };
 
 let store: Store | undefined;
 async function file(): Promise<Store> {
@@ -53,9 +55,9 @@ async function file(): Promise<Store> {
   return store;
 }
 
-export async function loadWorkspace(): Promise<Workspace> {
+export async function loadSession(folder?: string): Promise<Session> {
   try {
-    const saved = await (await file()).get<Workspace>("workspace");
+    const saved = folder ? await readWorkspaceFile<Session>(folder, SESSION_FILE) : await (await file()).get<Session>("workspace");
     // a format bump discards rather than migrates, except the project folders: those were
     // typed in by hand and are the one thing here nobody would thank us for dropping
     return saved?.format === FORMAT ? { ...empty, ...saved } : { ...empty, projectFolders: saved?.projectFolders ?? {} };
@@ -70,11 +72,15 @@ let pending: ReturnType<typeof setTimeout> | undefined;
  * Saved on a short delay: expanding a tree or typing in a console would otherwise write
  * the file on every keystroke.
  */
-export function saveWorkspace(w: Omit<Workspace, "format">): void {
+export function saveSession(w: Omit<Session, "format">, folder?: string): void {
   clearTimeout(pending);
   pending = setTimeout(() => {
     void (async () => {
       try {
+        if (folder) {
+          await writeWorkspaceFile(folder, SESSION_FILE, { format: FORMAT, ...w });
+          return;
+        }
         const s = await file();
         await s.set("workspace", { format: FORMAT, ...w });
         await s.save();

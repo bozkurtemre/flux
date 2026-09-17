@@ -27,10 +27,22 @@ anywhere.
 _Avoid_: route, path, URL
 
 **Project folder**:
-The checkout of a project's repository on this machine. It belongs to the machine, not to
-the project: two people looking at the same project have different project folders, and
-one of them may have none.
-_Avoid_: project path, working directory, workspace
+The checkout of a project's repository on this machine, where that project's terminal opens.
+It belongs to the machine, not to the project: two people looking at the same project have
+different project folders, and one of them may have none.
+_Avoid_: project path, working directory
+
+**Workspace**:
+A folder opened in Flux, which keeps its own stream grouping and its own layout in a `.flux`
+directory inside it. Flux runs without one; opening one swaps what is on screen for what that
+folder remembers.
+_Avoid_: project, session, workspace file
+
+**Session**:
+What was open — tabs, branches of the tree, terminals and the size of the panels. It belongs
+to one machine and follows the workspace: a folder's session lives with it, and there is one
+more for when no workspace is open.
+_Avoid_: layout, state, workspace
 
 **Terminal session**:
 A shell bound to one project folder. It outlives the window that shows it and the app that

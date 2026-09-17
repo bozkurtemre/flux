@@ -132,17 +132,20 @@ src-tauri/src/cache.rs    reads and writes the OS cache directory
 
 Three tiers, split by what happens if a file is lost.
 
-| What                | Where              | Lost if deleted                                           |
-| ------------------- | ------------------ | --------------------------------------------------------- |
-| `connections.json`  | config directory   | your Graylog URLs **and their access tokens**             |
-| `projects.json`     | config directory   | how streams are grouped; worth sharing with a team        |
-| `preferences.json`  | config directory   | how you like the window                                   |
-| `workspace.json`    | config directory   | which tabs and branches were open; belongs to one machine |
-| Introspection cache | OS cache directory | nothing, it is re-read from Graylog                       |
+| What                | Where              | Lost if deleted                                          |
+| ------------------- | ------------------ | -------------------------------------------------------- |
+| `connections.json`  | config directory   | your Graylog URLs **and their access tokens**            |
+| `projects.json`     | config directory   | how streams are grouped; worth sharing with a team       |
+| `preferences.json`  | config directory   | how you like the window                                  |
+| `session.json`      | config directory   | which tabs and branches were open with no workspace open |
+| `<folder>/.flux/`   | the workspace      | that folder's stream grouping and its own session        |
+| Introspection cache | OS cache directory | nothing, it is re-read from Graylog                      |
 
 `connections.json` holds access tokens in the clear, so treat it as a credential: do not
-commit it, share it or put it anywhere that syncs. The cache directory is safe to delete at
-any time.
+commit it, share it or put it anywhere that syncs. It is deliberately the one thing a
+workspace does not carry — a `.flux` directory usually sits in a git checkout, and a token
+there is one forgotten `.gitignore` line from being published. The cache directory is safe to
+delete at any time.
 
 ## Development
 

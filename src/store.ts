@@ -3,7 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
-import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
+import { loadSession, saveSession, type SavedTab } from "@/lib/session";
+import {
+  readWorkspaceFile,
+  remember,
+  writeWorkspaceFile,
+  FORMAT as WORKSPACE_FORMAT,
+  WORKSPACE_FILE,
+  type Recent,
+  type WorkspaceFile,
+} from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { offerable, type Manifest } from "@/lib/updates";
@@ -88,6 +97,9 @@ interface State {
   update?: Manifest;
   showUpdateNotes: boolean;
   showAbout: boolean;
+  /** The folder open as a workspace, if any. Its settings live in `.flux` inside it. */
+  workspaceFolder?: string;
+  recentWorkspaces: Recent[];
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -134,6 +146,8 @@ interface State {
   dismissUpdate: () => void;
   setShowUpdateNotes: (v: boolean) => void;
   setShowAbout: (v: boolean) => void;
+  openWorkspace: (folder: string) => Promise<void>;
+  closeWorkspace: () => Promise<void>;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -176,6 +190,7 @@ export const useApp = create<State>((set, get) => ({
   notices: [],
   showUpdateNotes: false,
   showAbout: false,
+  recentWorkspaces: [],
 
   init: async () => {
     let settings = DEFAULTS;
@@ -186,8 +201,13 @@ export const useApp = create<State>((set, get) => ({
       // a broken settings file must still leave a usable window
       settingsError = `Settings could not be read: ${errorText(e)}`;
     }
-    set({ ready: true, settingsError });
+    const globals = await loadGlobals();
+    set({ ready: true, settingsError, recentWorkspaces: globals.recents });
     await get().setSettings(settings);
+    if (globals.current) {
+      await get().openWorkspace(globals.current);
+      return;
+    }
     await restoreWorkspace(set, get);
   },
 
@@ -219,6 +239,17 @@ export const useApp = create<State>((set, get) => ({
     try {
       if (gone.length) await forgetSecrets(gone);
       await saveSettings(settings);
+      const folder = get().workspaceFolder;
+      // the grouping belongs to the folder while one is open, and the global file is left
+      // as whatever it was when no workspace was
+      if (folder) {
+        const file = (await readWorkspaceFile<WorkspaceFile>(folder, WORKSPACE_FILE)) ?? {
+          format: WORKSPACE_FORMAT,
+          connectionIds: [],
+          projects: [],
+        };
+        await writeWorkspaceFile(folder, WORKSPACE_FILE, { ...file, projects: settings.projects });
+      }
       set({ settingsError: undefined });
     } catch (e) {
       set({ settingsError: `Settings not saved: ${errorText(e)}` });
@@ -392,6 +423,33 @@ export const useApp = create<State>((set, get) => ({
     const version = get().update?.version;
     if (version) void get().setSettings({ ...get().settings, updates: { ...get().settings.updates, dismissedVersion: version } });
     set({ update: undefined });
+  },
+
+  /**
+   * Opening a folder swaps what is on screen for what that folder remembers: its stream
+   * grouping, its tabs, its tree. Connections are not swapped — they carry tokens and stay
+   * in the config directory (docs/adr/0006); a workspace only says which of them it uses.
+   */
+  openWorkspace: async (folder) => {
+    const file = (await readWorkspaceFile<WorkspaceFile>(folder, WORKSPACE_FILE)) ?? {
+      format: WORKSPACE_FORMAT,
+      connectionIds: [],
+      projects: [],
+    };
+    const recentWorkspaces = remember(get().recentWorkspaces, folder, Math.floor(Date.now() / 1000));
+    set({ workspaceFolder: folder, recentWorkspaces, tabs: [], activeTab: undefined, expanded: {}, terminals: [] });
+    await writeWorkspaceFile(folder, WORKSPACE_FILE, { ...file, format: WORKSPACE_FORMAT });
+    await get().setSettings({ ...get().settings, projects: file.projects });
+    await restoreWorkspace(set, get);
+    await saveGlobals(get);
+  },
+
+  closeWorkspace: async () => {
+    set({ workspaceFolder: undefined, tabs: [], activeTab: undefined, expanded: {}, terminals: [] });
+    const settings = await loadSettings().catch(() => get().settings);
+    await get().setSettings(settings);
+    await restoreWorkspace(set, get);
+    await saveGlobals(get);
   },
 
   indexAll: async () => {
@@ -718,20 +776,41 @@ async function manifestFor(version: string, date: string | undefined, notes: str
   return { version, pub_date: date, notes };
 }
 
+/** Which folder was open and which were open before it: the app's own memory, not a workspace's. */
+async function saveGlobals(get: Getter) {
+  const { load } = await import("@tauri-apps/plugin-store");
+  const store = await load("workspaces.json", { autoSave: false });
+  await store.set("workspaces", { current: get().workspaceFolder, recents: get().recentWorkspaces });
+  await store.save();
+}
+
+export async function loadGlobals(): Promise<{ current?: string; recents: Recent[] }> {
+  try {
+    const { load } = await import("@tauri-apps/plugin-store");
+    const store = await load("workspaces.json", { autoSave: false });
+    return (await store.get<{ current?: string; recents: Recent[] }>("workspaces")) ?? { recents: [] };
+  } catch {
+    return { recents: [] };
+  }
+}
+
 function persist(get: Getter) {
   const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, inspectorSize, projectFolders } = get();
-  saveWorkspace({
-    expanded,
-    selectedNode,
-    tabs: tabs.map(savedShape),
-    activeTab,
-    terminals,
-    activeTerminal,
-    showTerminal,
-    terminalSize,
-    inspectorSize,
-    projectFolders,
-  });
+  saveSession(
+    {
+      expanded,
+      selectedNode,
+      tabs: tabs.map(savedShape),
+      activeTab,
+      terminals,
+      activeTerminal,
+      showTerminal,
+      terminalSize,
+      inspectorSize,
+      projectFolders,
+    },
+    get().workspaceFolder,
+  );
 }
 
 /**
@@ -739,7 +818,7 @@ function persist(get: Getter) {
  * active one re-runs and the rest wait until they are looked at, as the IDE does.
  */
 async function restoreWorkspace(set: Setter, get: Getter) {
-  const w = await loadWorkspace();
+  const w = await loadSession(get().workspaceFolder);
   // terminals come back before the early return below: a window with only a terminal open
   // is a perfectly ordinary way to have left the app
   const projects = new Set(get().settings.projects.map((p) => p.id));

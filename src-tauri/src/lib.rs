@@ -1,6 +1,7 @@
 mod cache;
 mod secrets;
 mod terminal;
+mod workspace;
 
 use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem};
 use tauri::{Emitter, Manager};
@@ -27,6 +28,9 @@ pub fn run() {
             terminal::terminal_resize,
             terminal::terminal_close,
             terminal::terminal_run,
+            workspace::workspace_read,
+            workspace::workspace_write,
+            workspace::workspace_exists,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does
