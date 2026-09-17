@@ -6,16 +6,10 @@ PNPM  := pnpm
 CARGO_DIR := src-tauri
 APP := $(CARGO_DIR)/target/release/bundle/macos/Flux.app
 
-# The identity every build of Flux is signed with, dev binary and bundles alike. The
-# Keychain binds "Always Allow" to the signature of whoever asked, so a stable identity is
-# what keeps a stored token from being asked about again after each rebuild, and signing
-# the dev binary under the app's own bundle identifier makes the two the same caller.
-# Override with SIGN_ID="..."; the default is this machine's only codesigning identity,
-# and an empty one just means unsigned.
+# The identity the bundles are signed with. Override with SIGN_ID="..."; the default is this
+# machine's only codesigning identity, and an empty one just means unsigned.
 SIGN_ID ?= $(shell security find-identity -v -p codesigning | awk -F'"' 'NR==1 {print $$2}')
-BUNDLE_ID := $(shell node -p "require('./src-tauri/tauri.conf.json').identifier")
 SIGN_ENV = $(if $(SIGN_ID),APPLE_SIGNING_IDENTITY="$(SIGN_ID)",)
-HOST_TRIPLE := $(shell rustc -vV | sed -n 's/^host: //p' | tr 'a-z-' 'A-Z_')
 
 .DEFAULT_GOAL := help
 
@@ -31,13 +25,6 @@ install: ## Install JavaScript dependencies
 .PHONY: dev
 dev: ## Run the app with hot reload
 	$(PNPM) tauri dev
-
-.PHONY: dev-signed
-dev-signed: ## Run with hot reload, signed, so the Keychain asks once and not per build
-	@test -n '$(SIGN_ID)' || { echo 'no codesigning identity; pass SIGN_ID="Apple Development: ..."'; exit 1; }
-	SIGN_ID='$(SIGN_ID)' BUNDLE_ID='$(BUNDLE_ID)' \
-		CARGO_TARGET_$(HOST_TRIPLE)_RUNNER='$(CURDIR)/scripts/sign-and-run.sh' \
-		$(PNPM) tauri dev
 
 .PHONY: build
 build: ## Type-check and bundle the front end

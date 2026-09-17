@@ -139,13 +139,6 @@ before every commit. It is the same set of checks CI runs, scoped to what change
 a commit that passes locally passes on the server. `git commit --no-verify` skips it
 when you genuinely need to, but CI will still fail.
 
-`make dev-signed` is `make dev` with the binary signed between the link and the run, by a
-cargo runner (`scripts/sign-and-run.sh`), so every build presents the same identity to macOS
-rather than a fresh one. It was written when the Graylog token lived in the Keychain and
-each rebuild was a new caller asking for it; with the token in `connections.json` that
-prompt is gone, and what is left is the general benefit of a stable identity. The identity
-comes from `SIGN_ID`, which defaults to the codesigning identity on this machine.
-
 CI runs the full gate on every pull request and bundles the app on pushes to `main`. That
 bundle is a test artifact and stays unsigned.
 
