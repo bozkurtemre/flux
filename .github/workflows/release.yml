@@ -99,12 +99,13 @@ jobs:
       # files are actually downloadable (ADR 0004).
       - name: Publish the update
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           BUCKET: flux-releases
         run: |
           set -euo pipefail
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+          if [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ] || [ -z "$R2_ACCOUNT_ID" ]; then
             echo "R2 credentials are missing; the update cannot be published" >&2
             exit 1
           fi
@@ -113,10 +114,9 @@ jobs:
           dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
           immutable="public, max-age=31536000, immutable"
 
-          put() {
-            pnpm dlx wrangler@4 r2 object put "$BUCKET/$1" --file="$2" --remote \
-              --content-type="$3" --cache-control="$4"
-          }
+          # the S3 API, because the token is scoped to this one bucket and the REST API that
+          # wrangler speaks will not take such a token (it answers 403 on every object)
+          put() { node scripts/r2-put.mjs "$BUCKET" "$1" "$2" "$3" "$4"; }
 
           put "updates/$version/Flux.app.tar.gz" "$macos/Flux.app.tar.gz" application/gzip "$immutable"
           put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
