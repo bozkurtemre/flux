@@ -22,7 +22,7 @@ export function EditorArea() {
 
 function TabStrip() {
   const { tabs, activeTab, setActive, closeTab, moveTab } = useApp();
-  const [dragging, setDragging] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{ id: string; dx: number } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
   const dragged = useRef(false);
 
@@ -33,6 +33,7 @@ function TabStrip() {
    */
   const startDrag = (e: React.MouseEvent, id: string) => {
     if (e.button !== 0) return;
+    e.preventDefault(); // otherwise the press begins selecting the tab's own title
     const from = e.clientX;
     dragged.current = false;
     let over: string | null = null;
@@ -40,7 +41,9 @@ function TabStrip() {
     const move = (ev: MouseEvent) => {
       if (!dragged.current && Math.abs(ev.clientX - from) < 4) return;
       dragged.current = true;
-      setDragging(id);
+      // the tab follows the pointer; it is pointer-transparent while it does, so the tab
+      // underneath is the one found here rather than the one being carried
+      setDrag({ id, dx: ev.clientX - from });
       const under = document.elementFromPoint(ev.clientX, ev.clientY)?.closest("[data-tab]");
       const name = under instanceof HTMLElement ? (under.dataset.tab ?? null) : null;
       over = name && name !== id ? name : null;
@@ -50,7 +53,7 @@ function TabStrip() {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
       if (dragged.current && over) moveTab(id, over);
-      setDragging(null);
+      setDrag(null);
       setDropOn(null);
       setTimeout(() => (dragged.current = false), 0);
     };
@@ -74,10 +77,12 @@ function TabStrip() {
             style={{
               background: active ? "var(--bg-raised)" : "transparent",
               color: active ? "var(--text)" : "var(--text-dim)",
-              opacity: dragging === t.id ? 0.4 : 1,
               boxShadow: dropOn === t.id ? "inset 2px 0 0 var(--accent)" : undefined,
-              cursor: dragging ? "grabbing" : "default",
+              cursor: drag ? "grabbing" : "default",
               userSelect: "none",
+              ...(drag?.id === t.id
+                ? { transform: `translateX(${drag.dx}px)`, zIndex: 10, pointerEvents: "none" as const, opacity: 0.85 }
+                : { transition: "transform 120ms ease" }),
             }}
             title={`${t.streamLabel} · ${t.title}`}
           >
