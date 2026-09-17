@@ -46,6 +46,14 @@ export default function App() {
         e.preventDefault();
         void runQuery(activeTab);
       }
+      // Escape closes the inspector, but only when it is the frontmost thing open
+      if (e.key === "Escape" && !typing) {
+        const app = useApp.getState();
+        const covered =
+          app.showSettings || app.showSearch || app.showAbout || app.showUpdateNotes || document.querySelector("[data-menu],[data-modal]");
+        const open = app.tabs.find((t) => t.id === app.activeTab);
+        if (!covered && open?.selectedRow != null) app.patchTab(open.id, { selectedRow: undefined });
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === ",") {
         e.preventDefault();
         useApp.getState().setShowSettings(true);

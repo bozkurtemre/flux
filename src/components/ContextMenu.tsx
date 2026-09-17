@@ -56,6 +56,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   return (
     <div
       ref={ref}
+      data-menu
       onMouseDown={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
       className="fixed z-[60] min-w-[220px] overflow-hidden rounded-[6px] py-1"
@@ -135,7 +136,7 @@ export function ConfirmDialog({
   }, [dismiss, onConfirm]);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(0,0,0,.45)" }} onMouseDown={dismiss}>
+    <div data-modal className="fixed inset-0 z-[70] flex items-center justify-center" style={{ background: "rgba(0,0,0,.45)" }} onMouseDown={dismiss}>
       <div
         onMouseDown={(e) => e.stopPropagation()}
         className="w-[420px] rounded-[10px] p-4"
