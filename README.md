@@ -173,12 +173,6 @@ Pushing a `v*` tag runs the release workflow, which re-runs the quality gate, bu
 The workflow refuses a tag that disagrees with the version in the tree, so the tag and
 the binary can never describe different builds.
 
-The release is signed when the repository holds `APPLE_CERTIFICATE` (a base64 `.p12`),
-`APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`, and notarized when `APPLE_ID`,
-`APPLE_PASSWORD` and `APPLE_TEAM_ID` are there too. Without them the release still builds
-and publishes, unsigned. Signing for other machines needs a Developer ID Application
-certificate; an Apple Development one only satisfies Gatekeeper on the Mac that issued it.
-
 Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
