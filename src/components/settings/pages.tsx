@@ -7,6 +7,7 @@ import * as cache from "@/lib/cache";
 import { clientFor, useApp } from "@/store";
 import { failureReason } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
+import { clientConfig } from "@/lib/mcp";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
@@ -747,6 +748,83 @@ export function WorkspacePage({ s }: { s: Settings; patch: Patch }) {
               </div>
             )}
           </div>
+        </Row>
+      </Section>
+    </>
+  );
+}
+
+/** The server an agent talks to while Flux is open. */
+export function McpPage({ s, patch }: { s: Settings; patch: Patch }) {
+  const m = s.mcp;
+  const [copied, setCopied] = useState("");
+  const set = <K extends keyof typeof m>(k: K, v: (typeof m)[K]) => patch((x) => ({ ...x, mcp: { ...x.mcp, [k]: v } }));
+  const { url, json, cli } = clientConfig(m.port, m.token);
+
+  // the token is made once and kept, so a config copied today still works tomorrow
+  const enable = (on: boolean) => patch((x) => ({ ...x, mcp: { ...x.mcp, enabled: on, token: x.mcp.token || crypto.randomUUID() } }));
+
+  const copy = (what: string, value: string) => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopied(what);
+      setTimeout(() => setCopied(""), 1400);
+    });
+  };
+
+  return (
+    <>
+      <Section title="MCP Server">
+        <Row>
+          <Checkbox
+            checked={m.enabled}
+            onChange={enable}
+            label="Enable MCP Server"
+            hint="While Flux is open, an agent can read the same logs through the same connections."
+          />
+        </Row>
+        <Row label="Address" hint="Loopback only: nothing outside this machine can reach it.">
+          <span className="font-[var(--font-mono)] text-[12px]" style={{ color: m.enabled ? "var(--text-dim)" : "var(--text-muted)" }}>
+            {url}
+          </span>
+        </Row>
+        <Row label="Port" hint="Takes effect when the server is next enabled.">
+          <Num value={m.port} onChange={(v) => set("port", v)} min={1024} max={65535} width={90} />
+        </Row>
+      </Section>
+
+      <Section title="Client configuration">
+        <Row label="Claude Code" hint="Paste into .mcp.json, or run the command. The header is what lets it in.">
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button disabled={!m.token} onClick={() => copy("json", json)}>
+                {copied === "json" ? "Copied" : "Copy JSON"}
+              </Button>
+              <Button disabled={!m.token} onClick={() => copy("cli", cli)}>
+                {copied === "cli" ? "Copied" : "Copy command"}
+              </Button>
+              <Button disabled={!m.token} onClick={() => copy("token", m.token)}>
+                {copied === "token" ? "Copied" : "Copy token"}
+              </Button>
+            </div>
+            <pre
+              className="selectable max-h-[160px] overflow-auto rounded-[4px] p-2 font-[var(--font-mono)] text-[11px]"
+              style={{ background: "var(--bg-editor)", border: "1px solid var(--border)", color: "var(--text-dim)" }}
+            >
+              {m.token ? json : "Enable the server to get a token."}
+            </pre>
+          </div>
+        </Row>
+      </Section>
+
+      <Section title="What it offers">
+        <Row hint="Read-only. Flux never writes to Graylog, and the tokens themselves are never part of an answer.">
+          <ul className="flex flex-col gap-0.5 text-[12px]" style={{ color: "var(--text-dim)" }}>
+            <li>list_connections — the connections Flux is set up with</li>
+            <li>list_streams — the streams a connection exposes</li>
+            <li>search_logs — a Lucene search, newest first</li>
+            <li>count_logs — how many match, without returning them</li>
+            <li>list_endpoints — endpoints a stream serves, with traffic and error rates</li>
+          </ul>
         </Row>
       </Section>
     </>

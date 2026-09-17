@@ -1,11 +1,24 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { getVersion } from "@tauri-apps/api/app";
-import { Bug, ChevronDown, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, Server, SquareTerminal, Wrench } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Bug,
+  ChevronDown,
+  GitBranch,
+  MoreHorizontal,
+  MoreVertical,
+  PanelRight,
+  Plug,
+  Search,
+  Server,
+  Settings2,
+  SquareTerminal,
+  Wrench,
+} from "lucide-react";
 import { Logo } from "./Logo";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import { taskLabel, visibleTask } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
+import { clientConfig } from "@/lib/mcp";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { homeDir } from "@tauri-apps/api/path";
 
@@ -191,7 +204,7 @@ function StripeButton({
 
 export function StatusBar() {
   const { tabs, activeTab, settings, settingsError, update, setShowUpdateNotes } = useApp();
-  const version = useAppVersion();
+  const [mcpOpen, setMcpOpen] = useState(false);
   const tab = tabs.find((t) => t.id === activeTab);
   const conn = settings.connections.find((c) => c.id === tab?.connId);
   return (
@@ -234,8 +247,105 @@ export function StatusBar() {
             Update available
           </button>
         )}
-        {version && <span data-tip="Flux version">v{version}</span>}
+        <span className="relative">
+          <button
+            onClick={() => setMcpOpen((v) => !v)}
+            data-tip={settings.mcp.enabled ? "MCP server is running" : "MCP server is off"}
+            className="flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+            style={{ color: settings.mcp.enabled ? "var(--green)" : "var(--text-muted)" }}
+          >
+            <Plug size={12} />
+          </button>
+          {mcpOpen && <McpPopover onClose={() => setMcpOpen(false)} />}
+        </span>
       </span>
+    </div>
+  );
+}
+
+/**
+ * The same handful of settings the IDE keeps behind its status bar icon: on or off, where it
+ * is, and the configuration to paste into a client. The rest is a click away in Settings.
+ */
+function McpPopover({ onClose }: { onClose: () => void }) {
+  const { settings, setSettings, setShowSettings } = useApp();
+  const m = settings.mcp;
+  const { url, json, cli } = clientConfig(m.port, m.token);
+  const [copied, setCopied] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const away = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("mousedown", away);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  const enable = (on: boolean) => void setSettings({ ...settings, mcp: { ...m, enabled: on, token: m.token || crypto.randomUUID() } });
+
+  const copy = (what: string, value: string) => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopied(what);
+      setTimeout(() => setCopied(""), 1400);
+    });
+  };
+
+  const button = "h-[22px] rounded-[4px] px-2 text-[11px]";
+  const outline = { background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" };
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 bottom-[26px] z-[70] w-[320px] rounded-[10px] p-3"
+      style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 18px 48px rgba(0,0,0,.55)" }}
+    >
+      <div className="flex items-center">
+        <span className="text-[13px] font-semibold" style={{ color: "var(--text)" }}>
+          MCP Server
+        </span>
+        <button
+          onClick={() => {
+            onClose();
+            setShowSettings(true, "mcp");
+          }}
+          data-tip="MCP settings"
+          className="ml-auto flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+          style={{ color: "var(--text-dim)" }}
+        >
+          <Settings2 size={12} />
+        </button>
+      </div>
+
+      <label className="mt-2 flex cursor-default items-center gap-2 text-[12px]" style={{ color: "var(--text)" }}>
+        <input type="checkbox" checked={m.enabled} onChange={(e) => enable(e.target.checked)} />
+        Enable MCP Server
+      </label>
+
+      <p className="mt-2 font-[var(--font-mono)] text-[11px]" style={{ color: m.enabled ? "var(--accent)" : "var(--text-muted)" }}>
+        {url}
+      </p>
+
+      <p className="mt-3 text-[11px]" style={{ color: "var(--text-dim)" }}>
+        Manual client configuration
+      </p>
+      <div className="mt-1.5 flex gap-2">
+        <button className={button} style={outline} disabled={!m.token} onClick={() => copy("json", json)}>
+          {copied === "json" ? "Copied" : "Copy JSON"}
+        </button>
+        <button className={button} style={outline} disabled={!m.token} onClick={() => copy("cli", cli)}>
+          {copied === "cli" ? "Copied" : "Copy command"}
+        </button>
+      </div>
+
+      <p className="mt-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+        Read-only: connections, streams, searches and endpoints. Tokens are never part of an answer.
+      </p>
     </div>
   );
 }
@@ -265,15 +375,4 @@ function BackgroundTask() {
       )}
     </span>
   );
-}
-
-/** The version baked into the bundle, which `make bump-*` keeps in step with the git tag. */
-function useAppVersion(): string {
-  const [version, setVersion] = useState("");
-  useEffect(() => {
-    getVersion()
-      .then(setVersion)
-      .catch(() => {});
-  }, []);
-  return version;
 }

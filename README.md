@@ -38,6 +38,9 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 - **Search Everywhere** — `⇧⇧` to jump to any stream, endpoint, project or action.
 - **Workspaces** — open a folder and Flux keeps that folder's stream grouping and layout
   in a `.flux` directory inside it, the way an IDE keeps `.idea`.
+- **MCP server** — while Flux is open, an agent in your terminal can read the same logs
+  through the same connections: connections, streams, searches, counts and endpoints, as
+  JSON. Loopback only, behind a token, read-only.
 - **Settings** — ten pages covering appearance, the tree, the console, the grid, the
   terminal, updates, the workspace, connections, the keymap and advanced network options.
 

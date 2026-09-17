@@ -10,6 +10,7 @@ import {
   ProjectsPage,
   ResultsPage,
   TerminalPage,
+  McpPage,
   UpdatesPage,
   WorkspacePage,
   type Patch,
@@ -72,6 +73,12 @@ const PAGES: PageDef[] = [
     label: "Updates",
     keywords: "update upgrade version release check startup",
     render: ({ s, patch }) => <UpdatesPage s={s} patch={patch} />,
+  },
+  {
+    id: "mcp",
+    label: "MCP Server",
+    keywords: "mcp server agent claude code tools port token",
+    render: ({ s, patch }) => <McpPage s={s} patch={patch} />,
   },
   {
     id: "workspace",

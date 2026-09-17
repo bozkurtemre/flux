@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { ConnectionExplorer } from "@/components/ConnectionExplorer";
 import { EditorArea } from "@/components/EditorArea";
@@ -15,6 +16,9 @@ import { Tooltips } from "@/components/Tooltip";
 import { ConfirmDialog } from "@/components/ContextMenu";
 import { Checkbox } from "@/components/settings/controls";
 import { quitAction } from "@/lib/terminal";
+import { runTool, TOOLS } from "@/lib/mcp";
+import { failureReason } from "@/lib/progress";
+import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
 export default function App() {
@@ -111,6 +115,39 @@ export default function App() {
     const hourly = setInterval(() => void useApp.getState().checkForUpdates(false), 60 * 60 * 1000);
     return () => clearInterval(hourly);
   }, [settings.updates.checkOnStartup]);
+
+  // The MCP server runs in Rust and the tools run here, where Graylog is understood: a call
+  // arrives as an event, is answered against the same client the window uses, and is handed
+  // back by id. The server is started and stopped by the setting alone.
+  useEffect(() => {
+    const mcp = settings.mcp;
+    const pending = listen<{ id: string; name: string; arguments: Record<string, unknown> }>("mcp-call", async (event) => {
+      const current = useApp.getState().settings;
+      const result = await runTool(event.payload.name, event.payload.arguments ?? {}, {
+        connections: current.connections,
+        clientFor,
+        defaults: { minutes: 60, limit: current.results.pageSize },
+      }).catch((e: unknown) => ({
+        content: [{ type: "text" as const, text: e instanceof Error ? e.message : String(e) }],
+        isError: true,
+      }));
+      await invoke("mcp_respond", { id: event.payload.id, result });
+    });
+
+    void (async () => {
+      await invoke("mcp_set_tools", { tools: TOOLS });
+      try {
+        if (mcp.enabled && mcp.token) await invoke("mcp_start", { port: mcp.port, token: mcp.token });
+        else await invoke("mcp_stop");
+      } catch (e) {
+        // a port already taken is the usual reason, and silence would leave the setting
+        // ticked with nothing listening
+        useApp.getState().notify("error", "MCP server", failureReason(e));
+      }
+    })();
+
+    return () => void pending.then((stop) => stop());
+  }, [settings.mcp]);
 
   // The application menu is built in Rust and answered here, where the windows are drawn.
   useEffect(() => {

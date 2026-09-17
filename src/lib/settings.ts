@@ -88,6 +88,13 @@ export interface UpdateSettings {
   lastCheckedAt?: string;
 }
 
+export interface McpSettings {
+  enabled: boolean;
+  port: number;
+  /** Anything on this machine can reach the port; this is what makes it the agent's. */
+  token: string;
+}
+
 export interface Settings {
   connections: Connection[];
   projects: Project[];
@@ -97,6 +104,7 @@ export interface Settings {
   results: ResultSettings;
   terminal: TerminalSettings;
   updates: UpdateSettings;
+  mcp: McpSettings;
   advanced: AdvancedSettings;
 }
 
@@ -129,6 +137,7 @@ export const DEFAULTS: Settings = {
   },
   terminal: { useTmux: true, tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },
+  mcp: { enabled: false, port: 4319, token: "" },
   advanced: { requestTimeoutSeconds: 60, fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
@@ -151,6 +160,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
     },
     terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}) },
     updates: { ...DEFAULTS.updates, ...(s.updates ?? {}) },
+    mcp: { ...DEFAULTS.mcp, ...(s.mcp ?? {}) },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },
   };
 }

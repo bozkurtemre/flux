@@ -1,4 +1,5 @@
 mod cache;
+mod mcp;
 mod secrets;
 mod terminal;
 mod workspace;
@@ -16,6 +17,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(terminal::Terminals::default())
+        .manage(mcp::Mcp::default())
         .invoke_handler(tauri::generate_handler![
             cache::cache_read,
             cache::cache_write,
@@ -31,6 +33,11 @@ pub fn run() {
             workspace::workspace_read,
             workspace::workspace_write,
             workspace::workspace_exists,
+            mcp::mcp_start,
+            mcp::mcp_stop,
+            mcp::mcp_status,
+            mcp::mcp_set_tools,
+            mcp::mcp_respond,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does

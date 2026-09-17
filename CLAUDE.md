@@ -42,5 +42,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - **Commit messages follow Conventional Commits**: `type: description`, from `feat`, `fix`,
   `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. The body
   still carries the why, as it always did. `.githooks/commit-msg` refuses anything else.
+- **The MCP server answers with the front end's own tools.** `src-tauri/src/mcp.rs` is the
+  socket and the protocol; every tool is defined and run in `src/lib/mcp.ts`, where the
+  Graylog client and the endpoint derivation already live. Add a tool there, not in Rust.
 - **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier, Vitest and
   Clippy. `make hooks` runs the same gate before each commit.
