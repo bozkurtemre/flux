@@ -7,6 +7,7 @@
 // change: the clause that was asked, and the count that came back. What it is not is the
 // same component: no virtualiser, no sorting, no columns to drag, no footer.
 import { useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
 import { useApp, type GroupResult, type Tab } from "@/store";
 
@@ -29,6 +30,9 @@ function GroupTable({ group }: { group: GroupResult }) {
   // Graylog answers with the largest count first, which is the order worth keeping until a
   // header is clicked
   const [sort, setSort] = useState<{ col: "value" | "count"; dir: 1 | -1 } | null>(null);
+  // collapsed it is a header and nothing else, so several clauses can be stacked and only
+  // the one being read left open
+  const [open, setOpen] = useState(true);
   const line = `${r.rowHeight}px`;
   const width = defaultWidth(group.field);
   const rows = useMemo(() => {
@@ -46,10 +50,17 @@ function GroupTable({ group }: { group: GroupResult }) {
   } as const;
 
   return (
-    <div className="max-h-[220px] shrink-0 overflow-auto" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+    <div className="shrink-0 overflow-auto" style={{ maxHeight: open ? 220 : undefined, borderBottom: "1px solid var(--border-soft)" }}>
       <div style={{ width: NUM_W + width + COUNT_W, minWidth: "100%" }}>
         <div className="sticky top-0 z-10 flex h-[26px]" style={{ background: "var(--bg-tool)" }}>
-          <div className="shrink-0" style={{ width: NUM_W, ...head }} />
+          <button
+            onClick={() => setOpen((v) => !v)}
+            data-tip={open ? "Collapse" : "Expand"}
+            className="flex shrink-0 items-center justify-center hover:bg-[var(--bg-hover)]"
+            style={{ width: NUM_W, ...head }}
+          >
+            {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </button>
           <div
             onClick={() => toggle("value")}
             className="flex shrink-0 items-center gap-1.5 truncate px-2 text-[11px] font-medium"
@@ -70,7 +81,7 @@ function GroupTable({ group }: { group: GroupResult }) {
           </div>
         </div>
 
-        {group.error ? (
+        {!open ? null : group.error ? (
           <p className="selectable px-2 py-1.5 font-[var(--font-mono)] text-[11px]" style={{ color: "var(--red)" }}>
             {group.error}
           </p>
