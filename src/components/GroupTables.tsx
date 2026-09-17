@@ -6,6 +6,7 @@
 // is the same kind of answer — a header of columns and rows under it. Its two columns never
 // change: the clause that was asked, and the count that came back. What it is not is the
 // same component: no virtualiser, no sorting, no columns to drag, no footer.
+import { useMemo, useState } from "react";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
 import { useApp, type GroupResult, type Tab } from "@/store";
 
@@ -25,8 +26,19 @@ export function GroupTables({ tab }: { tab: Tab }) {
 
 function GroupTable({ group }: { group: GroupResult }) {
   const r = useApp((s) => s.settings.results);
+  // Graylog answers with the largest count first, which is the order worth keeping until a
+  // header is clicked
+  const [sort, setSort] = useState<{ col: "value" | "count"; dir: 1 | -1 } | null>(null);
   const line = `${r.rowHeight}px`;
   const width = defaultWidth(group.field);
+  const rows = useMemo(() => {
+    if (!sort) return group.rows;
+    return [...group.rows].sort((a, b) =>
+      sort.col === "count" ? (a.count - b.count) * sort.dir : a.value.localeCompare(b.value, undefined, { numeric: true }) * sort.dir,
+    );
+  }, [group.rows, sort]);
+  const toggle = (col: "value" | "count") => setSort((s) => (s?.col === col ? { col, dir: s.dir === 1 ? -1 : 1 } : { col, dir: 1 }));
+  const arrow = (col: "value" | "count") => (sort?.col === col ? <span style={{ color: "var(--accent)" }}>{sort.dir === 1 ? "▲" : "▼"}</span> : null);
   const head = {
     borderRight: "1px solid var(--border)",
     borderBottom: "1px solid var(--border)",
@@ -39,15 +51,22 @@ function GroupTable({ group }: { group: GroupResult }) {
         <div className="sticky top-0 z-10 flex h-[26px]" style={{ background: "var(--bg-tool)" }}>
           <div className="shrink-0" style={{ width: NUM_W, ...head }} />
           <div
+            onClick={() => toggle("value")}
             className="flex shrink-0 items-center gap-1.5 truncate px-2 text-[11px] font-medium"
-            style={{ width, ...head }}
+            style={{ width, userSelect: "none", ...head }}
             title={`group by ${group.field}`}
           >
             <span style={{ color: "var(--accent)" }}>group by</span>
             <span className="truncate font-[var(--font-mono)]">{group.field}</span>
+            {arrow("value")}
           </div>
-          <div className="flex shrink-0 items-center px-2 text-[11px] font-medium" style={{ width: COUNT_W, ...head }}>
+          <div
+            onClick={() => toggle("count")}
+            className="flex shrink-0 items-center gap-1 px-2 text-[11px] font-medium"
+            style={{ width: COUNT_W, userSelect: "none", ...head }}
+          >
             count
+            {arrow("count")}
           </div>
         </div>
 
@@ -55,12 +74,12 @@ function GroupTable({ group }: { group: GroupResult }) {
           <p className="selectable px-2 py-1.5 font-[var(--font-mono)] text-[11px]" style={{ color: "var(--red)" }}>
             {group.error}
           </p>
-        ) : !group.rows.length ? (
+        ) : !rows.length ? (
           <p className="px-2 py-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
             Nothing matched
           </p>
         ) : (
-          group.rows.map((row, i) => (
+          rows.map((row, i) => (
             <div key={row.value} className="flex" style={{ height: r.rowHeight, background: r.stripedRows && i % 2 ? "var(--row-alt)" : undefined }}>
               <div
                 className="shrink-0 px-2 text-right font-[var(--font-mono)] text-[11px] tabular-nums"
