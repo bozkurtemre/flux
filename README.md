@@ -39,6 +39,22 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 
 ## Install
 
+Download the latest `.dmg` from
+[updates.emreb.dev](https://updates.emreb.dev/updates/latest.json) or the
+[releases](https://github.com/bozkurtemre/flux/releases), drag Flux to `/Applications`, and
+clear the quarantine flag before opening it:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Flux.app
+```
+
+Flux is not signed with an Apple Developer ID, so macOS quarantines it as a browser download
+and offers nothing but "Move to Trash" — the flag is what that refusal is about, and `-r`
+matters because it is written through the bundle. This is a one-time step per manual
+install: updates that Flux downloads itself never carry the flag.
+
+### From source
+
 Requires [Node 24+](https://nodejs.org), [pnpm 11+](https://pnpm.io) and a
 [Rust toolchain](https://rustup.rs).
 
