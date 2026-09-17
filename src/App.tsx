@@ -50,7 +50,11 @@ export default function App() {
       if (e.key === "Escape" && !typing) {
         const app = useApp.getState();
         const covered =
-          app.showSettings || app.showSearch || app.showAbout || app.showUpdateNotes || document.querySelector("[data-menu],[data-modal]");
+          app.showSettings ||
+          app.showSearch ||
+          app.showAbout ||
+          app.showUpdateNotes ||
+          document.querySelector("[data-menu],[data-modal],[data-find]");
         const open = app.tabs.find((t) => t.id === app.activeTab);
         if (!covered && open?.selectedRow != null) app.patchTab(open.id, { selectedRow: undefined });
       }
