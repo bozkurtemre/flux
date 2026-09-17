@@ -74,6 +74,14 @@ export function QueryConsole({ tab }: { tab: Tab }) {
             <Play size={14} style={{ color: "var(--green)" }} fill="var(--green)" />
           )}
         </button>
+        <button
+          onClick={() => void runQuery(tab.id)}
+          disabled={tab.running}
+          title="Refresh"
+          className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+        >
+          <RotateCw size={13} style={{ color: "var(--text-dim)" }} />
+        </button>
         <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
         <select
           value={tab.rangeSeconds}
