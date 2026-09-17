@@ -6,7 +6,7 @@ import * as cache from "@/lib/cache";
 import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { offerable, soakRemaining, type Manifest } from "@/lib/updates";
+import { offerable, type Manifest } from "@/lib/updates";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -335,11 +335,10 @@ export const useApp = create<State>((set, get) => ({
         return;
       }
       const manifest = await manifestFor(found.version, found.date, found.body);
+      // still soaking: say what a check that found nothing says, rather than name a version
+      // that cannot be installed yet and leave someone waiting on a clock
       if (!offerable(manifest, now)) {
-        if (manual) {
-          const left = soakRemaining(manifest, now);
-          get().notify("info", `Flux ${manifest.version} was just published`, `It will be offered in ${left} minute${left === 1 ? "" : "s"}.`);
-        }
+        if (manual) get().notify("info", "Flux is up to date", "You are on the newest version.");
         return;
       }
       set({ update: manifest });

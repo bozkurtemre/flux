@@ -25,11 +25,3 @@ export function offerable(manifest: Manifest, now: Date, fallback = DEFAULT_SOAK
   const soak = manifest.soakMinutes ?? fallback;
   return now.getTime() - published >= soak * 60_000;
 }
-
-/** How much longer it has to wait, in whole minutes, for the sake of saying so. */
-export function soakRemaining(manifest: Manifest, now: Date, fallback = DEFAULT_SOAK_MINUTES): number {
-  const published = manifest.pub_date ? Date.parse(manifest.pub_date) : NaN;
-  if (Number.isNaN(published)) return 0;
-  const soak = manifest.soakMinutes ?? fallback;
-  return Math.max(0, Math.ceil((published + soak * 60_000 - now.getTime()) / 60_000));
-}
