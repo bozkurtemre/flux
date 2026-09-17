@@ -41,7 +41,7 @@ function Balloon({ notice }: { notice: Notice }) {
     >
       <button
         onClick={() => dismissNotice(notice.id)}
-        title="Dismiss"
+        data-tip="Dismiss"
         className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-[4px] opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)]"
         style={{ color: "var(--text-dim)" }}
       >

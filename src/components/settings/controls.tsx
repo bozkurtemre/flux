@@ -176,7 +176,7 @@ export function Swatches({ value, onChange }: { value: string; onChange: (v: str
         <button
           key={c}
           onClick={() => onChange(c)}
-          title={c}
+          data-tip={c}
           // the ring is a border rather than an outline, so it sits inside the button's own
           // box and the next swatch cannot paint over it
           className="grid size-[26px] shrink-0 place-items-center rounded-full"
@@ -190,7 +190,7 @@ export function Swatches({ value, onChange }: { value: string; onChange: (v: str
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="ml-1 size-[20px] cursor-pointer rounded border-0 bg-transparent p-0"
-        title="Custom"
+        data-tip="Custom colour"
       />
     </span>
   );

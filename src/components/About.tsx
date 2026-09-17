@@ -43,7 +43,7 @@ export function About() {
       >
         {/* as the system panel has them: only closing is available, so only that one is lit */}
         <div className="absolute top-3.5 left-3.5 flex gap-2">
-          <button onClick={() => setOpen(false)} title="Close" className="size-3 rounded-full" style={{ background: "#ff5f57" }} />
+          <button onClick={() => setOpen(false)} data-tip="Close" className="size-3 rounded-full" style={{ background: "#ff5f57" }} />
           <span className="size-3 rounded-full" style={{ background: "var(--bg-raised)" }} />
           <span className="size-3 rounded-full" style={{ background: "var(--bg-raised)" }} />
         </div>
@@ -63,7 +63,7 @@ export function About() {
             onClick={() => {
               void navigator.clipboard.writeText(report()).finally(() => setOpen(false));
             }}
-            title="Copy the version details a bug report needs"
+            data-tip="Copy the version details a bug report needs"
             className="h-[26px] rounded-[4px] px-3 text-[13px]"
             style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
           >

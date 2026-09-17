@@ -84,7 +84,7 @@ function TabStrip() {
                 ? { transform: `translateX(${drag.dx}px)`, zIndex: 10, pointerEvents: "none" as const, opacity: 0.85 }
                 : { transition: "transform 120ms ease" }),
             }}
-            title={`${t.streamLabel} · ${t.title}`}
+            data-tip={`${t.streamLabel} · ${t.title}`}
           >
             <span className="flex size-3.5 shrink-0 items-center justify-center">{t.endpoint ? <EndpointIcon /> : <StreamIcon />}</span>
             <span className="truncate font-[var(--font-mono)]">{t.title}</span>
@@ -93,6 +93,8 @@ function TabStrip() {
                 e.stopPropagation();
                 closeTab(t.id);
               }}
+              data-tip="Close tab"
+              data-tip-key="⌘W"
               className="ml-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--bg-hover)]"
             >
               <X size={11} />

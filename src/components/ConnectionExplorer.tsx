@@ -153,29 +153,34 @@ function PanelToolbar() {
   };
   return (
     <div className="flex h-[26px] shrink-0 items-center gap-0.5 px-2">
-      <button className={btn} {...hover} title="New connection" onClick={() => setShowSettings(true)}>
+      <button className={btn} {...hover} data-tip="New connection" onClick={() => setShowSettings(true)}>
         <Plus size={15} style={{ color: "var(--accent)" }} />
       </button>
-      <button className={btn} {...hover} title="Find" onClick={() => document.querySelector<HTMLInputElement>("#explorer-filter")?.focus()}>
+      <button
+        className={btn}
+        {...hover}
+        data-tip="Find in tree"
+        onClick={() => document.querySelector<HTMLInputElement>("#explorer-filter")?.focus()}
+      >
         <SearchCode size={14} style={style} />
       </button>
       <span className="mx-1 h-3.5 w-px" style={{ background: "var(--border)" }} />
-      <button className={btn} {...hover} title="Refresh" onClick={() => selectedNode && nodes[selectedNode] && refresh(selectedNode)}>
+      <button className={btn} {...hover} data-tip="Refresh" onClick={() => selectedNode && nodes[selectedNode] && refresh(selectedNode)}>
         <RefreshCw size={13} style={style} />
       </button>
-      <button className={btn} {...hover} title="Collapse all" onClick={() => useApp.setState({ expanded: {} })}>
+      <button className={btn} {...hover} data-tip="Collapse all" onClick={() => useApp.setState({ expanded: {} })}>
         <FoldVertical size={14} style={style} />
       </button>
       <span className="mx-1 h-3.5 w-px" style={{ background: "var(--border)" }} />
       <button
         className={btn}
         {...hover}
-        title="New query console"
+        data-tip="New query console"
         onClick={() => selectedNode && nodes[selectedNode]?.kind === "stream" && useApp.getState().openTab(nodes[selectedNode])}
       >
         <SquareTerminal size={14} style={style} />
       </button>
-      <button className={btn} {...hover} title="Settings" onClick={() => setShowSettings(true)}>
+      <button className={btn} {...hover} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
         <Settings2 size={14} style={style} />
       </button>
       <span className="ml-auto pr-1 text-[10px] tabular-nums" style={{ color: "var(--text-muted)" }}>

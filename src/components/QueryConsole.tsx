@@ -65,7 +65,8 @@ export function QueryConsole({ tab }: { tab: Tab }) {
       <div className="flex h-[30px] shrink-0 items-center gap-1 px-1.5">
         <button
           onClick={() => void runQuery(tab.id)}
-          title="Execute (⌘⏎)"
+          data-tip="Execute"
+          data-tip-key="⌘⏎"
           className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
         >
           {tab.running ? (
@@ -77,7 +78,8 @@ export function QueryConsole({ tab }: { tab: Tab }) {
         <button
           onClick={() => void runQuery(tab.id)}
           disabled={tab.running}
-          title="Refresh (⌘R)"
+          data-tip="Refresh"
+          data-tip-key="⌘R"
           className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
         >
           <RotateCw size={13} style={{ color: "var(--text-dim)" }} />
