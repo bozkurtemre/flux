@@ -104,6 +104,14 @@ export default function App() {
     if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
   };
 
+  // Once an hour, without saying anything unless it finds something. A log explorer left
+  // open for a day should not have to be restarted to learn there is a new version.
+  useEffect(() => {
+    if (!settings.updates.checkOnStartup) return;
+    const hourly = setInterval(() => void useApp.getState().checkForUpdates(false), 60 * 60 * 1000);
+    return () => clearInterval(hourly);
+  }, [settings.updates.checkOnStartup]);
+
   // The application menu is built in Rust and answered here, where the windows are drawn.
   useEffect(() => {
     const app = useApp.getState();

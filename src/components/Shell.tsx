@@ -190,7 +190,7 @@ function StripeButton({
 }
 
 export function StatusBar() {
-  const { tabs, activeTab, settings, settingsError } = useApp();
+  const { tabs, activeTab, settings, settingsError, update, setShowUpdateNotes } = useApp();
   const version = useAppVersion();
   const tab = tabs.find((t) => t.id === activeTab);
   const conn = settings.connections.find((c) => c.id === tab?.connId);
@@ -224,6 +224,16 @@ export function StatusBar() {
       <span className="ml-auto flex items-center gap-3">
         <BackgroundTask />
         <span>{settings.connections.length} connections</span>
+        {update && (
+          <button
+            onClick={() => setShowUpdateNotes(true)}
+            data-tip={`Flux ${update.version} is ready to install`}
+            className="rounded px-1.5 py-0.5 hover:bg-[var(--bg-hover)]"
+            style={{ color: "var(--accent)" }}
+          >
+            Update available
+          </button>
+        )}
         {version && <span data-tip="Flux version">v{version}</span>}
       </span>
     </div>

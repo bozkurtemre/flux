@@ -661,8 +661,8 @@ export function UpdatesPage({ s, patch }: { s: Settings; patch: Patch }) {
           <Checkbox
             checked={u.checkOnStartup}
             onChange={(v) => set("checkOnStartup", v)}
-            label="Check for updates when Flux starts"
-            hint="One request to updates.emreb.dev. Nothing is sent about you or your data sources."
+            label="Check for updates automatically"
+            hint="Once at startup and once an hour after that. Nothing is sent about you or your connections."
           />
         </Row>
         <Row label="Last checked" hint="A version is offered once it has been published for a few minutes.">

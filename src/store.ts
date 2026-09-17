@@ -424,10 +424,13 @@ export const useApp = create<State>((set, get) => ({
   setShowUpdateNotes: (showUpdateNotes) => set({ showUpdateNotes }),
   setShowAbout: (showAbout) => set({ showAbout }),
 
+  /**
+   * Later means later, not never: the balloon goes, the version stays known, and the status
+   * bar carries it until it is installed.
+   */
   dismissUpdate: () => {
     const version = get().update?.version;
     if (version) void get().setSettings({ ...get().settings, updates: { ...get().settings.updates, dismissedVersion: version } });
-    set({ update: undefined });
   },
 
   /**
