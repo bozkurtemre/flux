@@ -61,9 +61,9 @@ function TabStrip() {
     window.addEventListener("mouseup", up);
   };
 
-  if (!tabs.length) return <div className="h-[34px] shrink-0" />;
+  if (!tabs.length) return <div className="h-[45px] shrink-0" />;
   return (
-    <div className="flex h-[34px] shrink-0 items-center gap-1 overflow-x-auto px-1.5 pt-1.5">
+    <div className="flex h-[45px] shrink-0 items-start gap-1 overflow-x-auto overflow-y-hidden px-1.5 pt-1.5">
       {tabs.map((t) => {
         const active = t.id === activeTab;
         return (
