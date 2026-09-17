@@ -13,7 +13,8 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   const row = tab.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
   const text = row ? JSON.stringify(expand(row), null, 2) : "";
 
-  const matches = useMemo(() => findAll(text, query), [text, query]);
+  // no bar, no highlights; the term itself is kept, so the next ⌘F opens on it
+  const matches = useMemo(() => (finding ? findAll(text, query) : []), [finding, text, query]);
   const at = matches.length ? Math.min(current, matches.length - 1) : 0;
 
   // ⌘F belongs to whatever is in front of you, and while a row is open that is this panel
