@@ -73,12 +73,7 @@ export function SearchEverywhere() {
         title: "Refresh all connections",
         score: 0,
         icon: <RefreshCw size={13} style={{ color: "var(--text-dim)" }} />,
-        run: () => {
-          useApp.setState({
-            nodes: Object.fromEntries(Object.entries(useApp.getState().nodes).map(([k, n]) => [k, { ...n, childrenIds: undefined }])),
-          });
-          void useApp.getState().indexAll();
-        },
+        run: () => void useApp.getState().refreshAll(),
       },
     ],
     [settings, setShowSettings],

@@ -99,6 +99,9 @@ interface State {
   select: (id: string) => void;
   setFilter: (v: string) => void;
   refresh: (id: string) => Promise<void>;
+  refreshAll: () => Promise<void>;
+  disconnectAll: () => void;
+  reconnectAll: () => Promise<void>;
   openTab: (node: TreeNode) => void;
   closeTab: (id: string) => void;
   setActive: (id: string) => void;
@@ -453,6 +456,28 @@ export const useApp = create<State>((set, get) => ({
     if (!node) return;
     set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: undefined, error: undefined } } });
     await loadChildren(id, set, get, true);
+  },
+
+  /**
+   * Flux holds no connection open: every action is its own request, so these three are about
+   * what the window knows rather than about a socket. Refresh re-reads from Graylog what is
+   * on screen; Disconnect forgets it, clients included, leaving the tree as cold as a fresh
+   * launch; Reconnect is the two in order.
+   */
+  refreshAll: async () => {
+    await Promise.all(get().rootIds.map((id) => get().refresh(id)));
+  },
+
+  disconnectAll: () => {
+    clients.clear();
+    const nodes = Object.fromEntries(Object.entries(get().nodes).map(([id, n]) => [id, { ...n, childrenIds: undefined, error: undefined }]));
+    set({ nodes, expanded: {}, loading: {} });
+    persist(get);
+  },
+
+  reconnectAll: async () => {
+    get().disconnectAll();
+    await Promise.all(get().rootIds.map((id) => get().refresh(id)));
   },
 
   openTab: (node) => {

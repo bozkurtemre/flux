@@ -8,8 +8,18 @@ import { taskLabel, visibleTask } from "@/lib/progress";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
-  const { setShowSettings, setShowSearch } = useApp();
+  const { setShowSettings, setShowSearch, refreshAll, disconnectAll, reconnectAll } = useApp();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [connections, setConnections] = useState<{ x: number; y: number } | null>(null);
+
+  // Flux keeps no connection open, so these are about what the window knows: re-read what is
+  // on screen, forget it, or forget it and fetch it again.
+  const connectionItems: MenuItem[] = [
+    { label: "Reconnect all connections", onClick: () => void reconnectAll() },
+    { label: "Disconnect all connections", onClick: () => disconnectAll() },
+    { separator: true },
+    { label: "Refresh all connections", onClick: () => void refreshAll() },
+  ];
 
   // each row opens the settings page it names; the theme lives on the appearance page
   const items: MenuItem[] = [
@@ -27,10 +37,18 @@ export function TitleBar() {
         <span className="text-[13px]">Flux</span>
         <ChevronDown size={12} style={{ color: "var(--text-dim)" }} />
       </button>
-      <button className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] hover:bg-[var(--bg-hover)]" style={{ color: "var(--text-dim)" }}>
+      <button
+        className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] hover:bg-[var(--bg-hover)]"
+        style={{ color: "var(--text-dim)" }}
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setConnections({ x: r.left, y: r.bottom + 4 });
+        }}
+      >
         Connections
         <ChevronDown size={12} />
       </button>
+      {connections && <ContextMenu x={connections.x} y={connections.y} items={connectionItems} onClose={() => setConnections(null)} />}
       <div className="ml-auto flex items-center gap-0.5">
         <button className={icon} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
           <Wrench size={15} style={{ color: "var(--text-dim)" }} />
