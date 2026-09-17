@@ -42,6 +42,15 @@ export function remember(recents: Recent[], folder: string, at: number, limit = 
   return [{ folder, openedAt: at }, ...recents.filter((r) => r.folder !== folder)].slice(0, limit);
 }
 
+/**
+ * Which connections a workspace shows. An empty selection means all of them: a folder opened
+ * for the first time should show what the window already showed, not an empty tree.
+ */
+export function chosenConnections<T extends { id: string }>(connections: T[], chosen: string[]): T[] {
+  if (!chosen.length) return connections;
+  return connections.filter((c) => chosen.includes(c.id));
+}
+
 export async function readWorkspaceFile<T>(folder: string, file: string): Promise<T | null> {
   const text = await invoke<string | null>("workspace_read", { folder, file });
   if (!text) return null;

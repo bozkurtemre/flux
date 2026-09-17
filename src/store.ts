@@ -5,6 +5,7 @@ import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/end
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type SavedTab } from "@/lib/session";
 import {
+  chosenConnections,
   readWorkspaceFile,
   remember,
   writeWorkspaceFile,
@@ -100,6 +101,8 @@ interface State {
   /** The folder open as a workspace, if any. Its settings live in `.flux` inside it. */
   workspaceFolder?: string;
   recentWorkspaces: Recent[];
+  /** Which connections the open workspace shows. Empty means all of them. */
+  workspaceConnections: string[];
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -148,6 +151,7 @@ interface State {
   setShowAbout: (v: boolean) => void;
   openWorkspace: (folder: string) => Promise<void>;
   closeWorkspace: () => Promise<void>;
+  setWorkspaceConnections: (ids: string[]) => Promise<void>;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -191,6 +195,7 @@ export const useApp = create<State>((set, get) => ({
   showUpdateNotes: false,
   showAbout: false,
   recentWorkspaces: [],
+  workspaceConnections: [],
 
   init: async () => {
     let settings = DEFAULTS;
@@ -223,7 +228,7 @@ export const useApp = create<State>((set, get) => ({
     setRequestTimeout(settings.advanced.requestTimeoutSeconds);
     const nodes: Record<string, TreeNode> = {};
     const rootIds: string[] = [];
-    for (const c of settings.connections) {
+    for (const c of chosenConnections(settings.connections, get().workspaceConnections)) {
       const id = `c:${c.id}`;
       nodes[id] = { id, kind: "connection", label: c.name || c.graylogUrl, sub: c.graylogUrl, connId: c.id, depth: 0 };
       rootIds.push(id);
@@ -437,7 +442,15 @@ export const useApp = create<State>((set, get) => ({
       projects: [],
     };
     const recentWorkspaces = remember(get().recentWorkspaces, folder, Math.floor(Date.now() / 1000));
-    set({ workspaceFolder: folder, recentWorkspaces, tabs: [], activeTab: undefined, expanded: {}, terminals: [] });
+    set({
+      workspaceFolder: folder,
+      workspaceConnections: file.connectionIds,
+      recentWorkspaces,
+      tabs: [],
+      activeTab: undefined,
+      expanded: {},
+      terminals: [],
+    });
     await writeWorkspaceFile(folder, WORKSPACE_FILE, { ...file, format: WORKSPACE_FORMAT });
     await get().setSettings({ ...get().settings, projects: file.projects });
     await restoreWorkspace(set, get);
@@ -445,11 +458,25 @@ export const useApp = create<State>((set, get) => ({
   },
 
   closeWorkspace: async () => {
-    set({ workspaceFolder: undefined, tabs: [], activeTab: undefined, expanded: {}, terminals: [] });
+    set({ workspaceFolder: undefined, workspaceConnections: [], tabs: [], activeTab: undefined, expanded: {}, terminals: [] });
     const settings = await loadSettings().catch(() => get().settings);
     await get().setSettings(settings);
     await restoreWorkspace(set, get);
     await saveGlobals(get);
+  },
+
+  setWorkspaceConnections: async (ids) => {
+    const folder = get().workspaceFolder;
+    if (!folder) return;
+    set({ workspaceConnections: ids });
+    const file = (await readWorkspaceFile<WorkspaceFile>(folder, WORKSPACE_FILE)) ?? {
+      format: WORKSPACE_FORMAT,
+      connectionIds: [],
+      projects: [],
+    };
+    await writeWorkspaceFile(folder, WORKSPACE_FILE, { ...file, connectionIds: ids });
+    // rebuilding the roots is what puts a connection into the tree or takes it out
+    await get().setSettings(get().settings);
   },
 
   indexAll: async () => {
@@ -832,7 +859,7 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     inspectorSize: w.inspectorSize ?? 30,
   });
 
-  const live = new Set(get().settings.connections.map((c) => c.id));
+  const live = new Set(chosenConnections(get().settings.connections, get().workspaceConnections).map((c) => c.id));
   const tabs: Tab[] = w.tabs
     .filter((t) => live.has(t.connId))
     .map((t) => ({ ...t, running: false, fields: [], columns: t.columns?.length ? t.columns : DEFAULT_COLUMNS }));

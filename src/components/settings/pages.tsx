@@ -6,6 +6,7 @@ import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connecti
 import * as cache from "@/lib/cache";
 import { clientFor, useApp } from "@/store";
 import { failureReason } from "@/lib/progress";
+import { shortPath, workspaceName } from "@/lib/workspaces";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
@@ -670,6 +671,81 @@ export function UpdatesPage({ s, patch }: { s: Settings; patch: Patch }) {
               {u.lastCheckedAt ? new Date(u.lastCheckedAt).toLocaleString() : "never"}
             </span>
             <Button onClick={() => void checkForUpdates(true)}>Check now</Button>
+          </div>
+        </Row>
+      </Section>
+    </>
+  );
+}
+
+/** The folder that is open, and what it takes with it. */
+export function WorkspacePage({ s }: { s: Settings; patch: Patch }) {
+  const { workspaceFolder, workspaceConnections, setWorkspaceConnections, closeWorkspace } = useApp();
+  const [home, setHome] = useState("");
+
+  useEffect(() => {
+    void import("@tauri-apps/api/path").then(({ homeDir }) => homeDir().then((h) => setHome(h.replace(/\/$/, ""))));
+  }, []);
+
+  if (!workspaceFolder) {
+    return (
+      <Section title="Workspace">
+        <Row hint="Open one from the Flux menu in the title bar. A workspace keeps its stream grouping and its layout in a .flux directory inside the folder.">
+          <span className="text-[12px]" style={{ color: "var(--text-dim)" }}>
+            No workspace is open.
+          </span>
+        </Row>
+      </Section>
+    );
+  }
+
+  const toggle = (id: string) => {
+    // an empty list means every connection, so the first tick has to start from all of them
+    const current = workspaceConnections.length ? workspaceConnections : s.connections.map((c) => c.id);
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    void setWorkspaceConnections(next.length === s.connections.length ? [] : next);
+  };
+
+  return (
+    <>
+      <Section title="Workspace">
+        <Row label="Folder">
+          <div className="flex items-center gap-2">
+            <span className="font-[var(--font-mono)] text-[12px]" style={{ color: "var(--text-dim)" }}>
+              {shortPath(workspaceFolder, home)}
+            </span>
+            <Button onClick={() => void closeWorkspace()}>Close</Button>
+          </div>
+        </Row>
+        <Row label="Name" hint="The folder's own name, as the title bar shows it.">
+          <span className="text-[12px]" style={{ color: "var(--text-dim)" }}>
+            {workspaceName(workspaceFolder)}
+          </span>
+        </Row>
+      </Section>
+
+      <Section title="Connections in this workspace">
+        <Row hint="Tick the ones this folder works with. With none ticked it shows them all. Connections themselves stay out of the folder: they hold access tokens.">
+          <div className="max-h-[220px] w-full overflow-auto rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+            {s.connections.length ? (
+              s.connections.map((c) => (
+                <label key={c.id} className="flex h-[24px] items-center gap-2 px-2 text-[12px]">
+                  <input
+                    type="checkbox"
+                    checked={!workspaceConnections.length || workspaceConnections.includes(c.id)}
+                    onChange={() => toggle(c.id)}
+                  />
+                  <span className="truncate">{c.name || c.graylogUrl}</span>
+                  <span className="ml-auto shrink-0 truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
+                    {c.graylogUrl}
+                  </span>
+                </label>
+              ))
+            ) : (
+              <div className="px-2 py-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+                No connections
+              </div>
+            )}
           </div>
         </Row>
       </Section>

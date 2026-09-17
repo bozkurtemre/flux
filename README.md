@@ -36,8 +36,10 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 - **Value inspector** — the selected row as syntax-coloured JSON, with strings that
   contain JSON expanded into real structure.
 - **Search Everywhere** — `⇧⇧` to jump to any stream, endpoint, project or action.
-- **Settings** — eight pages covering appearance, the tree, the console, the grid, the
-  terminal, connections, the keymap and advanced network options.
+- **Workspaces** — open a folder and Flux keeps that folder's stream grouping and layout
+  in a `.flux` directory inside it, the way an IDE keeps `.idea`.
+- **Settings** — ten pages covering appearance, the tree, the console, the grid, the
+  terminal, updates, the workspace, connections, the keymap and advanced network options.
 
 ## Install
 

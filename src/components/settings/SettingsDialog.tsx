@@ -11,6 +11,7 @@ import {
   ResultsPage,
   TerminalPage,
   UpdatesPage,
+  WorkspacePage,
   type Patch,
 } from "./pages";
 import { applyAppearance, DEFAULTS, type Settings } from "@/lib/settings";
@@ -71,6 +72,12 @@ const PAGES: PageDef[] = [
     label: "Updates",
     keywords: "update upgrade version release check startup",
     render: ({ s, patch }) => <UpdatesPage s={s} patch={patch} />,
+  },
+  {
+    id: "workspace",
+    label: "Workspace",
+    keywords: "workspace folder project directory flux connections",
+    render: ({ s, patch }) => <WorkspacePage s={s} patch={patch} />,
   },
   {
     id: "connections",

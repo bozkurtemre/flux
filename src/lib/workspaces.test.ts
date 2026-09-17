@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { remember, shortPath, workspaceName } from "./workspaces";
+import { chosenConnections, remember, shortPath, workspaceName } from "./workspaces";
 
 describe("naming a workspace", () => {
   it("is called after the folder it is", () => {
@@ -33,5 +33,18 @@ describe("the recent list", () => {
   it("stays short enough to be a menu", () => {
     const many = Array.from({ length: 12 }, (_, i) => ({ folder: `/f${i}`, openedAt: i }));
     expect(remember(many, "/new", 99, 8)).toHaveLength(8);
+  });
+});
+
+describe("which connections a workspace shows", () => {
+  const all = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+  it("shows all of them when none were chosen", () => {
+    expect(chosenConnections(all, [])).toBe(all);
+  });
+
+  it("shows the chosen ones, and forgets a choice that no longer exists", () => {
+    expect(chosenConnections(all, ["c", "a"])).toEqual([{ id: "a" }, { id: "c" }]);
+    expect(chosenConnections(all, ["gone"])).toEqual([]);
   });
 });
