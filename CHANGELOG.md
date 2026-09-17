@@ -3,6 +3,27 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.6.0
+
+### Added
+
+- **Workspaces.** Open a folder from the Flux menu in the title bar and that folder keeps its
+  own stream grouping and its own layout — tabs, tree, terminals — in a `.flux` directory
+  inside it, the way an IDE keeps `.idea`. Recent folders are listed there too. Access tokens
+  deliberately stay out of it; **Settings › Workspace** says which connections a folder works
+  with. See [docs/adr/0006](docs/adr/0006-a-workspace-is-a-folder-but-not-a-keyring.md).
+- **The Connections menu** in the title bar: reconnect, disconnect or refresh every
+  connection at once.
+- **Tabs and grid columns can be dragged** into a different order, carried by the pointer,
+  and the order is remembered with the rest of the layout.
+- Updates are looked for **once an hour** while the window is open, and a dismissed one waits
+  as **Update available** in the status bar rather than being forgotten until the next start.
+
+### Fixed
+
+- The tab strip's scrollbar took its space out of the tabs, and left the strip scrollable up
+  and down, which it has nothing to show in.
+
 ## 0.5.0
 
 ### Changed
