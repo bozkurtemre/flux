@@ -116,7 +116,7 @@ jobs:
 
           # the S3 API, because the token is scoped to this one bucket and the REST API that
           # wrangler speaks will not take such a token (it answers 403 on every object)
-          put() { node scripts/r2-put.mjs "$BUCKET" "$1" "$2" "$3" "$4"; }
+          put() { node scripts/r2.mjs put "$BUCKET" "$1" "$2" "$3" "$4"; }
 
           put "updates/$version/Flux.app.tar.gz" "$macos/Flux.app.tar.gz" application/gzip "$immutable"
           put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
@@ -126,6 +126,10 @@ jobs:
             "https://updates.emreb.dev/updates/$version/Flux.app.tar.gz" 10 > latest.json
           cat latest.json
           put "updates/latest.json" latest.json application/json "public, max-age=60"
+
+          # the version on offer and the one before it; anything older has nothing left to
+          # serve, since the manifest only ever names one of them
+          node scripts/r2.mjs prune "$BUCKET" 2
 
       - uses: softprops/action-gh-release@v2
         with:
