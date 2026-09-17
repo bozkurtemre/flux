@@ -171,15 +171,19 @@ export function Num({
 export function Swatches({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const colors = ["#3574f0", "#5fad65", "#d9a343", "#e55765", "#c77dbb", "#2aacb8", "#8f8f8f"];
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex items-center gap-1">
       {colors.map((c) => (
         <button
           key={c}
           onClick={() => onChange(c)}
           title={c}
-          className="size-[18px] rounded-full"
-          style={{ background: c, outline: value === c ? "2px solid var(--text)" : "none", outlineOffset: 2 }}
-        />
+          // the ring is a border rather than an outline, so it sits inside the button's own
+          // box and the next swatch cannot paint over it
+          className="grid size-[26px] shrink-0 place-items-center rounded-full"
+          style={{ border: `2px solid ${value === c ? "var(--text)" : "transparent"}` }}
+        >
+          <span className="size-[18px] rounded-full" style={{ background: c }} />
+        </button>
       ))}
       <input
         type="color"
