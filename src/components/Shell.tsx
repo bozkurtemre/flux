@@ -8,24 +8,17 @@ import { taskLabel, visibleTask } from "@/lib/progress";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
-  const { setShowSettings, setShowSearch, settings, setSettings } = useApp();
+  const { setShowSettings, setShowSearch } = useApp();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
-  // the same two choices the IDE keeps behind this button, and the tick shows where you are
-  const theme = settings.appearance.theme;
+  // each row opens the settings page it names; the theme lives on the appearance page
   const items: MenuItem[] = [
-    {
-      label: "Theme",
-      items: (["dark", "light", "system"] as const).map((value) => ({
-        label: value === "dark" ? "Dark" : value === "light" ? "Light" : "Sync with System",
-        checked: theme === value,
-        onClick: () => void setSettings({ ...settings, appearance: { ...settings.appearance, theme: value } }),
-      })),
-    },
-    { label: "Keymap", items: [{ label: "Open Keymap…", onClick: () => setShowSettings(true, "keymap") }] },
+    { label: "Theme", onClick: () => setShowSettings(true, "appearance") },
+    { label: "Keymap", onClick: () => setShowSettings(true, "keymap") },
     { separator: true },
     { label: "Settings…", shortcut: "⌘,", onClick: () => setShowSettings(true) },
   ];
+
   const icon = "flex size-7 items-center justify-center rounded-md hover:bg-[var(--bg-hover)]";
   return (
     <div data-tauri-drag-region className="flex h-9 shrink-0 items-center gap-2 pr-1 pl-[78px]">
