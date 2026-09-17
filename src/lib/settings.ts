@@ -1,6 +1,6 @@
 // Persisted app settings. Tokens live in the Tauri store on this machine only.
 import { load, type Store } from "@tauri-apps/plugin-store";
-import { deleteSecret, getSecret, setSecret } from "./secrets";
+import { deleteSecret, getSecret } from "./secrets";
 
 export interface Connection {
   id: string;
@@ -225,33 +225,26 @@ export async function loadSettings(): Promise<Settings> {
     needsWrite = !!legacy;
   }
 
+  // Tokens used to be kept by the credential store. Any still there are read back into the
+  // file and removed from it, so an existing install keeps working and stops being asked
+  // about the Keychain on every launch. See docs/adr/0005.
   for (const c of merged.connections) {
-    if (c.graylogToken) {
-      // an older file still holds the token in the clear; move it out and forget it
-      await setSecret(c.id, c.graylogToken).catch(() => {});
-      c.secretStorage = "keychain";
-      needsWrite = true;
-      continue;
-    }
-    c.graylogToken = (await getSecret(c.id).catch(() => null)) ?? "";
-    if (c.graylogToken) c.secretStorage = "keychain";
+    if (c.graylogToken) continue;
+    const stored = await getSecret(c.id).catch(() => null);
+    if (!stored) continue;
+    c.graylogToken = stored;
+    c.secretStorage = undefined;
+    await deleteSecret(c.id).catch(() => {});
+    needsWrite = true;
   }
 
   if (needsWrite) await saveSettings(merged);
   return merged;
 }
 
-/**
- * Tokens go to the credential store and the files get a pointer. The secret is written
- * first: the other order would leave it on disk when the credential store refuses.
- */
+/** The token is written with the rest of the connection, in the clear. See docs/adr/0005. */
 export async function saveSettings(settings: Settings): Promise<void> {
-  const connections = await Promise.all(
-    settings.connections.map(async (c) => {
-      if (c.graylogToken) await setSecret(c.id, c.graylogToken);
-      return { ...c, graylogToken: "", secretStorage: c.graylogToken ? ("keychain" as const) : undefined };
-    }),
-  );
+  const connections = settings.connections.map((c) => ({ ...c, secretStorage: undefined }));
   const { connections: _c, projects, ..._preferences } = settings;
   const preferences = { ..._preferences } as Omit<Settings, "connections" | "projects">;
   void _c;

@@ -1,10 +1,7 @@
-// Access tokens are kept by the OS credential store, addressed by connection id.
-// The settings file records only that a secret exists, never the secret itself.
+// What is left of the credential store. Tokens are kept in `connections.json` now; these two
+// exist so an install that predates that can have its keychain entry read back and removed.
+// See docs/adr/0005.
 import { invoke } from "@tauri-apps/api/core";
-
-export async function setSecret(account: string, secret: string): Promise<void> {
-  await invoke("secret_set", { account, secret });
-}
 
 export async function getSecret(account: string): Promise<string | null> {
   return invoke<string | null>("secret_get", { account });

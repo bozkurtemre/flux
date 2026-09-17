@@ -115,15 +115,17 @@ src-tauri/src/cache.rs    reads and writes the OS cache directory
 
 Three tiers, split by what happens if a file is lost.
 
-| What                                | Where               | Lost if deleted                                           |
-| ----------------------------------- | ------------------- | --------------------------------------------------------- |
-| `connections.json`, `projects.json` | config directory    | what you set up; worth sharing with a team                |
-| `preferences.json`                  | config directory    | how you like the window                                   |
-| `workspace.json`                    | config directory    | which tabs and branches were open; belongs to one machine |
-| Access tokens                       | OS credential store | nothing Flux can recover; re-enter them                   |
-| Introspection cache                 | OS cache directory  | nothing, it is re-read from Graylog                       |
+| What                | Where              | Lost if deleted                                           |
+| ------------------- | ------------------ | --------------------------------------------------------- |
+| `connections.json`  | config directory   | your Graylog URLs **and their access tokens**             |
+| `projects.json`     | config directory   | how streams are grouped; worth sharing with a team        |
+| `preferences.json`  | config directory   | how you like the window                                   |
+| `workspace.json`    | config directory   | which tabs and branches were open; belongs to one machine |
+| Introspection cache | OS cache directory | nothing, it is re-read from Graylog                       |
 
-No file carries a secret, and the cache directory is safe to delete at any time.
+`connections.json` holds access tokens in the clear, so treat it as a credential: do not
+commit it, share it or put it anywhere that syncs. The cache directory is safe to delete at
+any time.
 
 ## Development
 
@@ -138,10 +140,11 @@ a commit that passes locally passes on the server. `git commit --no-verify` skip
 when you genuinely need to, but CI will still fail.
 
 `make dev-signed` is `make dev` with the binary signed between the link and the run, by a
-cargo runner (`scripts/sign-and-run.sh`). macOS binds a Keychain "Always Allow" to the
-signature of whoever asked, and cargo re-links a differently-hashed ad-hoc binary on every
-build, so an unsigned dev run is a new caller each time and asks for the token again. The
-identity comes from `SIGN_ID`, which defaults to the codesigning identity on this machine.
+cargo runner (`scripts/sign-and-run.sh`), so every build presents the same identity to macOS
+rather than a fresh one. It was written when the Graylog token lived in the Keychain and
+each rebuild was a new caller asking for it; with the token in `connections.json` that
+prompt is gone, and what is left is the general benefit of a stable identity. The identity
+comes from `SIGN_ID`, which defaults to the codesigning identity on this machine.
 
 CI runs the full gate on every pull request and bundles the app on pushes to `main`. That
 bundle is a test artifact and stays unsigned.
@@ -172,9 +175,15 @@ Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
 
-Access tokens go to the operating system's credential store, the macOS Keychain on this
-platform, addressed by connection id. Flux's own settings file records only that a secret
-exists, never the secret. Deleting a connection deletes its token with it.
+Access tokens are stored in `connections.json`, in the clear, next to the URL they belong
+to. They were kept in the operating system's credential store until 0.5.0; the Keychain
+asks permission of whichever binary is asking, and an unsigned update is a different binary
+every time, so the choice was between a prompt after every update and a file you have to
+look after. The reasoning is in [docs/adr/0005](docs/adr/0005-the-token-lives-in-the-settings-file.md).
+
+Protect that file the way you would an SSH key: it is readable by anything that can read
+your home directory, and it travels with any backup or sync that includes the config
+directory. Deleting a connection removes its token from the file.
 
 Tokens are sent nowhere except the Graylog instance they belong to. Flux only ever reads:
 it issues searches and aggregations, and never writes to Graylog.

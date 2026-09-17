@@ -1,6 +1,6 @@
-//! Access tokens live in the OS credential store, never in Flux's own files.
-//! macOS Keychain, Windows Credential Manager or the Linux Secret Service, whichever
-//! the platform provides. Flux keeps only the pointer that a secret exists.
+//! What is left of the OS credential store. Access tokens are kept in `connections.json`
+//! now (see docs/adr/0005); these two commands exist so an install that predates that can
+//! have its entry read back into the file and removed from the store. Nothing writes here.
 
 const SERVICE: &str = "Flux";
 
@@ -9,13 +9,6 @@ fn entry(account: &str) -> Result<keyring::Entry, String> {
         return Err("empty account".into());
     }
     keyring::Entry::new(SERVICE, account).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn secret_set(account: String, secret: String) -> Result<(), String> {
-    entry(&account)?
-        .set_password(&secret)
-        .map_err(|e| e.to_string())
 }
 
 /// `None` when nothing was stored, which is not an error: a fresh install has no secrets.

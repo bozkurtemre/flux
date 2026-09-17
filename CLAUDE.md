@@ -21,9 +21,11 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 
 - **Graylog calls go through `@tauri-apps/plugin-http`**, so they are issued from Rust.
   Do not reach for `window.fetch`; it would reintroduce CORS.
-- **Secrets never touch Flux's own files.** Tokens live in the OS credential store via
-  `src-tauri/src/secrets.rs`; `settings.json` holds a `secretStorage` pointer. If you add
-  another credential, follow the same route.
+- **The Graylog token is kept in `connections.json`, in the clear.** A deliberate reversal
+  of the credential store, recorded in `docs/adr/0005`, made because the Keychain asked for
+  permission after every update. `connections.json` is therefore a credential file: it must
+  not be committed, shared or synced, whatever the "worth sharing with a team" line in the
+  README once implied about it.
 - **Graylog is the only backend.** There is no database and no background service. If
   something needs to persist, decide which tier it belongs to first: authored settings go
   to the config directory, one file per concern, derived data to the cache directory, and
