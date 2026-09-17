@@ -34,12 +34,21 @@ function changelogSection() {
 function commitsSincePreviousTag() {
   // stderr is silenced: the first release has no previous tag and says so loudly
   const git = (...args) => execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  // the tag exists when the release workflow runs; before that, previewing from HEAD is
+  // exactly what someone about to cut the release wants
+  let head;
+  try {
+    git("rev-parse", "--verify", `v${version}`);
+    head = `v${version}`;
+  } catch {
+    head = "HEAD";
+  }
   let range;
   try {
-    const previous = git("describe", "--tags", "--abbrev=0", `v${version}^`);
-    range = `${previous}..v${version}`;
+    const previous = git("describe", "--tags", "--abbrev=0", `${head}^`);
+    range = `${previous}..${head}`;
   } catch {
-    range = `v${version}`;
+    range = head;
   }
   const log = git("log", "--no-merges", "--format=%s", range);
   return log
