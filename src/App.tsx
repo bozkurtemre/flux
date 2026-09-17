@@ -50,6 +50,12 @@ export default function App() {
         e.preventDefault();
         void runQuery(activeTab);
       }
+      // Cmd+R re-runs the query rather than reloading the window, which is what the webview
+      // would otherwise do with it.
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "r" && activeTab) {
+        e.preventDefault();
+        void runQuery(activeTab);
+      }
       // Escape closes the inspector, but only when it is the frontmost thing open
       if (e.key === "Escape" && !typing) {
         const app = useApp.getState();
