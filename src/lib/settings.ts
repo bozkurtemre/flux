@@ -81,6 +81,13 @@ export interface TerminalSettings {
   onQuit: OnQuit;
 }
 
+export interface UpdateSettings {
+  checkOnStartup: boolean;
+  /** The version the balloon was dismissed for; the next one asks again. */
+  dismissedVersion?: string;
+  lastCheckedAt?: string;
+}
+
 export interface Settings {
   connections: Connection[];
   projects: Project[];
@@ -89,6 +96,7 @@ export interface Settings {
   editor: EditorSettings;
   results: ResultSettings;
   terminal: TerminalSettings;
+  updates: UpdateSettings;
   advanced: AdvancedSettings;
 }
 
@@ -120,6 +128,7 @@ export const DEFAULTS: Settings = {
     autoRefreshSeconds: 0,
   },
   terminal: { useTmux: true, tmuxPath: "", shell: "", onQuit: "ask" },
+  updates: { checkOnStartup: true },
   advanced: { requestTimeoutSeconds: 60, fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
@@ -141,6 +150,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
         : {}),
     },
     terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}) },
+    updates: { ...DEFAULTS.updates, ...(s.updates ?? {}) },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },
   };
 }

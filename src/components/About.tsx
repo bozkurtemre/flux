@@ -5,6 +5,7 @@ import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Logo } from "./Logo";
+import { useApp } from "@/store";
 
 const AUTHOR = "https://github.com/bozkurtemre";
 
@@ -14,8 +15,8 @@ export function About() {
   const [tauri, setTauri] = useState("");
 
   useEffect(() => {
-    const pending = listen("about", () => setOpen(true));
-    return () => void pending.then((stop) => stop());
+    const pending = [listen("about", () => setOpen(true)), listen("check-updates", () => void useApp.getState().checkForUpdates(true))];
+    return () => void Promise.all(pending).then((stops) => stops.forEach((stop) => stop()));
   }, []);
 
   useEffect(() => {

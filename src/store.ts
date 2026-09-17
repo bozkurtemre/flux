@@ -6,6 +6,7 @@ import * as cache from "@/lib/cache";
 import { loadWorkspace, saveWorkspace, type SavedTab } from "@/lib/workspace";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
+import { offerable, soakRemaining, type Manifest } from "@/lib/updates";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
 
 export type NodeKind = "connection" | "project" | "stream" | "endpoint";
@@ -81,6 +82,9 @@ interface State {
   tmuxMissing: boolean;
   tasks: Task[];
   notices: Notice[];
+  /** The version waiting to be installed, once it has soaked. */
+  update?: Manifest;
+  showUpdateNotes: boolean;
   searchTab?: string;
   /** Set when settings could not be written, e.g. the credential store refused. */
   settingsError?: string;
@@ -115,8 +119,12 @@ interface State {
   startTask: (title: string, cancel?: () => void) => string;
   setTaskProgress: (id: string, progress: number) => void;
   endTask: (id: string) => void;
-  notify: (kind: NoticeKind, title: string, message: string) => void;
+  notify: (kind: NoticeKind, title: string, message: string, actions?: Notice["actions"]) => void;
   dismissNotice: (id: string) => void;
+  checkForUpdates: (manual: boolean) => Promise<void>;
+  installUpdate: () => Promise<void>;
+  dismissUpdate: () => void;
+  setShowUpdateNotes: (v: boolean) => void;
   indexAll: () => Promise<void>;
   revealNode: (id: string) => void;
   move: (delta: number) => void;
@@ -156,6 +164,7 @@ export const useApp = create<State>((set, get) => ({
   tmuxMissing: false,
   tasks: [],
   notices: [],
+  showUpdateNotes: false,
 
   init: async () => {
     let settings = DEFAULTS;
@@ -278,7 +287,7 @@ export const useApp = create<State>((set, get) => ({
   setTaskProgress: (id, progress) => set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, progress } : t)) }),
   endTask: (id) => set({ tasks: get().tasks.filter((t) => t.id !== id) }),
 
-  notify: (kind, title, message) => set({ notices: withNotice(get().notices, { id: crypto.randomUUID(), kind, title, message }) }),
+  notify: (kind, title, message, actions) => set({ notices: withNotice(get().notices, { id: crypto.randomUUID(), kind, title, message, actions }) }),
   dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
 
   setProjectFolders: (projectFolders) => {
@@ -298,6 +307,76 @@ export const useApp = create<State>((set, get) => ({
    * Fill the node map for every connection, project and stream without expanding anything,
    * so Search Everywhere can match endpoints the tree has not shown yet.
    */
+  /**
+   * The plugin decides whether a version is newer; the manifest decides whether it may be
+   * offered yet. A check nobody asked for stays quiet, whatever it finds.
+   */
+  checkForUpdates: async (manual) => {
+    const task = manual ? get().startTask("Checking for updates") : undefined;
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const found = await check();
+      const now = new Date();
+      void get().setSettings({ ...get().settings, updates: { ...get().settings.updates, lastCheckedAt: now.toISOString() } });
+      if (!found) {
+        if (manual) get().notify("info", "Flux is up to date", "You are on the newest version.");
+        return;
+      }
+      const manifest = await manifestFor(found.version, found.date, found.body);
+      if (!offerable(manifest, now)) {
+        if (manual) {
+          const left = soakRemaining(manifest, now);
+          get().notify("info", `Flux ${manifest.version} was just published`, `It will be offered in ${left} minute${left === 1 ? "" : "s"}.`);
+        }
+        return;
+      }
+      set({ update: manifest });
+      if (get().settings.updates.dismissedVersion === manifest.version && !manual) return;
+      get().notify("info", `Flux ${manifest.version} is available`, manifest.notes?.split("\n")[0] ?? "A new version is ready to install.", [
+        { label: "Update and Restart", run: () => void get().installUpdate() },
+        { label: "Release notes", run: () => set({ showUpdateNotes: true }) },
+        { label: "Later", run: () => get().dismissUpdate() },
+      ]);
+    } catch (e) {
+      if (manual) get().notify("error", "Could not check for updates", failureReason(e));
+    } finally {
+      if (task) get().endTask(task);
+    }
+  },
+
+  installUpdate: async () => {
+    const version = get().update?.version ?? "";
+    const task = get().startTask(`Downloading Flux ${version}`);
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const found = await check();
+      if (!found) throw new Error("the update is no longer being offered");
+      let taken = 0;
+      let total = 0;
+      await found.downloadAndInstall((event) => {
+        if (event.event === "Started") total = event.data.contentLength ?? 0;
+        if (event.event === "Progress") {
+          taken += event.data.chunkLength;
+          if (total) get().setTaskProgress(task, taken / total);
+        }
+      });
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      await relaunch();
+    } catch (e) {
+      get().notify("error", `Could not install Flux ${version}`, failureReason(e));
+    } finally {
+      get().endTask(task);
+    }
+  },
+
+  setShowUpdateNotes: (showUpdateNotes) => set({ showUpdateNotes }),
+
+  dismissUpdate: () => {
+    const version = get().update?.version;
+    if (version) void get().setSettings({ ...get().settings, updates: { ...get().settings.updates, dismissedVersion: version } });
+    set({ update: undefined });
+  },
+
   indexAll: async () => {
     if (get().indexing) return;
     set({ indexing: true });
@@ -571,6 +650,23 @@ const savedShape = (t: Tab): SavedTab => ({
   columns: t.columns,
   layout: t.layout,
 });
+
+/**
+ * The updater plugin reports the version, the date and the notes; the soak is ours and lives
+ * in the same file, so the file is read once more for it. A manifest that cannot be read
+ * falls back to what the plugin said, which the soak's own default then covers.
+ */
+async function manifestFor(version: string, date: string | undefined, notes: string | undefined): Promise<Manifest> {
+  try {
+    const { fetch: httpFetch } = await import("@tauri-apps/plugin-http");
+    const res = await httpFetch("https://updates.emreb.dev/updates/latest.json", { headers: { "Cache-Control": "no-cache" } });
+    const json = (await res.json()) as Manifest;
+    if (json.version === version) return json;
+  } catch {
+    /* the plugin already told us enough to offer it */
+  }
+  return { version, pub_date: date, notes };
+}
 
 function persist(get: Getter) {
   const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, projectFolders } = get();

@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 import { Button } from "./controls";
-import { AdvancedPage, AppearancePage, ConnectionsPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, TerminalPage, type Patch } from "./pages";
+import {
+  AdvancedPage,
+  AppearancePage,
+  ConnectionsPage,
+  EditorPage,
+  KeymapPage,
+  ProjectsPage,
+  ResultsPage,
+  TerminalPage,
+  UpdatesPage,
+  type Patch,
+} from "./pages";
 import { applyAppearance, DEFAULTS, type Settings } from "@/lib/settings";
 import { useApp } from "@/store";
 
@@ -54,6 +65,12 @@ const PAGES: PageDef[] = [
     label: "Projects",
     keywords: "project group stream github repository service",
     render: ({ s, patch }) => <ProjectsPage s={s} patch={patch} />,
+  },
+  {
+    id: "updates",
+    label: "Updates",
+    keywords: "update upgrade version release check startup",
+    render: ({ s, patch }) => <UpdatesPage s={s} patch={patch} />,
   },
   {
     id: "connections",

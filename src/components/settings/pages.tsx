@@ -647,3 +647,32 @@ export function TerminalPage({ s, patch }: { s: Settings; patch: Patch }) {
     </>
   );
 }
+
+/** What the app does about new versions, and when it last looked. */
+export function UpdatesPage({ s, patch }: { s: Settings; patch: Patch }) {
+  const u = s.updates;
+  const { checkForUpdates } = useApp();
+  const set = <K extends keyof typeof u>(k: K, v: (typeof u)[K]) => patch((x) => ({ ...x, updates: { ...x.updates, [k]: v } }));
+  return (
+    <>
+      <Section title="Updates">
+        <Row>
+          <Checkbox
+            checked={u.checkOnStartup}
+            onChange={(v) => set("checkOnStartup", v)}
+            label="Check for updates when Flux starts"
+            hint="One request to updates.emreb.dev. Nothing is sent about you or your data sources."
+          />
+        </Row>
+        <Row label="Last checked" hint="A version is offered once it has been published for a few minutes.">
+          <div className="flex items-center gap-2">
+            <span className="text-[12px]" style={{ color: "var(--text-dim)" }}>
+              {u.lastCheckedAt ? new Date(u.lastCheckedAt).toLocaleString() : "never"}
+            </span>
+            <Button onClick={() => void checkForUpdates(true)}>Check now</Button>
+          </div>
+        </Row>
+      </Section>
+    </>
+  );
+}

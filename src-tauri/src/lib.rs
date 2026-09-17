@@ -12,6 +12,8 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(terminal::Terminals::default())
         .invoke_handler(tauri::generate_handler![
             cache::cache_read,
@@ -35,16 +37,27 @@ pub fn run() {
                 app_menu.remove_at(0)?;
                 let about =
                     MenuItem::with_id(app.handle(), "about", "About Flux", true, None::<&str>)?;
-                app_menu.insert(&about, 0)?;
+                let updates = MenuItem::with_id(
+                    app.handle(),
+                    "check-updates",
+                    "Check for Updates…",
+                    true,
+                    None::<&str>,
+                )?;
+                app_menu.insert_items(&[&about, &updates], 0)?;
             }
             app.set_menu(menu)?;
             Ok(())
         })
         .on_menu_event(|app, event| {
-            if event.id() == "about" {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.emit("about", ());
-                }
+            // both items are answered in the webview, which is where the windows are drawn
+            let name = match event.id().0.as_str() {
+                "about" => "about",
+                "check-updates" => "check-updates",
+                _ => return,
+            };
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.emit(name, ());
             }
         })
         .run(tauri::generate_context!())

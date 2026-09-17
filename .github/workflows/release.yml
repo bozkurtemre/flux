@@ -24,6 +24,8 @@ jobs:
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -54,6 +56,8 @@ jobs:
       # So the variables are only exported once there is something in them.
       - name: Build
         env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
@@ -74,16 +78,58 @@ jobs:
             export APPLE_PASSWORD="$NOTARY_PASSWORD"
             export APPLE_TEAM_ID="$NOTARY_TEAM"
           fi
-          pnpm tauri build --bundles app,dmg
+          # both architectures in one package, and the updater artifacts alongside it. The
+          # flag is passed here rather than committed, so a local build needs no signing key.
+          pnpm tauri build --target universal-apple-darwin --bundles app,dmg \
+            --config '{"bundle":{"createUpdaterArtifacts":true}}'
 
       - name: Package the .app
         run: |
-          cd src-tauri/target/release/bundle/macos
+          cd src-tauri/target/universal-apple-darwin/release/bundle/macos
           ditto -c -k --keepParent Flux.app "Flux-${GITHUB_REF_NAME}-macos.zip"
+
+      - name: Write the release notes
+        run: |
+          node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > release-notes.md
+          cat release-notes.md
+
+      # The updater reads from R2, not from this repository, which is private (ADR 0003).
+      # This runs before the GitHub release so a tag never ends up announced but unpublished.
+      # Packages go up first and the manifest last, so the soak starts from the moment the
+      # files are actually downloadable (ADR 0004).
+      - name: Publish the update
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BUCKET: flux-releases
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "R2 credentials are missing; the update cannot be published" >&2
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          macos=src-tauri/target/universal-apple-darwin/release/bundle/macos
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          immutable="public, max-age=31536000, immutable"
+
+          put() {
+            pnpm dlx wrangler@4 r2 object put "$BUCKET/$1" --file="$2" --remote \
+              --content-type="$3" --cache-control="$4"
+          }
+
+          put "updates/$version/Flux.app.tar.gz" "$macos/Flux.app.tar.gz" application/gzip "$immutable"
+          put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
+
+          RELEASE_NOTES="$(cat release-notes.md)" node scripts/manifest.mjs \
+            "$version" "$macos/Flux.app.tar.gz.sig" \
+            "https://updates.emreb.dev/updates/$version/Flux.app.tar.gz" 10 > latest.json
+          cat latest.json
+          put "updates/latest.json" latest.json application/json "public, max-age=60"
 
       - uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body_path: release-notes.md
           files: |
-            src-tauri/target/release/bundle/macos/Flux-*-macos.zip
-            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/macos/Flux-*-macos.zip
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg

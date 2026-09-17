@@ -29,5 +29,11 @@
     "active": true,
     "targets": "all",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://updates.emreb.dev/updates/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1NTgwOTlCQTk1NTBBQjUKUldTMUNsV3Btd2xZTlVPR0VadXVWcWxLMTVYZmU5dkNPU0pwbzg1dWNia0s0ampkaXpyN1FPdy8K"
+    }
   }
 }

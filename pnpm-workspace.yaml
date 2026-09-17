@@ -1,0 +1,5 @@
+# esbuild links a native binary in its install script, and vite, vitest and the React plugin
+# all reach for it. Recorded here rather than answered interactively, so a fresh clone and CI
+# install without a prompt.
+allowBuilds:
+  esbuild: true

@@ -29,10 +29,10 @@ function Balloon({ notice }: { notice: Notice }) {
 
   // what went wrong waits to be read; what merely happened does not
   useEffect(() => {
-    if (notice.kind !== "info") return;
+    if (notice.kind !== "info" || notice.actions?.length) return;
     const t = setTimeout(() => dismissNotice(notice.id), 8000);
     return () => clearTimeout(t);
-  }, [notice.id, notice.kind, dismissNotice]);
+  }, [notice.id, notice.kind, notice.actions?.length, dismissNotice]);
 
   return (
     <div
@@ -54,6 +54,27 @@ function Balloon({ notice }: { notice: Notice }) {
           <p className="mt-0.5 text-[13px] break-words" style={{ color: "var(--text-dim)" }}>
             {notice.message}
           </p>
+          {notice.actions?.length ? (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {notice.actions.map((action, i) => (
+                <button
+                  key={action.label}
+                  onClick={() => {
+                    action.run();
+                    dismissNotice(notice.id);
+                  }}
+                  className="h-[24px] rounded-[4px] px-2.5 text-[12px]"
+                  style={
+                    i === 0
+                      ? { background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }
+                      : { background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }
+                  }
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

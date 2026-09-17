@@ -19,6 +19,8 @@ export interface Notice {
   kind: NoticeKind;
   title: string;
   message: string;
+  /** Offered alongside the message, as an update does. */
+  actions?: { label: string; run: () => void }[];
 }
 
 /** The status bar has room for one: the newest, which is the one you just caused. */

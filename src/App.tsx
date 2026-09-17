@@ -9,6 +9,7 @@ import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
 import { About } from "@/components/About";
+import { UpdateNotes } from "@/components/UpdateNotes";
 import { Tooltips } from "@/components/Tooltip";
 import { ConfirmDialog } from "@/components/ContextMenu";
 import { Checkbox } from "@/components/settings/controls";
@@ -22,7 +23,9 @@ export default function App() {
   const [remember, setRemember] = useState(false);
 
   useEffect(() => {
-    void init();
+    void init().then(() => {
+      if (useApp.getState().settings.updates.checkOnStartup) void useApp.getState().checkForUpdates(false);
+    });
   }, [init]);
 
   // Cmd+Enter runs the active console, the JetBrains shortcut.
@@ -173,6 +176,7 @@ export default function App() {
       </div>
       <StatusBar />
       <About />
+      <UpdateNotes />
       <Notifications />
       <Tooltips />
       {showSearch && <SearchEverywhere />}
