@@ -100,9 +100,12 @@ bump:
 		echo "tagged v$$v — push it with: make publish"
 
 .PHONY: publish
-publish: ## Push the branch and its tags, which triggers the release workflow
+publish: ## Push the branch and this version's tag, which triggers the release workflow
 	git push origin HEAD
-	git push origin --tags
+	# only this version's tag: `--tags` would push every tag still sitting in the clone,
+	# and a tag that was deleted on purpose comes back as a new one — which builds and
+	# republishes that old version, manifest and all
+	@v=$$(node scripts/version.mjs) && git push origin "v$$v"
 
 .PHONY: clean
 clean: ## Remove build output
