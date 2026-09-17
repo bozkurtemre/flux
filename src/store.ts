@@ -16,6 +16,7 @@ import {
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
+import { parseQuery } from "@/lib/query";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -34,6 +35,14 @@ export interface TreeNode {
   endpoint?: EndpointRow;
   depth: number;
   childrenIds?: string[]; // undefined = not loaded yet
+  error?: string;
+}
+
+/** What one `| group by <field>` clause came back with. */
+export interface GroupResult {
+  field: string;
+  rows: { value: string; count: number }[];
+  /** A field Graylog cannot group by fails on its own, without taking the query with it. */
   error?: string;
 }
 
@@ -56,8 +65,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
-  /** Counts per value of this field, instead of the messages themselves. */
-  groupBy?: string;
+  /** One table per `| group by` clause in the query, above the messages. */
+  groups?: GroupResult[];
   /** How far into the result the page on screen starts. */
   offset?: number;
   /** Everything the query matches, not just the page on screen. */
@@ -705,37 +714,36 @@ export const useApp = create<State>((set, get) => ({
     const task = get().startTask(`Running the query on ${tab.streamLabel}`, () => stop.abort());
     const started = performance.now();
     try {
-      const clauses = [tab.query.trim()].filter(Boolean);
+      const parsed = parseQuery(tab.query);
+      const clauses = [parsed.search].filter(Boolean);
       if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
       const to = new Date();
       const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
       const timerange = absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
       const client = clientFor(conn);
-      // Grouping asks a different question of Graylog: one row per value of the field, with
-      // how many messages carried it. It answers in the same shape the grid already draws.
-      if (tab.groupBy) {
-        const r = await client.aggregate({
-          query,
-          streams: tab.streamIds,
-          timerange,
-          groupBy: [{ field: tab.groupBy, limit: settings.results.pageSize }],
-          metrics: [{ function: "count" }],
-          signal: stop.signal,
-        });
-        const columns = [tab.groupBy, "count"];
-        patchTab(id, {
-          page: { columns, rows: r.rows.map((row) => ({ [columns[0]]: row[0], count: Number(row[row.length - 1]) })) },
-          total: r.rows.length,
-          took: Math.round(performance.now() - started),
-          running: false,
-          selectedRow: undefined,
-        });
-        return;
-      }
+      // Each clause is its own aggregation: one row per value of the field with how many
+      // messages carried it. They run beside the messages rather than instead of them, so
+      // the grid below keeps showing what matched.
+      const grouped = parsed.groupBy.map(async (field): Promise<GroupResult> => {
+        try {
+          const r = await client.aggregate({
+            query,
+            streams: tab.streamIds,
+            timerange,
+            groupBy: [{ field, limit: settings.results.pageSize }],
+            metrics: [{ function: "count" }],
+            signal: stop.signal,
+          });
+          return { field, rows: r.rows.map((row) => ({ value: String(row[0] ?? ""), count: Number(row[row.length - 1]) || 0 })) };
+        } catch (e) {
+          if (stop.signal.aborted) throw e;
+          return { field, rows: [], error: failureReason(e) };
+        }
+      });
 
       // the total rides alongside rather than after: it is a second search, and waiting for
       // it would put its time on every page turn
-      const [page, total] = await Promise.all([
+      const [page, total, groups] = await Promise.all([
         client.messages({
           query,
           streams: tab.streamIds,
@@ -746,9 +754,11 @@ export const useApp = create<State>((set, get) => ({
           signal: stop.signal,
         }),
         client.count({ query, streams: tab.streamIds, timerange, signal: stop.signal }),
+        Promise.all(grouped),
       ]);
       patchTab(id, {
         page,
+        groups: groups.length ? groups : undefined,
         total: total || undefined, // a count that failed comes back as zero, and zero rows say so themselves
         took: Math.round(performance.now() - started),
         running: false,
@@ -757,7 +767,7 @@ export const useApp = create<State>((set, get) => ({
     } catch (e) {
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {
-        patchTab(id, { error: errorText(e), running: false, page: undefined });
+        patchTab(id, { error: errorText(e), running: false, page: undefined, groups: undefined });
         get().notify("error", conn.name || conn.graylogUrl, `Query failed: ${failureReason(e)}`);
       }
     } finally {

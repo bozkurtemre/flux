@@ -26,6 +26,12 @@ A route a service answers on, derived from the logs of a stream rather than decl
 anywhere.
 _Avoid_: route, path, URL
 
+**Group by clause**:
+A `| group by <field>` written after the query in a console. Each one asks Graylog for a
+count per value of that field and gets its own table above the messages; the messages
+themselves are unaffected by it.
+_Avoid_: aggregation, facet, pivot
+
 **Project folder**:
 The checkout of a project's repository on this machine, where that project's terminal opens.
 It belongs to the machine, not to the project: two people looking at the same project have

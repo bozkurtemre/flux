@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { MoreVertical, X } from "lucide-react";
 import { QueryConsole } from "./QueryConsole";
+import { GroupTables } from "./GroupTables";
 import { ResultGrid } from "./ResultGrid";
 import { ValueInspector } from "./ValueInspector";
 import { EndpointIcon, StreamIcon } from "./icons";
@@ -139,7 +140,12 @@ function TabBody({ tab }: { tab: Tab }) {
       <Panel minSize="25">
         <Group orientation="horizontal">
           <Panel minSize="30">
-            <ResultGrid tab={tab} />
+            <div className="flex h-full min-h-0 flex-col">
+              <GroupTables tab={tab} />
+              <div className="min-h-0 flex-1">
+                <ResultGrid tab={tab} />
+              </div>
+            </div>
           </Panel>
           <Separator className="w-px" style={{ display: showInspector ? undefined : "none" }} />
           <Panel

@@ -55,8 +55,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
   const columns = useMemo(() => {
-    // a grouped result has its own two columns; the layout belongs to the messages
-    if (tab.layout?.length && !tab.groupBy) return tab.layout;
+    if (tab.layout?.length) return tab.layout;
     const cols = tab.page?.columns ?? [];
     const preferred = [
       "timestamp",
@@ -76,7 +75,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
       const ib = preferred.indexOf(b);
       return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
     });
-  }, [tab.page, tab.layout, tab.groupBy]);
+  }, [tab.page, tab.layout]);
 
   const rows = useMemo(() => {
     const r = tab.page?.rows ?? [];
