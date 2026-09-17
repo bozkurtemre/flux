@@ -3,6 +3,22 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.4.0
+
+### Added
+
+- **Find in the value inspector.** `⌘F` while a row is open searches the JSON on screen:
+  every match highlighted, the current one scrolled into view, `↩` and `⇧↩` to walk them.
+- The three dots in the title bar open **Theme** and **Keymap**, each going to the settings
+  page it names.
+- **Settings** in the application menu, under Check for Updates…, with `⌘,` beside it.
+- `Esc` closes the value inspector, when nothing else is in front of it.
+
+### Fixed
+
+- The value inspector came back at its default width after being closed, rather than the
+  width it was left at.
+
 ## 0.3.0
 
 ### Added
