@@ -11,13 +11,21 @@ import { useApp } from "@/store";
 import "@xterm/xterm/css/xterm.css";
 
 export function TerminalPanel() {
-  const { terminals, activeTerminal, settings, setActiveTerminal, closeTerminal, openTerminal } = useApp();
+  const { terminals, activeTerminal, settings, setActiveTerminal, closeTerminal, openTerminal, setShowSettings } = useApp();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
 
-  const projectItems: MenuItem[] = settings.projects.map((p) => ({
-    label: p.name || "Untitled project",
-    onClick: () => openTerminal(p.id, p.name || "Untitled project"),
-  }));
+  // a terminal belongs to a project, so with none defined the menu would open empty; it
+  // offers the one thing to do instead
+  const projectItems: MenuItem[] = settings.projects.length
+    ? settings.projects.map((p) => ({
+        label: p.name || "Untitled project",
+        onClick: () => openTerminal(p.id, p.name || "Untitled project"),
+      }))
+    : [
+        { label: "No projects yet", disabled: true },
+        { separator: true },
+        { label: "Add project…", onClick: () => setShowSettings(true, "projects") },
+      ];
 
   return (
     <div className="island flex h-full flex-col overflow-hidden">
