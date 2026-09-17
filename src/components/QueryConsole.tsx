@@ -100,6 +100,31 @@ export function QueryConsole({ tab }: { tab: Tab }) {
             </option>
           ))}
         </select>
+        <select
+          value={tab.groupBy ?? ""}
+          onChange={(e) => {
+            // a grouped result is a different shape, so the page it was on no longer means
+            // anything
+            patchTab(tab.id, { groupBy: e.target.value || undefined, offset: 0 });
+            void runQuery(tab.id);
+          }}
+          data-tip="Count messages per value of a field"
+          className="h-6 max-w-[180px] rounded px-1 text-[12px] outline-none"
+          style={{
+            background: "var(--bg-raised)",
+            color: tab.groupBy ? "var(--accent)" : "var(--text)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <option value="">No grouping</option>
+          {/* the field survives a restart, the field list is fetched again, so it is kept
+              in the list either way */}
+          {[...new Set([...tab.fields.map((f) => f.name), ...(tab.groupBy ? [tab.groupBy] : [])])].sort().map((name) => (
+            <option key={name} value={name}>
+              Group by {name}
+            </option>
+          ))}
+        </select>
         {tab.endpoint && (
           <span className="ml-1 truncate rounded px-1.5 py-0.5 text-[11px]" style={{ background: "var(--bg-raised)", color: "var(--text-dim)" }}>
             scoped to {tab.endpoint.method} {tab.endpoint.endpoint}

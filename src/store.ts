@@ -56,6 +56,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** Counts per value of this field, instead of the messages themselves. */
+  groupBy?: string;
   /** How far into the result the page on screen starts. */
   offset?: number;
   /** Everything the query matches, not just the page on screen. */
@@ -709,6 +711,28 @@ export const useApp = create<State>((set, get) => ({
       const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
       const timerange = absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
       const client = clientFor(conn);
+      // Grouping asks a different question of Graylog: one row per value of the field, with
+      // how many messages carried it. It answers in the same shape the grid already draws.
+      if (tab.groupBy) {
+        const r = await client.aggregate({
+          query,
+          streams: tab.streamIds,
+          timerange,
+          groupBy: [{ field: tab.groupBy, limit: settings.results.pageSize }],
+          metrics: [{ function: "count" }],
+          signal: stop.signal,
+        });
+        const columns = [tab.groupBy, "count"];
+        patchTab(id, {
+          page: { columns, rows: r.rows.map((row) => ({ [columns[0]]: row[0], count: Number(row[row.length - 1]) })) },
+          total: r.rows.length,
+          took: Math.round(performance.now() - started),
+          running: false,
+          selectedRow: undefined,
+        });
+        return;
+      }
+
       // the total rides alongside rather than after: it is a second search, and waiting for
       // it would put its time on every page turn
       const [page, total] = await Promise.all([
