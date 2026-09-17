@@ -251,10 +251,10 @@ export function StatusBar() {
           <button
             onClick={() => setMcpOpen((v) => !v)}
             data-tip={settings.mcp.enabled ? "MCP server is running" : "MCP server is off"}
-            className="flex size-5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+            className="flex size-[22px] items-center justify-center rounded hover:bg-[var(--bg-hover)]"
             style={{ color: settings.mcp.enabled ? "var(--green)" : "var(--text-muted)" }}
           >
-            <McpIcon size={13} />
+            <McpIcon size={16} />
           </button>
           {mcpOpen && <McpPopover onClose={() => setMcpOpen(false)} />}
         </span>
