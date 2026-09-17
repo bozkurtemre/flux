@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { EditorView, keymap } from "@codemirror/view";
+import { Decoration, EditorView, MatchDecorator, ViewPlugin, keymap, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 // Graylog speaks Lucene; the solr mode covers the same field:value, range and boolean syntax
@@ -21,6 +21,26 @@ const highlight = HighlightStyle.define([
   { tag: tags.comment, color: "var(--syn-comment)", fontStyle: "italic" },
 ]);
 
+// `group by` is ours rather than Lucene's, so the solr mode does not know it; it is marked
+// on top of whatever that mode made of those words.
+const clause = new MatchDecorator({
+  regexp: /(?:^|\|)\s*group\s*by\b/gi,
+  decoration: Decoration.mark({ class: "cm-clause" }),
+});
+
+const clauses = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet;
+    constructor(view: EditorView) {
+      this.decorations = clause.createDeco(view);
+    }
+    update(u: ViewUpdate) {
+      this.decorations = clause.updateDeco(u, this.decorations);
+    }
+  },
+  { decorations: (v) => v.decorations },
+);
+
 export function QueryConsole({ tab }: { tab: Tab }) {
   const { patchTab, runQuery, settings } = useApp();
   const e = settings.editor;
@@ -35,12 +55,15 @@ export function QueryConsole({ tab }: { tab: Tab }) {
         options: [
           ...fieldNames.map((name) => ({ label: name, type: "property", apply: `${name}:` })),
           ...["AND", "OR", "NOT", "TO", "_exists_"].map((label) => ({ label, type: "keyword" })),
+          { label: "group by", type: "keyword", apply: "group by " },
         ],
       };
     };
     return [
       StreamLanguage.define(solr),
       syntaxHighlighting(highlight),
+      clauses,
+      EditorView.theme({ ".cm-clause": { color: "var(--accent)", fontWeight: "600" } }),
       autocompletion({ override: [complete], activateOnTyping: e.autocomplete }),
       EditorView.theme({ "&": { fontSize: `${e.fontSize}px` } }),
       ...(e.wrap ? [EditorView.lineWrapping] : []),

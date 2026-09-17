@@ -3,8 +3,9 @@
 // table of its own, which is why they are a list rather than one field.
 //
 // The split is on the whole clause, not on the pipe, so a pipe inside the query — a regex
-// alternation, a value that contains one — is left where it was.
-const CLAUSE = /\|\s*group\s*by\s+/i;
+// alternation, a value that contains one — is left where it was. At the start of the line
+// there is nothing to separate the clause from, so the pipe is optional there.
+const CLAUSE = /(?:^|\|)\s*group\s*by\s+/i;
 
 export interface ParsedQuery {
   /** What Graylog is asked for the messages. */

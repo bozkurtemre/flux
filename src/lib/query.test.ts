@@ -34,4 +34,13 @@ describe("reading the console line", () => {
   it("groups everything when the line is nothing but a clause", () => {
     expect(parseQuery("| group by source")).toEqual({ search: "", groupBy: ["source"] });
   });
+
+  it("does not ask for a pipe with nothing in front of it", () => {
+    expect(parseQuery("group by source")).toEqual({ search: "", groupBy: ["source"] });
+    expect(parseQuery("group by source | group by route").groupBy).toEqual(["source", "route"]);
+  });
+
+  it("leaves a query that merely begins with the word alone", () => {
+    expect(parseQuery("group:by AND level:ERROR")).toEqual({ search: "group:by AND level:ERROR", groupBy: [] });
+  });
 });
