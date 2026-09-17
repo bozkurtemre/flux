@@ -8,6 +8,8 @@
 
 Navigate your logs by structure instead of retyping filters.
 
+<img src="assets/screenshot.png" width="900" alt="Flux with two connections in the explorer" />
+
 </div>
 
 ---
