@@ -3,6 +3,32 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.7.0
+
+### Added
+
+- **An MCP server, for as long as the window is open.** Claude Code in a terminal can list
+  the connections, list a connection's streams, search and count logs, and read a stream's
+  endpoints, through the same connections the window uses. It is off until **Settings › MCP
+  Server** turns it on, listens on the loopback interface only and takes a bearer token; the
+  status bar carries the protocol's mark and hands out the client configuration.
+- **Group by, written in the query.** `level:ERROR | group by httpStatusCode | group by route`
+  searches as before and asks a separate aggregation per clause; each one gets its own table
+  above the messages, in the grid's own shape, sortable by either column and collapsible down
+  to its header. The leading pipe is optional when a clause is the whole line.
+- **The arrow keys walk the result rows** once a row has been clicked, instead of moving the
+  tree behind the grid.
+- **Refresh** beside Execute in the console toolbar, on **⌘R**, which the window would
+  otherwise take as a page reload.
+- The terminal's **+** offers to add a project when none is defined yet, rather than opening
+  an empty menu.
+
+### Changed
+
+- Every shortcut is shown in Flux's own tooltip rather than the browser's grey box.
+- A grouped table, the accent swatches and the tab close button follow the rest of the
+  chrome: the same header, gutter, striping and ring.
+
 ## 0.6.0
 
 ### Added
