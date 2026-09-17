@@ -6,6 +6,10 @@ export interface MenuItem {
   separator?: boolean;
   disabled?: boolean;
   danger?: boolean;
+  /** Drawn with a tick, for a row that names the current choice. */
+  checked?: boolean;
+  /** A row that opens another menu beside it rather than doing something. */
+  items?: MenuItem[];
   onClick?: () => void;
 }
 
@@ -14,6 +18,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
   const [cursor, setCursor] = useState(-1);
+  const [openSub, setOpenSub] = useState<{ index: number; left: number; top: number } | null>(null);
   const selectable = items.map((it, i) => (it.separator || it.disabled ? -1 : i)).filter((i) => i >= 0);
 
   // keep the menu inside the window
@@ -73,27 +78,38 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
         ) : (
           <div
             key={i}
-            onMouseEnter={() => !it.disabled && setCursor(i)}
-            onClick={() => {
+            onMouseEnter={(e) => {
               if (it.disabled) return;
+              setCursor(i);
+              const row = e.currentTarget.getBoundingClientRect();
+              const panel = ref.current?.getBoundingClientRect();
+              setOpenSub(it.items ? { index: i, left: (panel?.right ?? row.right) - 4, top: row.top - 5 } : null);
+            }}
+            onClick={() => {
+              if (it.disabled || it.items) return;
               it.onClick?.();
               onClose();
             }}
-            className="mx-1 flex h-[24px] items-center gap-6 rounded px-2.5 text-[13px]"
+            className="mx-1 flex h-[24px] items-center gap-2 rounded px-2.5 text-[13px]"
             style={{
               background: cursor === i ? "var(--sel-focus)" : undefined,
               color: it.disabled ? "var(--text-muted)" : cursor === i ? "#fff" : it.danger ? "var(--red)" : "var(--text)",
               opacity: it.disabled ? 0.55 : 1,
             }}
           >
+            <span className="w-3 shrink-0 text-[11px]">{it.checked ? "✓" : ""}</span>
             <span className="truncate">{it.label}</span>
             {it.shortcut && (
               <span className="ml-auto shrink-0 text-[11px]" style={{ color: cursor === i ? "#cfe0ff" : "var(--text-muted)" }}>
                 {it.shortcut}
               </span>
             )}
+            {it.items && <span className="ml-auto shrink-0 text-[10px]">▸</span>}
           </div>
         ),
+      )}
+      {openSub && items[openSub.index]?.items && (
+        <ContextMenu x={openSub.left} y={openSub.top} items={items[openSub.index].items!} onClose={onClose} />
       )}
     </div>
   );

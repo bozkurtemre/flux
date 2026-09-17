@@ -2,12 +2,30 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { Bug, ChevronDown, GitBranch, MoreHorizontal, MoreVertical, PanelRight, Search, Server, SquareTerminal, Wrench } from "lucide-react";
 import { Logo } from "./Logo";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import { taskLabel, visibleTask } from "@/lib/progress";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
-  const { setShowSettings, setShowSearch } = useApp();
+  const { setShowSettings, setShowSearch, settings, setSettings } = useApp();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // the same two choices the IDE keeps behind this button, and the tick shows where you are
+  const theme = settings.appearance.theme;
+  const items: MenuItem[] = [
+    {
+      label: "Theme",
+      items: (["dark", "light", "system"] as const).map((value) => ({
+        label: value === "dark" ? "Dark" : value === "light" ? "Light" : "Sync with System",
+        checked: theme === value,
+        onClick: () => void setSettings({ ...settings, appearance: { ...settings.appearance, theme: value } }),
+      })),
+    },
+    { label: "Keymap", items: [{ label: "Open Keymap…", onClick: () => setShowSettings(true, "keymap") }] },
+    { separator: true },
+    { label: "Settings…", shortcut: "⌘,", onClick: () => setShowSettings(true) },
+  ];
   const icon = "flex size-7 items-center justify-center rounded-md hover:bg-[var(--bg-hover)]";
   return (
     <div data-tauri-drag-region className="flex h-9 shrink-0 items-center gap-2 pr-1 pl-[78px]">
@@ -30,9 +48,17 @@ export function TitleBar() {
         <button className={icon} data-tip="Search Everywhere" data-tip-key="⇧⇧" onClick={() => setShowSearch(true)}>
           <Search size={15} style={{ color: "var(--text-dim)" }} />
         </button>
-        <button className={icon}>
+        <button
+          className={icon}
+          data-tip="More"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setMenu({ x: r.right - 220, y: r.bottom + 4 });
+          }}
+        >
           <MoreVertical size={15} style={{ color: "var(--text-dim)" }} />
         </button>
+        {menu && <ContextMenu x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />}
       </div>
     </div>
   );
