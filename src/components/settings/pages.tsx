@@ -302,7 +302,7 @@ export function KeymapPage() {
   );
 }
 
-export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Patch; selectId?: string }) {
+export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Patch; selectId?: string }) {
   const [selected, setSelected] = useState(
     Math.max(
       0,
@@ -335,7 +335,7 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
           ))}
           {!list.length && (
             <p className="px-2 py-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
-              No data sources
+              No connections
             </p>
           )}
         </div>
@@ -421,7 +421,7 @@ export function DataSourcesPage({ s, patch, selectId }: { s: Settings; patch: Pa
           </>
         ) : (
           <p className="pt-4 text-[13px]" style={{ color: "var(--text-muted)" }}>
-            Add a data source with ＋, or import one from a .env file.
+            Add a connection with ＋, or import one from a .env file.
           </p>
         )}
       </div>
@@ -474,7 +474,7 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
   if (!s.connections.length) {
     return (
       <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
-        Add a data source first; projects group the streams it exposes.
+        Add a connection first; projects group the streams it exposes.
       </p>
     );
   }
@@ -482,7 +482,7 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
   return (
     <>
       <Section title="Projects">
-        <Row label="Data source">
+        <Row label="Connection">
           <Select
             value={connId}
             onChange={(v) => {

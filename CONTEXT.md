@@ -8,9 +8,8 @@ of it is built.
 ## Language
 
 **Connection**:
-One Graylog instance Flux reads, with the credentials to reach it. The window labels these
-"data sources" to match the IDE it is modelled on; in code and in writing they are
-connections.
+One Graylog instance Flux reads, with the credentials to reach it. The window called these
+"data sources" while it borrowed the word from the IDE it is modelled on; nothing does now.
 _Avoid_: data source, server, instance
 
 **Project**:

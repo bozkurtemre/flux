@@ -141,7 +141,7 @@ export function StatusBar() {
       )}
       <span className="ml-auto flex items-center gap-3">
         <BackgroundTask />
-        <span>{settings.connections.length} data sources</span>
+        <span>{settings.connections.length} connections</span>
         {version && <span data-tip="Flux version">v{version}</span>}
       </span>
     </div>

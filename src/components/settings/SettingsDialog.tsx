@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 import { Button } from "./controls";
-import { AdvancedPage, AppearancePage, DataSourcesPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, TerminalPage, type Patch } from "./pages";
+import { AdvancedPage, AppearancePage, ConnectionsPage, EditorPage, KeymapPage, ProjectsPage, ResultsPage, TerminalPage, type Patch } from "./pages";
 import { applyAppearance, DEFAULTS, type Settings } from "@/lib/settings";
 import { useApp } from "@/store";
 
@@ -56,10 +56,10 @@ const PAGES: PageDef[] = [
     render: ({ s, patch }) => <ProjectsPage s={s} patch={patch} />,
   },
   {
-    id: "datasources",
-    label: "Data Sources",
+    id: "connections",
+    label: "Connections",
     keywords: "connection graylog token url env import credential keychain",
-    render: ({ s, patch, connId }) => <DataSourcesPage s={s} patch={patch} selectId={connId} />,
+    render: ({ s, patch, connId }) => <ConnectionsPage s={s} patch={patch} selectId={connId} />,
   },
   {
     id: "advanced",

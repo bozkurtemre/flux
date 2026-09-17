@@ -12,7 +12,7 @@ export interface Connection {
    */
   graylogToken: string;
   secretStorage?: "keychain";
-  /** The result grid's columns, in order, as this data source was last left. */
+  /** The result grid's columns, in order, as this connection was last left. */
   columns?: string[];
 }
 
@@ -253,7 +253,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
   ]);
 }
 
-/** Called when a data source is deleted, so its token does not outlive it. */
+/** Called when a connection is deleted, so its token does not outlive it. */
 export async function forgetSecrets(removed: Connection[]): Promise<void> {
   await Promise.all(removed.map((c) => deleteSecret(c.id).catch(() => {})));
 }

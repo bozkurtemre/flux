@@ -104,12 +104,12 @@ function Welcome() {
         </div>
       ) : (
         <button
-          onClick={() => setShowSettings(true, "datasources")}
+          onClick={() => setShowSettings(true, "connections")}
           className="mt-2 flex h-[76px] w-[140px] flex-col items-center justify-center gap-2 rounded-lg text-[12px]"
           style={{ background: "var(--bg-tool)", border: "1px solid var(--accent)", color: "var(--text-dim)" }}
         >
           <span style={{ color: "var(--accent)" }}>＋</span>
-          Data Source
+          Connection
         </button>
       )}
     </div>

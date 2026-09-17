@@ -442,7 +442,7 @@ export const useApp = create<State>((set, get) => ({
   },
 
   /**
-   * A column layout is a property of the data source, not of the tab you happened to set it
+   * A column layout is a property of the connection, not of the tab you happened to set it
    * up in: every tab opened on that connection from now on starts arranged this way.
    */
   setColumns: (tabId, layout) => {

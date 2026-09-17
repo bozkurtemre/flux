@@ -34,7 +34,7 @@ describe("what the balloons show", () => {
 
 describe("what a failure says", () => {
   it("reads whatever was thrown, including the plain strings Tauri rejects with", () => {
-    // the bug this guards: a balloon with a data source name and an empty line under it
+    // the bug this guards: a balloon with a connection name and an empty line under it
     expect(errorText("error sending request for url (https://graylog/api/streams)")).toContain("error sending request");
     expect(errorText(new Error("401 /api/streams: token"))).toBe("401 /api/streams: token");
     expect(errorText(new Error(" "))).toBe("No reason given.");

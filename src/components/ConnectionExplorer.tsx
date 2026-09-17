@@ -68,7 +68,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
       { label: "New Query Console", disabled: true },
       { label: "Refresh", shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
       { separator: true },
-      { label: "Properties…", shortcut: "F4", onClick: () => app.setShowSettings(true, "datasources", node.connId) },
+      { label: "Properties…", shortcut: "F4", onClick: () => app.setShowSettings(true, "connections", node.connId) },
       {
         label: "Duplicate",
         onClick: () => {
@@ -87,7 +87,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
         danger: true,
         onClick: () =>
           ask({
-            title: `Delete data source “${node.label}”?`,
+            title: `Delete connection “${node.label}”?`,
             message: "Flux forgets its URL and token. Graylog itself is not touched.",
             run: () => void app.setSettings({ ...app.settings, connections: app.settings.connections.filter((c) => c.id !== node.connId) }),
           }),
@@ -153,7 +153,7 @@ function PanelToolbar() {
   };
   return (
     <div className="flex h-[26px] shrink-0 items-center gap-0.5 px-2">
-      <button className={btn} {...hover} title="New data source" onClick={() => setShowSettings(true)}>
+      <button className={btn} {...hover} title="New connection" onClick={() => setShowSettings(true)}>
         <Plus size={15} style={{ color: "var(--accent)" }} />
       </button>
       <button className={btn} {...hover} title="Find" onClick={() => document.querySelector<HTMLInputElement>("#explorer-filter")?.focus()}>
@@ -209,7 +209,7 @@ function EmptyState() {
     <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
       <ConnectionIcon />
       <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>
-        No data sources yet
+        No connections yet
       </p>
       <button
         onClick={() => setShowSettings(true)}

@@ -70,7 +70,7 @@ export function SearchEverywhere() {
       {
         key: "a:reindex",
         group: "Actions",
-        title: "Refresh all data sources",
+        title: "Refresh all connections",
         score: 0,
         icon: <RefreshCw size={13} style={{ color: "var(--text-dim)" }} />,
         run: () => {
@@ -96,7 +96,7 @@ export function SearchEverywhere() {
       if (score == null) return;
       out.push({
         key: n.id,
-        group: n.kind === "project" ? "Projects" : n.kind === "stream" ? "Streams" : n.kind === "endpoint" ? "Endpoints" : "Data sources",
+        group: n.kind === "project" ? "Projects" : n.kind === "stream" ? "Streams" : n.kind === "endpoint" ? "Endpoints" : "Connections",
         title: n.label,
         sub: isEndpoint ? streamNameOf(n, nodes) : n.sub,
         trailing: connName(n.connId),
@@ -138,7 +138,7 @@ export function SearchEverywhere() {
       }
     }
 
-    const order = ["Actions", "Data sources", "Projects", "Streams", "Endpoints"];
+    const order = ["Actions", "Connections", "Projects", "Streams", "Endpoints"];
     return out.sort((a, b) => b.score - a.score || order.indexOf(a.group) - order.indexOf(b.group) || a.title.localeCompare(b.title)).slice(0, 60);
   }, [query, tab, nodes, actions, settings.connections, openTab, revealNode]);
 
@@ -226,7 +226,7 @@ export function SearchEverywhere() {
         <div ref={listRef} className="min-h-0 flex-1 overflow-auto py-1">
           {hits.length === 0 ? (
             <p className="px-4 py-6 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>
-              {indexing ? "Indexing data sources…" : query ? `Nothing matches “${query}”` : "Type to search"}
+              {indexing ? "Indexing connections…" : query ? `Nothing matches “${query}”` : "Type to search"}
             </p>
           ) : (
             sections.map((sec) => (
