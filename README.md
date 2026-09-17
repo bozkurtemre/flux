@@ -34,8 +34,8 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 - **Value inspector** — the selected row as syntax-coloured JSON, with strings that
   contain JSON expanded into real structure.
 - **Search Everywhere** — `⇧⇧` to jump to any stream, endpoint, project or action.
-- **Settings** — seven pages covering appearance, the tree, the console, the grid,
-  data sources, the keymap and advanced network options.
+- **Settings** — eight pages covering appearance, the tree, the console, the grid, the
+  terminal, connections, the keymap and advanced network options.
 
 ## Install
 
@@ -53,7 +53,7 @@ make app         # build Flux.app
 
 ## First run
 
-Open **Settings › Data Sources** (`⌘,`) and add a Graylog URL with an access token from
+Open **Settings › Connections** (`⌘,`) and add a Graylog URL with an access token from
 _Graylog profile › Edit tokens_. That is the whole setup; Flux talks to Graylog and
 nothing else.
 
@@ -174,7 +174,7 @@ Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 Access tokens go to the operating system's credential store, the macOS Keychain on this
 platform, addressed by connection id. Flux's own settings file records only that a secret
-exists, never the secret. Deleting a data source deletes its token with it.
+exists, never the secret. Deleting a connection deletes its token with it.
 
 Tokens are sent nowhere except the Graylog instance they belong to. Flux only ever reads:
 it issues searches and aggregations, and never writes to Graylog.
