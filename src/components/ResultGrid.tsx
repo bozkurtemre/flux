@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Rows3, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Route, Rows3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { correlationOf } from "@/lib/correlation";
 import { ClaudeIcon } from "./icons";
 import { pasteIntoTerminal } from "./TerminalPanel";
 import { useApp, type Tab } from "@/store";
@@ -275,7 +276,15 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
   const copy = <ClipboardCopy size={12} />;
   const app = useApp.getState();
   const at = String(row.timestamp ?? "");
+  const follow = correlationOf(row, col);
   return [
+    {
+      label: follow ? `Follow this ${follow.field}` : "Follow this request",
+      icon: <Route size={12} />,
+      disabled: !follow,
+      onClick: () => void app.followRequest(tab.id, row, col),
+    },
+    { separator: true },
     {
       label: col ? `Filter by ${col}` : "Filter by this field",
       icon: <Filter size={12} />,

@@ -37,6 +37,12 @@ minutes" for that console: the window is part of the query, so it can be read, e
 saved like the rest of it.
 _Avoid_: absolute range, time filter, pinned window
 
+**Correlation field**:
+The field that ties one request's lines together across the streams different services write
+to — a trace, request, correlation or order id. Following one opens a console over every
+stream of the connection, oldest first.
+_Avoid_: trace, span, join key
+
 **Message pattern**:
 The template a log line is counted under once the parts that differ every time — ids, times,
 addresses, numbers — are masked. Counted in the rows on screen rather than by Graylog, which
