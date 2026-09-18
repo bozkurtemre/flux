@@ -20,6 +20,22 @@ export function Timeline({ tab }: { tab: Tab }) {
 
   const peak = Math.max(...buckets.map((b) => b.count), 1);
   const total = buckets.reduce((a, b) => a + b.count, 0);
+  // an endpoint's buckets carry what it did as well as how much: the lines are drawn over the
+  // same columns, so one glance answers "when did it get slow" and "when did it start failing"
+  const timed = buckets.some((b) => b.p95 != null);
+  const slowest = Math.max(...buckets.map((b) => b.p95 ?? 0), 1);
+  const worst = Math.max(...buckets.map((b) => (b.count ? ((b.errors ?? 0) / b.count) * 100 : 0)), 1);
+  const path = (of: (b: (typeof buckets)[number]) => number | null, top: number) =>
+    buckets
+      .map((b, i) => {
+        const value = of(b);
+        if (value == null) return null;
+        const x = ((i + 0.5) / buckets.length) * 100;
+        const y = HEIGHT - Math.min(1, value / top) * HEIGHT;
+        return `${x.toFixed(2)},${y.toFixed(1)}`;
+      })
+      .filter(Boolean)
+      .join(" ");
   /** The bucket under a point, clamped: a drag that leaves the chart still means something. */
   const bucketAt = (clientX: number) => {
     const box = host.current?.getBoundingClientRect();
@@ -56,7 +72,12 @@ export function Timeline({ tab }: { tab: Tab }) {
   };
 
   const selected = (i: number) => drag && i >= Math.min(drag.from, drag.to) && i <= Math.max(drag.from, drag.to);
-  const label = (b: { at: string; count: number }) => `${formatTs(new Date(b.at), settings.results.timezone, "time")} · ${b.count.toLocaleString()}`;
+  const label = (b: (typeof buckets)[number]) => {
+    const parts = [formatTs(new Date(b.at), settings.results.timezone, "time"), `${b.count.toLocaleString()} requests`];
+    if (b.p95 != null) parts.push(`p95 ${Math.round(b.p95).toLocaleString()} ms`);
+    if (b.errors) parts.push(`${((b.errors / (b.count || 1)) * 100).toFixed(1)}% failed`);
+    return parts.join(" · ");
+  };
 
   return (
     <div className="shrink-0 px-2 pt-1.5 pb-1" style={{ borderBottom: "1px solid var(--border-soft)" }}>
@@ -69,10 +90,40 @@ export function Timeline({ tab }: { tab: Tab }) {
           {timelineOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         </button>
         <span>{total.toLocaleString()} messages</span>
+        {timed && timelineOpen && (
+          <>
+            <span style={{ color: "var(--amber)" }}>— p95 up to {Math.round(slowest).toLocaleString()} ms</span>
+            <span style={{ color: "var(--red)" }}>— errors up to {worst.toFixed(1)}%</span>
+          </>
+        )}
         {timelineOpen && <span className="ml-auto">drag to narrow the range</span>}
       </div>
       {timelineOpen && (
-        <div ref={host} onMouseDown={onDown} className="flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
+        <div ref={host} onMouseDown={onDown} className="relative flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
+          {timed && (
+            <svg
+              className="pointer-events-none absolute inset-0"
+              width="100%"
+              height={HEIGHT}
+              viewBox={`0 0 100 ${HEIGHT}`}
+              preserveAspectRatio="none"
+            >
+              <polyline
+                points={path((b) => b.p95 ?? null, slowest)}
+                fill="none"
+                stroke="var(--amber)"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+              <polyline
+                points={path((b) => (b.count ? ((b.errors ?? 0) / b.count) * 100 : 0), worst)}
+                fill="none"
+                stroke="var(--red)"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          )}
           {buckets.map((b, i) => (
             <div
               key={b.at}

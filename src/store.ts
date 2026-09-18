@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { Graylog, absolute, bucketFor, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
-import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
+import { endpointsFromGraylog, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type RanQuery, type SavedTab } from "@/lib/session";
 import {
@@ -1052,21 +1052,36 @@ export const useApp = create<State>((set, get) => ({
 
       // the timeline is two round trips of its own, so it is asked for only when it is on
       // screen, and never blocks the rows
-      const timeline = settings.results.timeline
-        ? client
-            .histogram({
-              query,
-              streams: tab.streamIds,
-              timerange,
-              interval: bucketFor(
-                parsed.between
-                  ? Math.max(1, (new Date(parsed.between.to).getTime() - new Date(parsed.between.from).getTime()) / 1000)
-                  : tab.rangeSeconds,
-              ),
-              signal: stop.signal,
-            })
-            .catch(() => [])
-        : Promise.resolve([]);
+      // an endpoint's console draws how it behaved rather than only how much it said: the same
+      // buckets, with the 95th percentile of its duration and the share that failed
+      const map = tab.endpoint ? inferMapping(tab.fields) : null;
+      const interval = bucketFor(
+        parsed.between ? Math.max(1, (new Date(parsed.between.to).getTime() - new Date(parsed.between.from).getTime()) / 1000) : tab.rangeSeconds,
+      );
+      const timeline =
+        settings.results.timeline && map?.duration
+          ? client
+              .latency({
+                query,
+                errorQuery: map.status ? `${query} AND ${map.status}:>=500` : undefined,
+                durationField: map.duration,
+                streams: tab.streamIds,
+                timerange,
+                interval,
+                signal: stop.signal,
+              })
+              .catch(() => [])
+          : settings.results.timeline
+            ? client
+                .histogram({
+                  query,
+                  streams: tab.streamIds,
+                  timerange,
+                  interval,
+                  signal: stop.signal,
+                })
+                .catch(() => [])
+            : Promise.resolve([]);
 
       // the total rides alongside rather than after: it is a second search, and waiting for
       // it would put its time on every page turn
@@ -1100,7 +1115,7 @@ export const useApp = create<State>((set, get) => ({
       });
       patchTab(id, {
         page,
-        histogram: histogram.length ? histogram : undefined,
+        histogram: histogram.length ? histogram.map((b) => (b.p95 != null && map?.durationIsSeconds ? { ...b, p95: b.p95 * 1000 } : b)) : undefined,
         tail: undefined,
         groups: groups.length ? groups : undefined,
         total: total || undefined, // a count that failed comes back as zero, and zero rows say so themselves

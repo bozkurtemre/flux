@@ -31,6 +31,9 @@ export interface FieldInfo {
 export interface Bucket {
   at: string;
   count: number;
+  /** For an endpoint: the 95th percentile of its duration, and how many failed. */
+  p95?: number;
+  errors?: number;
 }
 
 export interface MessagePage {
@@ -187,6 +190,77 @@ export class Graylog {
     const rows = run.results.q?.search_types.h?.rows ?? [];
     // the rollup row carries the total under an empty key, and is not a bucket
     return rows.filter((r) => r.source === "leaf" && r.key.length).map((r) => ({ at: r.key[0], count: Number(r.values[0]?.value ?? 0) }));
+  }
+
+  /**
+   * How an endpoint behaved over time: requests, the 95th percentile of its duration, and how
+   * many of them failed, per bucket. Two questions in one search — the views API takes a list
+   * of queries, and the failures are a query of their own — so it is one round trip more than
+   * the timeline, not two.
+   */
+  async latency(o: {
+    query: string;
+    errorQuery?: string;
+    durationField: string;
+    streams: string[];
+    timerange: TimeRange;
+    interval: string;
+    signal?: AbortSignal;
+  }): Promise<Bucket[]> {
+    const filter = o.streams.length ? { filter: { type: "or", filters: o.streams.map((id) => ({ type: "stream", id })) } } : {};
+    const bucket = (id: string, series: unknown[]) => ({
+      id,
+      type: "pivot",
+      rollup: true,
+      row_groups: [{ type: "time", field: "timestamp", interval: { type: "timeunit", timeunit: o.interval } }],
+      series,
+    });
+    const search = {
+      queries: [
+        {
+          id: "all",
+          query: { type: "elasticsearch", query_string: o.query || "*" },
+          timerange: o.timerange,
+          ...filter,
+          search_types: [
+            bucket("p", [
+              { type: "count", id: "count()" },
+              { type: "percentile", field: o.durationField, percentile: 95.0, id: "p95" },
+            ]),
+          ],
+        },
+        ...(o.errorQuery
+          ? [
+              {
+                id: "bad",
+                query: { type: "elasticsearch", query_string: o.errorQuery },
+                timerange: o.timerange,
+                ...filter,
+                search_types: [bucket("e", [{ type: "count", id: "count()" }])],
+              },
+            ]
+          : []),
+      ],
+    };
+    const created = await this.call<{ id: string }>("/api/views/search", { signal: o.signal, method: "POST", body: JSON.stringify(search) });
+    const run = await this.call<{
+      results: Record<
+        string,
+        { search_types: Record<string, { rows?: { key: string[]; source: string; values: { key: string[]; value: number }[] }[] }> }
+      >;
+    }>(`/api/views/search/${created.id}/execute`, { signal: o.signal, method: "POST", body: "{}" });
+
+    const leaves = (query: string, type: string) =>
+      (run.results[query]?.search_types[type]?.rows ?? []).filter((r) => r.source === "leaf" && r.key.length);
+    const value = (row: { values: { key: string[]; value: number }[] }, id: string) => row.values.find((v) => v.key.includes(id))?.value;
+    const errors = new Map(leaves("bad", "e").map((r) => [r.key[0], value(r, "count()") ?? 0]));
+
+    return leaves("all", "p").map((r) => ({
+      at: r.key[0],
+      count: value(r, "count()") ?? 0,
+      p95: value(r, "p95"),
+      errors: errors.get(r.key[0]) ?? 0,
+    }));
   }
 
   /** Total messages matching a query, used for result counts. */
