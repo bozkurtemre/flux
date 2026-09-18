@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldClause, parseQuery, withBetween, withClause, withGroupBy } from "./query";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withoutBetween } from "./query";
 
 describe("reading the console line", () => {
   it("takes the whole line as the query when nothing is grouped", () => {
@@ -129,5 +129,21 @@ describe("asking for patterns", () => {
 
   it("is the whole line when that is all there is", () => {
     expect(parseQuery("patterns")).toEqual({ search: "", groupBy: [], patterns: "" });
+  });
+});
+
+describe("taking the window off again", () => {
+  it("leaves the query and the tables it had", () => {
+    expect(withoutBetween("level:ERROR | group by route | between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z")).toBe(
+      "level:ERROR | group by route",
+    );
+  });
+
+  it("leaves a line that never had one alone", () => {
+    expect(withoutBetween("level:ERROR")).toBe("level:ERROR");
+  });
+
+  it("leaves nothing when the window was all there was", () => {
+    expect(withoutBetween("between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z")).toBe("");
   });
 });

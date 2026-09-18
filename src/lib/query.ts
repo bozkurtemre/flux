@@ -106,6 +106,13 @@ export function withPatterns(line: string, on: boolean, field = ""): string {
   return rebuild(parsed, parsed.search);
 }
 
+/** The line with its window taken off, back to searching the last minutes. */
+export function withoutBetween(line: string): string {
+  const parsed = parseQuery(line);
+  parsed.between = undefined;
+  return rebuild(parsed, parsed.search);
+}
+
 /** The line searching one window, replacing whatever window it named before. */
 export function withBetween(line: string, from: Date, to: Date): string {
   const at = (d: Date) => d.toISOString().replace(/\.\d{3}Z$/, "Z");

@@ -11,13 +11,127 @@ import { solr } from "@codemirror/legacy-modes/mode/solr";
 import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { Download, Play, Radio, RotateCw, Save } from "lucide-react";
+import { CalendarClock, Download, Play, Radio, RotateCw, Save } from "lucide-react";
 import { QUICK_RANGES } from "@/lib/graylog";
 import { exportName, toCsv, toJson } from "@/lib/export";
-import { parseQuery } from "@/lib/query";
+import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
+import { fromInput, toInput } from "@/lib/when";
 import { failureReason } from "@/lib/progress";
 import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
+
+/**
+ * A window typed out rather than chosen from the list: two date fields, to the second, in the
+ * zone the grid is showing. What they write is the `between` clause, which is where a window
+ * lives whether it came from a drag on the timeline, a row's five minutes, or here.
+ */
+function CustomRange({ tab }: { tab: Tab }) {
+  const { patchTab, runQuery, settings } = useApp();
+  const zone = settings.results.timezone;
+  const [open, setOpen] = useState(false);
+  const between = parseQuery(tab.query).between;
+
+  const now = new Date();
+  const [from, setFrom] = useState(() => toInput(between ? new Date(between.from) : new Date(now.getTime() - tab.rangeSeconds * 1000), zone));
+  const [to, setTo] = useState(() => toInput(between ? new Date(between.to) : now, zone));
+
+  // opening it starts from what the console is searching now, whatever that turned out to be
+  const show = () => {
+    const at = parseQuery(tab.query).between;
+    const end = at ? new Date(at.to) : new Date();
+    setFrom(toInput(at ? new Date(at.from) : new Date(end.getTime() - tab.rangeSeconds * 1000), zone));
+    setTo(toInput(end, zone));
+    setOpen(true);
+  };
+
+  const apply = () => {
+    const start = fromInput(from, zone);
+    const end = fromInput(to, zone);
+    if (!start || !end) return;
+    const [a, b] = start <= end ? [start, end] : [end, start];
+    patchTab(tab.id, { query: withBetween(tab.query, a, b), offset: 0 });
+    setOpen(false);
+    void runQuery(tab.id);
+  };
+
+  const field = {
+    background: "var(--bg-input)",
+    border: "1px solid var(--border)",
+    color: "var(--text)",
+    colorScheme: settings.appearance.theme === "light" ? "light" : "dark",
+  } as const;
+
+  return (
+    <span className="relative">
+      <button
+        onClick={() => (open ? setOpen(false) : show())}
+        data-tip="Pick a range"
+        className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+        style={{ color: between ? "var(--accent)" : "var(--text-dim)" }}
+      >
+        <CalendarClock size={13} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[55]" onMouseDown={() => setOpen(false)} />
+          <div
+            data-modal
+            className="absolute top-7 left-0 z-[56] flex w-[260px] flex-col gap-2 rounded-[6px] p-2.5"
+            style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 12px 32px rgba(0,0,0,.5)" }}
+          >
+            <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-dim)" }}>
+              <span className="w-8">From</span>
+              <input
+                type="datetime-local"
+                step="1"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="selectable h-[24px] flex-1 rounded-[4px] px-1.5 text-[12px] outline-none"
+                style={field}
+              />
+            </label>
+            <label className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-dim)" }}>
+              <span className="w-8">To</span>
+              <input
+                type="datetime-local"
+                step="1"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="selectable h-[24px] flex-1 rounded-[4px] px-1.5 text-[12px] outline-none"
+                style={field}
+              />
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                {zone === "utc" ? "UTC" : "local time"}
+              </span>
+              {between && (
+                <button
+                  onClick={() => {
+                    patchTab(tab.id, { query: withoutBetween(tab.query) });
+                    setOpen(false);
+                    void runQuery(tab.id);
+                  }}
+                  className="text-[11px] hover:underline"
+                  style={{ color: "var(--text-dim)" }}
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                onClick={apply}
+                className="ml-auto h-[22px] rounded-[4px] px-2.5 text-[12px]"
+                style={{ background: "var(--accent)", color: "#fff" }}
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
 
 /** The results as they are on screen, written where the save dialog says. */
 function exportItems(tab: Tab): MenuItem[] {
@@ -185,6 +299,7 @@ export function QueryConsole({ tab }: { tab: Tab }) {
             </option>
           ))}
         </select>
+        <CustomRange tab={tab} />
         {tab.endpoint && (
           <span className="ml-1 truncate rounded px-1.5 py-0.5 text-[11px]" style={{ background: "var(--bg-raised)", color: "var(--text-dim)" }}>
             scoped to {tab.endpoint.method} {tab.endpoint.endpoint}
