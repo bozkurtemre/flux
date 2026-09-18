@@ -8,6 +8,7 @@ import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
+import { FieldsPanel } from "./components/FieldsPanel";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
@@ -256,9 +257,18 @@ export default function App() {
           <Panel minSize="20">
             <Group orientation="horizontal" className="h-full min-h-0">
               <Panel defaultSize="26" minSize="14" maxSize="50">
-                <div className="island h-full">
-                  <ConnectionExplorer />
-                </div>
+                <Group orientation="vertical" className="h-full min-h-0">
+                  <Panel minSize="20">
+                    <div className="island h-full">
+                      <ConnectionExplorer />
+                    </div>
+                  </Panel>
+                  <Separator className="h-1.5" />
+                  {/* the fields of what is on screen, under the tree of what can be asked */}
+                  <Panel defaultSize="34" minSize="10" collapsible collapsedSize={0}>
+                    <FieldsPanel />
+                  </Panel>
+                </Group>
               </Panel>
               <Separator className="w-1.5" />
               <Panel minSize="30">

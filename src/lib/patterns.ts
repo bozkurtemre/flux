@@ -55,3 +55,38 @@ export function patternsOf(rows: Record<string, unknown>[], field = "message", l
 export function messageField(columns: string[]): string {
   return columns.find((c) => c === "message") ?? columns.find((c) => /message|msg|text|body/i.test(c)) ?? columns[columns.length - 1] ?? "message";
 }
+
+/** What one field looks like across a page of rows. */
+export interface FieldSummary {
+  name: string;
+  /** How many of the rows carry it, and what the commonest values are. */
+  filled: number;
+  top: { value: string; count: number }[];
+}
+
+/**
+ * The fields in these rows, the best covered first. It is the page on screen rather than the
+ * whole search — the same rows the grid is drawing — which is what makes it free.
+ */
+export function fieldsOf(rows: Record<string, unknown>[], top = 5): FieldSummary[] {
+  const counts = new Map<string, Map<string, number>>();
+  for (const row of rows) {
+    for (const [name, value] of Object.entries(row)) {
+      if (value == null || value === "") continue;
+      const seen = counts.get(name) ?? new Map<string, number>();
+      const text = typeof value === "object" ? JSON.stringify(value) : String(value);
+      seen.set(text, (seen.get(text) ?? 0) + 1);
+      counts.set(name, seen);
+    }
+  }
+  return [...counts.entries()]
+    .map(([name, values]) => ({
+      name,
+      filled: [...values.values()].reduce((a, b) => a + b, 0),
+      top: [...values.entries()]
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+        .slice(0, top),
+    }))
+    .sort((a, b) => b.filled - a.filled || a.name.localeCompare(b.name));
+}

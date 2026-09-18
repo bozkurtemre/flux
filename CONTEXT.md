@@ -37,6 +37,12 @@ minutes" for that console: the window is part of the query, so it can be read, e
 saved like the rest of it.
 _Avoid_: absolute range, time filter, pinned window
 
+**Message pattern**:
+The template a log line is counted under once the parts that differ every time — ids, times,
+addresses, numbers — are masked. Counted in the rows on screen rather than by Graylog, which
+is why a pattern table says how many rows it read.
+_Avoid_: cluster, signature, fingerprint
+
 **Group by clause**:
 A `| group by <field>` written after the query in a console. Each one asks Graylog for a
 count per value of that field and gets its own table above the messages; the messages

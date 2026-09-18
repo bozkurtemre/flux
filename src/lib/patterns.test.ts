@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { messageField, patternsOf, templateOf } from "./patterns";
+import { fieldsOf, messageField, patternsOf, templateOf } from "./patterns";
 
 describe("the template a message is counted under", () => {
   it("takes out what differs every time", () => {
@@ -53,5 +53,36 @@ describe("which field carries the message", () => {
     expect(messageField(["timestamp", "message", "full_message"])).toBe("message");
     expect(messageField(["timestamp", "log_msg"])).toBe("log_msg");
     expect(messageField(["timestamp", "source"])).toBe("source");
+  });
+});
+
+describe("the fields in a page of rows", () => {
+  const rows = [
+    { level: "ERROR", source: "api-1", route: "/a" },
+    { level: "ERROR", source: "api-2", route: "/a" },
+    { level: "WARN", source: "api-1" },
+    { level: "", source: "api-1" },
+  ];
+
+  it("counts how many rows carry each field, best covered first", () => {
+    const fields = fieldsOf(rows);
+    expect(fields.map((f) => [f.name, f.filled])).toEqual([
+      ["source", 4],
+      ["level", 3],
+      ["route", 2],
+    ]);
+  });
+
+  it("names the commonest values, with their counts", () => {
+    const level = fieldsOf(rows).find((f) => f.name === "level");
+    expect(level?.top).toEqual([
+      { value: "ERROR", count: 2 },
+      { value: "WARN", count: 1 },
+    ]);
+  });
+
+  it("keeps the list of values to the few worth showing", () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ id: `v${i}` }));
+    expect(fieldsOf(many)[0].top).toHaveLength(5);
   });
 });
