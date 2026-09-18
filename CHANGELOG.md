@@ -3,6 +3,40 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.9.0
+
+### Added
+
+- **A timeline over the results.** Messages per bucket across the range the console asked for;
+  dragging across it narrows the search to what was dragged. Graylog 5.2's aggregation API has
+  no time pivot, so this goes through the views API its own interface uses — two requests,
+  asked for only while the timeline is shown. It folds away from its corner and turns off in
+  **Settings › Results**.
+- **Follow.** A toggle beside Execute, off when a tab opens: every two seconds the tab in front
+  asks for what has arrived since its newest message and puts it on top, tinted for a moment.
+  What you are reading stays where it is, selection included, instead of being pushed down.
+- **Export.** The rows as they are on screen, in the columns and the order they are on screen,
+  as CSV or JSON, wherever the save dialog says.
+- **A right-click on a log row**: filter by the field under the pointer, exclude it, count by
+  it, or open what was happening five minutes either side of the message. Copy the field, copy
+  the row as JSON, or **Paste to Claude**, which types the row into the terminal in front as a
+  paste — nothing is sent, the question is still yours to write.
+- **The window a console searches can be written in its query**: `between <from> and <to>`,
+  in ISO, beside the `group by` clauses. It is what "five minutes around this" writes, and it
+  is saved with a saved query.
+- Every menu carries icons.
+
+### Changed
+
+- **The terminal engine is chosen by name in Settings, and a new install gets the shell.** tmux
+  is opt-in rather than assumed, and choosing it is where Flux checks whether the machine has
+  one. An install that had the old tick box on keeps tmux. See
+  [docs/adr/0007](docs/adr/0007-the-shell-is-the-default-engine.md).
+
+### Fixed
+
+- Right-clicking a row no longer opens the value inspector.
+
 ## 0.8.0
 
 ### Added
