@@ -23,6 +23,8 @@ export interface SavedTab {
   layout?: string[];
   /** The saved query it was opened from, so the tab still knows after a restart. */
   savedQueryId?: string;
+  /** A tab opened around a message keeps its window, or its title would start lying. */
+  around?: { from: string; to: string };
 }
 
 /** A terminal tab is its project and its name; the shell behind it is tmux's problem. */

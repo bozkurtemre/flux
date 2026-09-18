@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, ClipboardCopy, Columns3, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Rows3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { ClaudeIcon } from "./icons";
@@ -231,16 +231,49 @@ export function ResultGrid({ tab }: { tab: Tab }) {
           </div>
         </div>
       </div>
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={rowMenu(menu.row, menu.col)} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={rowMenu(tab, menu.row, menu.col)} onClose={() => setMenu(null)} />}
       <GridFooter tab={tab} count={rows.length} columns={columns} />
     </div>
   );
 }
 
-/** What a log row offers: its field, itself, and itself handed to the agent in the terminal. */
-function rowMenu(row: Record<string, unknown>, col?: string): MenuItem[] {
+/** Five minutes either side is a whole story either side of a single line. */
+const AROUND_SECONDS = 300;
+
+/**
+ * What a log row offers: what it narrows the search to, what it counts, what was happening
+ * around it, and the three ways of taking it somewhere else.
+ */
+function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem[] {
   const copy = <ClipboardCopy size={12} />;
+  const app = useApp.getState();
+  const at = String(row.timestamp ?? "");
   return [
+    {
+      label: col ? `Filter by ${col}` : "Filter by this field",
+      icon: <Filter size={12} />,
+      disabled: !col,
+      onClick: () => app.filterByField(tab.id, col!, row[col!]),
+    },
+    {
+      label: col ? `Exclude ${col}` : "Exclude this field",
+      icon: <FilterX size={12} />,
+      disabled: !col,
+      onClick: () => app.filterByField(tab.id, col!, row[col!], true),
+    },
+    {
+      label: col ? `Group by ${col}` : "Group by this field",
+      icon: <Rows3 size={12} />,
+      disabled: !col,
+      onClick: () => app.groupByField(tab.id, col!),
+    },
+    {
+      label: "Show 5 minutes around this",
+      icon: <Clock size={12} />,
+      disabled: !at || Number.isNaN(new Date(at).getTime()),
+      onClick: () => app.openAround(tab.id, at, AROUND_SECONDS),
+    },
+    { separator: true },
     {
       label: col ? `Copy field: ${col}` : "Copy field",
       icon: copy,

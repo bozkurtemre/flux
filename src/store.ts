@@ -16,7 +16,7 @@ import {
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { parseQuery } from "@/lib/query";
+import { fieldClause, parseQuery, withClause, withGroupBy } from "@/lib/query";
 import { loadQueries, nameFor, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
@@ -66,6 +66,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** A fixed window to search, instead of the last `rangeSeconds`. */
+  around?: { from: string; to: string };
   /** The saved query this console was opened from, if it was. */
   savedQueryId?: string;
   /** One table per `| group by` clause in the query, above the messages. */
@@ -156,6 +158,10 @@ interface State {
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
+  /** The row menu: narrow to a field, exclude it, count by it, or look around a moment. */
+  filterByField: (tabId: string, field: string, value: unknown, negate?: boolean) => void;
+  groupByField: (tabId: string, field: string) => void;
+  openAround: (tabId: string, at: string, seconds: number) => void;
   openSavedQuery: (id: string) => void;
   renameSavedQuery: (id: string, name: string) => void;
   deleteSavedQuery: (id: string) => void;
@@ -388,6 +394,51 @@ export const useApp = create<State>((set, get) => ({
     }
     get().patchTab(tabId, { query: query.query, rangeSeconds: query.rangeSeconds, savedQueryId: query.id, offset: 0 });
     void get().runQuery(tabId);
+  },
+
+  filterByField: (tabId, field, value, negate) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { query: withClause(tab.query, fieldClause(field, value, negate)), offset: 0 });
+    void get().runQuery(tabId);
+  },
+
+  groupByField: (tabId, field) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { query: withGroupBy(tab.query, field), offset: 0 });
+    void get().runQuery(tabId);
+  },
+
+  /**
+   * What was happening around one message: the same stream with nothing filtered out, over a
+   * window that does not move. It is its own tab, because the search it came from is usually
+   * still worth having.
+   */
+  openAround: (tabId, at, seconds) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    const conn = get().settings.connections.find((c) => c.id === tab?.connId);
+    if (!tab || !conn) return;
+    const centre = new Date(at);
+    if (Number.isNaN(centre.getTime())) return;
+    const from = new Date(centre.getTime() - seconds * 1000).toISOString();
+    const to = new Date(centre.getTime() + seconds * 1000).toISOString();
+    const id = `around:${tab.id}:${from}`;
+    if (!get().tabs.some((t) => t.id === id)) {
+      const next = blankTab(get().settings, conn, {
+        id,
+        title: `around ${centre.toLocaleTimeString()}`,
+        connId: tab.connId,
+        streamIds: tab.streamIds,
+        streamLabel: tab.streamLabel,
+      });
+      set({ tabs: [...get().tabs, { ...next, around: { from, to } }], activeTab: id });
+      void loadFields(id, set, get);
+    } else {
+      set({ activeTab: id });
+    }
+    void get().runQuery(id);
+    persist(get);
   },
 
   renameSavedQuery: (id, name) => {
@@ -801,7 +852,10 @@ export const useApp = create<State>((set, get) => ({
       if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
       const to = new Date();
       const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
-      const timerange = absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
+      // a tab opened around a message searches that window rather than the last minutes
+      const timerange = tab.around
+        ? absolute(new Date(tab.around.from), new Date(tab.around.to))
+        : absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
       const client = clientFor(conn);
       // Each clause is its own aggregation: one row per value of the field with how many
       // messages carried it. They run beside the messages rather than instead of them, so
@@ -930,6 +984,7 @@ const savedShape = (t: Tab): SavedTab => ({
   columns: t.columns,
   layout: t.layout,
   savedQueryId: t.savedQueryId,
+  around: t.around,
 });
 
 /**

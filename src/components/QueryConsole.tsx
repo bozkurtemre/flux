@@ -8,8 +8,9 @@ import { solr } from "@codemirror/legacy-modes/mode/solr";
 import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { Play, RotateCw, Save } from "lucide-react";
+import { Play, RotateCw, Save, X } from "lucide-react";
 import { QUICK_RANGES } from "@/lib/graylog";
+import { formatTs } from "./ResultGrid";
 import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
 
@@ -121,7 +122,9 @@ export function QueryConsole({ tab }: { tab: Tab }) {
         <select
           value={tab.rangeSeconds}
           onChange={(e) => {
-            patchTab(tab.id, { rangeSeconds: Number(e.target.value) });
+            // choosing a range is asking for the last minutes again, whatever window the tab
+            // was pinned to
+            patchTab(tab.id, { rangeSeconds: Number(e.target.value), around: undefined });
             void runQuery(tab.id);
           }}
           className="h-6 rounded px-1 text-[12px] outline-none"
@@ -133,6 +136,25 @@ export function QueryConsole({ tab }: { tab: Tab }) {
             </option>
           ))}
         </select>
+        {tab.around && (
+          <span
+            className="ml-1 flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px]"
+            style={{ background: "var(--bg-raised)", color: "var(--text-dim)" }}
+          >
+            {formatTs(new Date(tab.around.from), settings.results.timezone, "time")} –{" "}
+            {formatTs(new Date(tab.around.to), settings.results.timezone, "time")}
+            <button
+              onClick={() => {
+                patchTab(tab.id, { around: undefined });
+                void runQuery(tab.id);
+              }}
+              data-tip="Back to the last minutes"
+              className="flex size-3.5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+            >
+              <X size={10} />
+            </button>
+          </span>
+        )}
         {tab.endpoint && (
           <span className="ml-1 truncate rounded px-1.5 py-0.5 text-[11px]" style={{ background: "var(--bg-raised)", color: "var(--text-dim)" }}>
             scoped to {tab.endpoint.method} {tab.endpoint.endpoint}

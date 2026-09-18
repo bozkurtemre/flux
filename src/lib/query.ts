@@ -27,3 +27,23 @@ export function parseQuery(text: string): ParsedQuery {
   }
   return { search: parts[0].trim(), groupBy };
 }
+
+/** A Lucene clause for one field of one row. Quoted, because a log value is not a term. */
+export function fieldClause(field: string, value: unknown, negate = false): string {
+  const quoted = `"${String(value ?? "").replace(/(["\\])/g, "\\$1")}"`;
+  return `${negate ? "NOT " : ""}${field}:${quoted}`;
+}
+
+/** The line with one more clause on its query, leaving any `group by` where it belongs. */
+export function withClause(line: string, clause: string): string {
+  const { search, groupBy } = parseQuery(line);
+  const query = search ? `${search} AND ${clause}` : clause;
+  return [query, ...groupBy.map((f) => `group by ${f}`)].join(" | ");
+}
+
+/** The line with one more table on it, asked for at most once. */
+export function withGroupBy(line: string, field: string): string {
+  const { search, groupBy } = parseQuery(line);
+  const fields = groupBy.includes(field) ? groupBy : [...groupBy, field];
+  return [search, ...fields.map((f) => `group by ${f}`)].filter(Boolean).join(" | ");
+}
