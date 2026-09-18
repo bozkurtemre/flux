@@ -21,7 +21,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [drag, setDrag] = useState<{ col: string; dx: number } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; row: Record<string, unknown>; col?: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; index: number; row: Record<string, unknown>; col?: string } | null>(null);
   const draggedRef = useRef(false);
 
   /**
@@ -199,11 +199,14 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    patchTab(tab.id, { selectedRow: item.index });
+                    // asking a row what it can do is not asking to inspect it: the selection
+                    // follows only while the inspector is already open, because it is the
+                    // selection that opens it
+                    if (tab.selectedRow != null) patchTab(tab.id, { selectedRow: item.index });
                     // the cell under the pointer decides what "this field" means; the gutter
                     // is a row without one
                     const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-cell]");
-                    setMenu({ x: e.clientX, y: e.clientY, row, col: cell?.dataset.cell });
+                    setMenu({ x: e.clientX, y: e.clientY, index: item.index, row, col: cell?.dataset.cell });
                   }}
                   className="absolute left-0 flex w-full"
                   style={{
@@ -211,11 +214,13 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                     transform: `translateY(${item.start}px)`,
                     background: selected
                       ? "var(--sel-focus)"
-                      : fresh.has(rowKey(row))
-                        ? "color-mix(in srgb, var(--green) 14%, transparent)"
-                        : r.stripedRows && item.index % 2
-                          ? "var(--row-alt)"
-                          : undefined,
+                      : menu?.index === item.index
+                        ? "var(--bg-active)"
+                        : fresh.has(rowKey(row))
+                          ? "color-mix(in srgb, var(--green) 14%, transparent)"
+                          : r.stripedRows && item.index % 2
+                            ? "var(--row-alt)"
+                            : undefined,
                     color: selected ? "#fff" : undefined,
                   }}
                 >
