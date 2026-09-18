@@ -16,7 +16,7 @@ import {
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { fieldClause, parseQuery, withBetween, withClause, withGroupBy } from "@/lib/query";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
 import { loadQueries, nameFor, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
@@ -171,6 +171,7 @@ interface State {
   tailTab: (tabId: string) => Promise<void>;
   filterByField: (tabId: string, field: string, value: unknown, negate?: boolean) => void;
   groupByField: (tabId: string, field: string) => void;
+  showPatterns: (tabId: string, field: string) => void;
   openAround: (tabId: string, at: string, seconds: number) => void;
   openSavedQuery: (id: string) => void;
   renameSavedQuery: (id: string, name: string) => void;
@@ -474,6 +475,13 @@ export const useApp = create<State>((set, get) => ({
     if (!tab) return;
     get().patchTab(tabId, { query: withGroupBy(tab.query, field), offset: 0 });
     void get().runQuery(tabId);
+  },
+
+  /** Counting templates needs no second search: the clause is enough for the table to appear. */
+  showPatterns: (tabId, field) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { query: withPatterns(tab.query, true, field) });
   },
 
   /**

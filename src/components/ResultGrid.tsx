@@ -295,6 +295,11 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
       onClick: () => app.groupByField(tab.id, col!),
     },
     {
+      label: col ? `Find patterns in ${col}` : "Find message patterns",
+      icon: <Rows3 size={12} />,
+      onClick: () => app.showPatterns(tab.id, col ?? ""),
+    },
+    {
       label: "Show 5 minutes around this",
       icon: <Clock size={12} />,
       disabled: !at || Number.isNaN(new Date(at).getTime()),

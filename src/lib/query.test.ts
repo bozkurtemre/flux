@@ -111,3 +111,23 @@ describe("a window named in the line", () => {
     expect(withBetween("", from, to)).toBe("between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z");
   });
 });
+
+describe("asking for patterns", () => {
+  it("is a clause like the others, and takes the field with it", () => {
+    expect(parseQuery("level:ERROR | patterns")).toEqual({ search: "level:ERROR", groupBy: [], patterns: "" });
+    expect(parseQuery("level:ERROR | patterns full_message").patterns).toBe("full_message");
+  });
+
+  it("sits beside a window and a table", () => {
+    const line = "* | patterns | group by route | between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z";
+    const parsed = parseQuery(line);
+    expect(parsed.patterns).toBe("");
+    expect(parsed.groupBy).toEqual(["route"]);
+    expect(parsed.between?.from).toBe("2026-09-18T11:00:00Z");
+    expect(parsed.search).toBe("*");
+  });
+
+  it("is the whole line when that is all there is", () => {
+    expect(parseQuery("patterns")).toEqual({ search: "", groupBy: [], patterns: "" });
+  });
+});

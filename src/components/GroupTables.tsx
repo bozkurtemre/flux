@@ -9,15 +9,28 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
+import { messageField, patternsOf } from "@/lib/patterns";
+import { parseQuery } from "@/lib/query";
 import { useApp, type GroupResult, type Tab } from "@/store";
 
 const COUNT_W = 110;
 
 export function GroupTables({ tab }: { tab: Tab }) {
   const groups = tab.groups ?? [];
-  if (!groups.length) return null;
+  // the templates are counted here, over the rows on screen: it is the same table as a
+  // grouped one, answered without asking Graylog anything
+  const asked = parseQuery(tab.query).patterns;
+  const patterns = useMemo((): GroupResult | null => {
+    if (asked === undefined || !tab.page?.rows.length) return null;
+    const field = asked || messageField(tab.page.columns);
+    const found = patternsOf(tab.page.rows, field);
+    return { field: `patterns in ${field}`, rows: found.map((p) => ({ value: p.template, count: p.count })) };
+  }, [asked, tab.page]);
+
+  if (!groups.length && !patterns) return null;
   return (
     <div className="flex shrink-0 flex-col overflow-auto" style={{ maxHeight: "50%", borderBottom: "1px solid var(--border)" }}>
+      {patterns && <GroupTable key="patterns" group={patterns} counted={tab.page?.rows.length} />}
       {groups.map((g) => (
         <GroupTable key={g.field} group={g} />
       ))}
@@ -25,7 +38,7 @@ export function GroupTables({ tab }: { tab: Tab }) {
   );
 }
 
-function GroupTable({ group }: { group: GroupResult }) {
+function GroupTable({ group, counted }: { group: GroupResult; counted?: number }) {
   const r = useApp((s) => s.settings.results);
   // Graylog answers with the largest count first, which is the order worth keeping until a
   // header is clicked
@@ -67,7 +80,7 @@ function GroupTable({ group }: { group: GroupResult }) {
             style={{ width, userSelect: "none", ...head }}
             title={`group by ${group.field}`}
           >
-            <span style={{ color: "var(--accent)" }}>group by</span>
+            <span style={{ color: "var(--accent)" }}>{counted ? "" : "group by"}</span>
             <span className="truncate font-[var(--font-mono)]">{group.field}</span>
             {arrow("value")}
           </div>
@@ -75,6 +88,7 @@ function GroupTable({ group }: { group: GroupResult }) {
             onClick={() => toggle("count")}
             className="flex shrink-0 items-center gap-1 px-2 text-[11px] font-medium"
             style={{ width: COUNT_W, userSelect: "none", ...head }}
+            title={counted ? `counted in the ${counted.toLocaleString()} rows on screen` : undefined}
           >
             count
             {arrow("count")}

@@ -7,6 +7,10 @@
 // there is nothing to separate the clause from, so the pipe is optional there.
 const CLAUSE = /(?:^|\|)\s*group\s*by\s+/i;
 
+/** `patterns`, optionally naming the field the messages are in. */
+// the field is a field name, not whatever follows: `patterns | group by x` names no field
+const PATTERNS = /(?:^|\|)\s*patterns\b(?:\s+([A-Za-z_][\w.]*))?\s*/i;
+
 /** `between <from> and <to>`, the window the console searches instead of the last minutes. */
 const BETWEEN = /(?:^|\|)\s*between\s+(\S+)\s+and\s+(\S+)\s*/i;
 
@@ -17,6 +21,8 @@ export interface ParsedQuery {
   groupBy: string[];
   /** The window named by a `between` clause, if the line names one. */
   between?: { from: string; to: string };
+  /** The field to count message templates in, when the line asks for patterns. */
+  patterns?: string;
 }
 
 export function parseQuery(text: string): ParsedQuery {
@@ -31,6 +37,14 @@ export function parseQuery(text: string): ParsedQuery {
       between = { from: window[1], to: window[2] };
       line = line.slice(0, window.index) + line.slice(window.index + window[0].length);
     }
+  }
+
+  let patterns: string | undefined;
+  const asked = PATTERNS.exec(line);
+  if (asked) {
+    // the field is optional, and `patterns` alone means whichever column holds the message
+    patterns = asked[1] ?? "";
+    line = line.slice(0, asked.index) + line.slice(asked.index + asked[0].length);
   }
 
   const parts = line.split(CLAUSE);
@@ -50,6 +64,7 @@ export function parseQuery(text: string): ParsedQuery {
       .trim(),
     groupBy,
     between,
+    patterns,
   };
 }
 
@@ -59,18 +74,36 @@ export function fieldClause(field: string, value: unknown, negate = false): stri
   return `${negate ? "NOT " : ""}${field}:${quoted}`;
 }
 
-/** The line with one more clause on its query, leaving any `group by` where it belongs. */
+/** The clauses of a parsed line, written back in the order they are read in. */
+function rebuild(parsed: ParsedQuery, search: string): string {
+  return [
+    search,
+    ...parsed.groupBy.map((f) => `group by ${f}`),
+    ...(parsed.patterns === undefined ? [] : [`patterns${parsed.patterns ? ` ${parsed.patterns}` : ""}`]),
+    ...(parsed.between ? [`between ${parsed.between.from} and ${parsed.between.to}`] : []),
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+/** The line with one more clause on its query, leaving the clauses after it where they are. */
 export function withClause(line: string, clause: string): string {
-  const { search, groupBy } = parseQuery(line);
-  const query = search ? `${search} AND ${clause}` : clause;
-  return [query, ...groupBy.map((f) => `group by ${f}`)].join(" | ");
+  const parsed = parseQuery(line);
+  return rebuild(parsed, parsed.search ? `${parsed.search} AND ${clause}` : clause);
 }
 
 /** The line with one more table on it, asked for at most once. */
 export function withGroupBy(line: string, field: string): string {
-  const { search, groupBy } = parseQuery(line);
-  const fields = groupBy.includes(field) ? groupBy : [...groupBy, field];
-  return [search, ...fields.map((f) => `group by ${f}`)].filter(Boolean).join(" | ");
+  const parsed = parseQuery(line);
+  if (!parsed.groupBy.includes(field)) parsed.groupBy.push(field);
+  return rebuild(parsed, parsed.search);
+}
+
+/** The line counting message templates, or no longer counting them. */
+export function withPatterns(line: string, on: boolean, field = ""): string {
+  const parsed = parseQuery(line);
+  parsed.patterns = on ? field : undefined;
+  return rebuild(parsed, parsed.search);
 }
 
 /** The line searching one window, replacing whatever window it named before. */
