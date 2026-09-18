@@ -17,3 +17,28 @@ export function fromInput(text: string, zone: Zone): Date | null {
   const date = new Date(zone === "utc" ? `${withSeconds}Z` : withSeconds);
   return Number.isNaN(date.getTime()) ? null : date;
 }
+
+/** `YYYY-MM-DD` for a day, from its own parts: no zone shifts on the way. */
+export function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * The six weeks a month is drawn in, Monday first: the days before it and after it are there
+ * too, because a calendar with holes is harder to read than one with neighbours.
+ */
+export function monthDays(year: number, month: number): Date[] {
+  const first = new Date(year, month, 1);
+  const start = new Date(first);
+  start.setDate(1 - ((first.getDay() + 6) % 7)); // Monday before the first, or the first itself
+  return Array.from({ length: 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+}
+
+/** A day and a time of day, as a date field would have them. */
+export const atTime = (day: string, time: string) => `${day}T${time}`;
+
+/** The two halves of what a date field holds. */
+export function splitInput(text: string): { day: string; time: string } {
+  const [day, time] = text.split("T");
+  return { day, time: (time ?? "00:00:00").slice(0, 8).padEnd(8, "0") };
+}
