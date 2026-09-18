@@ -3,6 +3,23 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.8.0
+
+### Added
+
+- **Saved queries.** A query you want back is kept with a name from the console toolbar or
+  **⌘S**, and lives in a tool window of its own behind the second icon on the right stripe.
+  Opening one opens the console for the stream it was saved against and runs it there. The
+  panel filters by name, query and stream, and each entry has Open, Copy query, Rename and
+  Delete on a right-click. A console shows a dot beside its tab while it holds edits that have
+  not been saved.
+  They belong to the work, so a workspace keeps its own in `.flux/queries.json`.
+
+### Fixed
+
+- **The window opens the size and in the place it was left**, maximised or full screen
+  included, instead of 1440×900 every time.
+
 ## 0.7.0
 
 ### Added
