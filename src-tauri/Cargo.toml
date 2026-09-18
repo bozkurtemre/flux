@@ -36,6 +36,8 @@ portable-pty = "0.9.0"
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-updater = "2.11.0"
 tauri-plugin-process = "2.3.1"
+# the window comes back the size and the place it was left, which is the plugin's whole job
+tauri-plugin-window-state = "2"
 hyper = { version = "1.11.1", features = ["server", "http1"] }
 hyper-util = { version = "0.1.20", features = ["tokio"] }
 tokio = { version = "1.53.1", features = ["rt", "net", "macros", "sync", "time"] }
