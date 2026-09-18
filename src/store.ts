@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
-import { Graylog, absolute, bucketFor, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
+import { Graylog, absolute, bucketFor, bucketed, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type RanQuery, type SavedTab } from "@/lib/session";
@@ -488,6 +488,13 @@ export const useApp = create<State>((set, get) => ({
       if (!fresh.length) return;
       get().patchTab(tabId, {
         page: { columns: current.page.columns, rows: [...fresh, ...current.page.rows].slice(0, settings.results.pageSize) },
+        // the timeline is counts of these same messages, and they carry when they arrived
+        histogram:
+          current.histogram &&
+          bucketed(
+            current.histogram,
+            fresh.map((r) => String(r.timestamp)),
+          ),
         total: current.total != null ? current.total + fresh.length : undefined,
         // the selection is an index into those rows, and they all just moved down
         selectedRow: current.selectedRow == null ? undefined : current.selectedRow + fresh.length,

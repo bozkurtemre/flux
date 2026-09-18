@@ -325,6 +325,37 @@ export const QUICK_RANGES: { label: string; seconds: number }[] = [
 ];
 
 /**
+ * The timeline with what has just arrived counted into it. Following puts new messages on the
+ * page every couple of seconds, and asking Graylog to draw the buckets again that often would
+ * cost two requests a tick — but the rows themselves say when they arrived, which is all a
+ * bucket is. Buckets are appended when the newest message is past the last one, so a live
+ * timeline grows rightwards instead of ending where the query did.
+ */
+export function bucketed(buckets: Bucket[], arrivals: string[], limit = 200): Bucket[] {
+  if (!buckets.length || !arrivals.length) return buckets;
+  const first = new Date(buckets[0].at).getTime();
+  const span = buckets.length > 1 ? new Date(buckets[1].at).getTime() - first : 60_000;
+  if (!(span > 0)) return buckets;
+
+  const counts = new Map(buckets.map((b, i) => [i, b]));
+  let last = buckets.length - 1;
+  for (const at of arrivals) {
+    const time = new Date(at).getTime();
+    if (Number.isNaN(time) || time < first) continue;
+    const index = Math.floor((time - first) / span);
+    if (index > last) {
+      // the gap is drawn as the quiet it was, unless it is so long that this is another day
+      if (index - last > limit) continue;
+      for (let i = last + 1; i <= index; i++) counts.set(i, { at: new Date(first + i * span).toISOString(), count: 0 });
+      last = index;
+    }
+    const bucket = counts.get(index);
+    if (bucket) counts.set(index, { ...bucket, count: bucket.count + 1 });
+  }
+  return Array.from({ length: last + 1 }, (_, i) => counts.get(i) ?? { at: new Date(first + i * span).toISOString(), count: 0 });
+}
+
+/**
  * The bucket width for a span, in Graylog's own units: about fifty columns whatever the
  * range, from a minute of logs to a month of them.
  */
