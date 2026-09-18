@@ -19,6 +19,8 @@ export interface SavedQuery {
   rangeSeconds: number;
   /** Seconds since the epoch: the list is newest first. */
   savedAt: number;
+  /** Watched: while the window is open, new matches are reported as they arrive. */
+  watch?: boolean;
 }
 
 /** A name for a query nobody named: its first line, shortened to fit the panel. */

@@ -2,7 +2,7 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { ClipboardCopy, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
+import { Bell, BellOff, ClipboardCopy, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 
@@ -87,10 +87,10 @@ function HistoryList() {
 }
 
 function SavedList() {
-  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, tabs, activeTab } = useApp();
+  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleWatch, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; id: string; name: string; query: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string; name: string; query: string; watch?: boolean } | null>(null);
   const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
   // the name is what you remember, the query is what you remember it by, and the stream is
@@ -133,7 +133,7 @@ function SavedList() {
               onClick={() => openSavedQuery(q.id)}
               onContextMenu={(e) => {
                 e.preventDefault();
-                setMenu({ x: e.clientX, y: e.clientY, id: q.id, name: q.name, query: q.query });
+                setMenu({ x: e.clientX, y: e.clientY, id: q.id, name: q.name, query: q.query, watch: q.watch });
               }}
               className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
               style={{ background: current === q.id ? "var(--bg-active)" : undefined }}
@@ -141,6 +141,7 @@ function SavedList() {
               onMouseLeave={(e) => current !== q.id && (e.currentTarget.style.background = "")}
             >
               <div className="flex items-center gap-1.5">
+                {q.watch && <Bell size={10} className="shrink-0" style={{ color: "var(--amber)" }} />}
                 <span className="truncate text-[12px]" style={{ color: "var(--text)" }}>
                   {q.name}
                 </span>
@@ -176,6 +177,11 @@ function SavedList() {
               { label: "Open", icon: <SquareTerminal size={12} />, onClick: () => openSavedQuery(menu.id) },
               { label: "Copy query", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.query) },
               { label: "Rename…", icon: <Pencil size={12} />, onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
+              {
+                label: menu.watch ? "Stop watching" : "Watch for new matches",
+                icon: menu.watch ? <BellOff size={12} /> : <Bell size={12} />,
+                onClick: () => toggleWatch(menu.id),
+              },
               { separator: true },
               { label: "Delete", icon: <Trash2 size={12} />, danger: true, onClick: () => setConfirm({ id: menu.id, name: menu.name }) },
             ] satisfies MenuItem[]

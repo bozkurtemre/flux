@@ -42,6 +42,7 @@ hyper = { version = "1.11.1", features = ["server", "http1"] }
 hyper-util = { version = "0.1.20", features = ["tokio"] }
 tokio = { version = "1.53.1", features = ["rt", "net", "macros", "sync", "time"] }
 http-body-util = "0.1.5"
+tauri-plugin-notification = "2.4.0"
 
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration

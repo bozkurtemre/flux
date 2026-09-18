@@ -157,6 +157,15 @@ export default function App() {
     return () => clearInterval(beat);
   }, [connectionIds]);
 
+  // Watched queries, every minute while the window is open. Nothing runs when Flux is closed —
+  // there is no service behind it, and an alert that lies about that would be worse than none.
+  const watching = useApp((z) => z.savedQueries.filter((q) => q.watch).length);
+  useEffect(() => {
+    if (!watching) return;
+    const beat = setInterval(() => void useApp.getState().checkWatches(), 60_000);
+    return () => clearInterval(beat);
+  }, [watching]);
+
   // Once an hour, without saying anything unless it finds something. A log explorer left
   // open for a day should not have to be restarted to learn there is a new version.
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
+import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { Graylog, absolute, bucketFor, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
@@ -193,6 +194,10 @@ interface State {
   openHistory: (id: string) => void;
   clearHistory: () => void;
   renameSavedQuery: (id: string, name: string) => void;
+  /** Watch a saved query: new matches are reported while the window is open. */
+  toggleWatch: (id: string) => void;
+  /** One round of watching, run on a timer by the window. */
+  checkWatches: () => Promise<void>;
   deleteSavedQuery: (id: string) => void;
   setTerminalSize: (size: number) => void;
   setInspectorSize: (size: number) => void;
@@ -579,6 +584,41 @@ export const useApp = create<State>((set, get) => ({
     if (!trimmed) return;
     set({ savedQueries: get().savedQueries.map((q) => (q.id === id ? { ...q, name: trimmed } : q)) });
     void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
+  toggleWatch: (id) => {
+    const watched = get().savedQueries.map((q) => (q.id === id ? { ...q, watch: !q.watch } : q));
+    set({ savedQueries: watched });
+    // a watch starts now: what happened before it was turned on is not news
+    watching.set(id, Date.now());
+    void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
+  /**
+   * What has arrived since the last round, for each watched query. It is a count rather than a
+   * search — the cheapest question Graylog answers about a query — and the window it counts
+   * over starts where the last one ended, so nothing is reported twice or missed between them.
+   */
+  checkWatches: async () => {
+    const watched = get().savedQueries.filter((q) => q.watch);
+    await Promise.all(
+      watched.map(async (q) => {
+        const conn = get().settings.connections.find((c) => c.id === q.connId);
+        const parsed = parseQuery(q.query);
+        // a fixed window has nothing new in it, ever
+        if (!conn || parsed.between) return;
+        const since = watching.get(q.id) ?? Date.now();
+        const to = new Date();
+        watching.set(q.id, to.getTime());
+        const found = await clientFor(conn)
+          .count({ query: parsed.search || "*", streams: q.streamIds, timerange: absolute(new Date(since), to), signal: AbortSignal.timeout(20_000) })
+          .catch(() => 0);
+        if (!found) return;
+        const message = `${found.toLocaleString()} new ${found === 1 ? "match" : "matches"} on ${q.streamLabel}`;
+        get().notify("warning", q.name, message, [{ label: "Open", run: () => get().openSavedQuery(q.id) }]);
+        void announce(q.name, message);
+      }),
+    );
   },
 
   deleteSavedQuery: (id) => {
@@ -1115,6 +1155,19 @@ type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void
 type Getter = () => State;
 
 const now = () => Math.floor(Date.now() / 1000);
+
+/** When each watched query was last asked, so the next round starts where this one ended. */
+const watching = new Map<string, number>();
+
+/** The same news outside the window, for whoever is not looking at it. */
+async function announce(title: string, body: string): Promise<void> {
+  try {
+    const granted = (await isPermissionGranted()) || (await requestPermission()) === "granted";
+    if (granted) sendNotification({ title, body });
+  } catch {
+    /* an alert nobody could show is still in the balloon */
+  }
+}
 
 /** What makes a message that one: its id when Graylog gave one, its content when it did not. */
 const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
