@@ -90,3 +90,29 @@ export function McpIcon({ size = 12 }: { size?: number }) {
     </svg>
   );
 }
+
+/**
+ * Claude's burst, as the menu needs it: ten rays around a centre, in the mark's own orange so
+ * it reads as Claude rather than as one more grey glyph. Drawn rather than traced — at this
+ * size the rays are two pixels wide and the shape is what carries it.
+ */
+export function ClaudeIcon({ size = 12 }: { size?: number }) {
+  const rays = Array.from({ length: 10 }, (_, i) => i * 36);
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-label="Claude">
+      {rays.map((angle) => (
+        <line
+          key={angle}
+          x1="12"
+          y1="12"
+          x2="12"
+          y2="2.5"
+          stroke="#d97757"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          transform={`rotate(${angle} 12 12)`}
+        />
+      ))}
+    </svg>
+  );
+}

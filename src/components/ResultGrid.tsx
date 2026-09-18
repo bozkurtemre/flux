@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Columns3, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCopy, Columns3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { ClaudeIcon } from "./icons";
+import { pasteIntoTerminal } from "./TerminalPanel";
 import { useApp, type Tab } from "@/store";
 import { moveBefore } from "@/lib/reorder";
 
@@ -15,6 +18,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [drag, setDrag] = useState<{ col: string; dx: number } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; row: Record<string, unknown>; col?: string } | null>(null);
   const draggedRef = useRef(false);
 
   /**
@@ -177,6 +181,14 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                     parentRef.current?.focus(); // so the arrows belong to the grid from here on
                     patchTab(tab.id, { selectedRow: item.index });
                   }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    patchTab(tab.id, { selectedRow: item.index });
+                    // the cell under the pointer decides what "this field" means; the gutter
+                    // is a row without one
+                    const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-cell]");
+                    setMenu({ x: e.clientX, y: e.clientY, row, col: cell?.dataset.cell });
+                  }}
                   className="absolute left-0 flex w-full"
                   style={{
                     height: ROW,
@@ -200,6 +212,7 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                   {columns.map((c) => (
                     <div
                       key={c}
+                      data-cell={c}
                       className="shrink-0 truncate px-2 font-[var(--font-mono)]"
                       style={{
                         width: width(c),
@@ -218,9 +231,34 @@ export function ResultGrid({ tab }: { tab: Tab }) {
           </div>
         </div>
       </div>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={rowMenu(menu.row, menu.col)} onClose={() => setMenu(null)} />}
       <GridFooter tab={tab} count={rows.length} columns={columns} />
     </div>
   );
+}
+
+/** What a log row offers: its field, itself, and itself handed to the agent in the terminal. */
+function rowMenu(row: Record<string, unknown>, col?: string): MenuItem[] {
+  const copy = <ClipboardCopy size={12} />;
+  return [
+    {
+      label: col ? `Copy field: ${col}` : "Copy field",
+      icon: copy,
+      disabled: !col,
+      onClick: () => void navigator.clipboard.writeText(String(row[col!] ?? "")),
+    },
+    { label: "Copy row (JSON)", icon: copy, onClick: () => void navigator.clipboard.writeText(JSON.stringify(row, null, 2)) },
+    {
+      label: "Paste to Claude",
+      icon: <ClaudeIcon size={13} />,
+      onClick: () =>
+        void pasteIntoTerminal(JSON.stringify(row)).then((pasted) => {
+          // it is pasted, not entered: what to ask about the row is still the agent's to type
+          if (pasted) useApp.setState({ showTerminal: true });
+          else useApp.getState().notify("info", "Paste to Claude", "Open a terminal first, with ⌥F12.");
+        }),
+    },
+  ];
 }
 
 const PAGE_SIZES = [100, 250, 500, 1000];

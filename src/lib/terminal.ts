@@ -19,6 +19,17 @@ const q = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
 /** `.` and `:` separate a tmux target into session:window.pane, so a name cannot hold them. */
 const safe = (s: string) => s.replace(/[.:\s]/g, "-");
 
+/**
+ * Text handed to a terminal the way ⌘V hands it over: wrapped in the bracketed-paste markers,
+ * which tell whatever is reading — a shell, Claude Code — that this is text being pasted and
+ * not a line being entered. There is no newline in it, so nothing runs; the flattening is for
+ * a program that does not understand the markers, which would otherwise see one Enter per
+ * line.
+ */
+export function pasteSequence(text: string): string {
+  return `\x1b[200~${text.replace(/\r?\n/g, " ")}\x1b[201~`;
+}
+
 export const sessionName = (projectId: string) => `flux-${safe(projectId)}`;
 
 /**

@@ -6,9 +6,25 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { Plus, X } from "lucide-react";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { openCommand } from "@/lib/terminal";
+import { openCommand, pasteSequence } from "@/lib/terminal";
 import { useApp } from "@/store";
 import "@xterm/xterm/css/xterm.css";
+
+/**
+ * The pseudo-terminal behind each tab, by tab id. A view owns its pty and is the only thing
+ * that knows its id, so anything else wanting to type into the terminal in front — the grid's
+ * "Paste to Claude" — finds it here.
+ */
+const ptys = new Map<string, string>();
+
+/** Hand text to the terminal in front as a paste. False when there is no terminal open. */
+export async function pasteIntoTerminal(text: string): Promise<boolean> {
+  const active = useApp.getState().activeTerminal;
+  const pty = active && ptys.get(active);
+  if (!pty) return false;
+  await invoke("terminal_write", { id: pty, data: pasteSequence(text) });
+  return true;
+}
 
 export function TerminalPanel() {
   const { terminals, activeTerminal, settings, setActiveTerminal, closeTerminal, openTerminal, setShowSettings } = useApp();
@@ -99,6 +115,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
     // a fresh id per mount: a teardown can then only ever close the pty it opened, however
     // the two interleave under React's double-invoked effects
     const pty = crypto.randomUUID();
+    ptys.set(id, pty);
     const css = getComputedStyle(document.documentElement);
     const v = (name: string) => css.getPropertyValue(name).trim();
     const term = new Terminal({
@@ -184,6 +201,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
       onInput.dispose();
       term.dispose();
       // the tab may be closing or the window reloading; either way this pty has no viewer
+      if (ptys.get(id) === pty) ptys.delete(id);
       void invoke("terminal_close", { id: pty }).catch(() => {});
     };
   }, [id, projectId, hasFolder]);

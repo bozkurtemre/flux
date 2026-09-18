@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import capability from "../../src-tauri/capabilities/default.json";
-import { killTabCommand, openCommand, quitAction, sessionName } from "./terminal";
+import { killTabCommand, openCommand, pasteSequence, quitAction, sessionName } from "./terminal";
 import { DEFAULTS, type TerminalSettings } from "./settings";
 
 const t = (over: Partial<TerminalSettings> = {}): TerminalSettings => ({ ...DEFAULTS.terminal, ...over });
@@ -82,6 +82,20 @@ describe("quitting with sessions open", () => {
     // without tmux the shells die with the process, so both answers mean the same thing
     expect(quitAction("ask", 3, false)).toBe("leave");
     expect(quitAction("kill", 3, false)).toBe("leave");
+  });
+});
+
+describe("handing text to a terminal", () => {
+  it("wraps it as a paste, so nothing is entered", () => {
+    const seq = pasteSequence('{"level":"ERROR"}');
+    expect(seq.startsWith("\x1b[200~")).toBe(true);
+    expect(seq.endsWith("\x1b[201~")).toBe(true);
+    expect(seq).not.toContain("\n");
+    expect(seq).not.toContain("\r");
+  });
+
+  it("leaves no line for a program that ignores the markers to run", () => {
+    expect(pasteSequence("one\ntwo\r\nthree")).toBe("\x1b[200~one two three\x1b[201~");
   });
 });
 

@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 
 export interface MenuItem {
   label?: string;
+  /** Drawn before the label, in a slot the size of a lucide icon. */
+  icon?: ReactNode;
   shortcut?: string;
   separator?: boolean;
   disabled?: boolean;
@@ -80,13 +82,14 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               it.onClick?.();
               onClose();
             }}
-            className="mx-1 flex h-[24px] items-center gap-6 rounded px-2.5 text-[13px]"
+            className="mx-1 flex h-[24px] items-center gap-2 rounded px-2.5 text-[13px]"
             style={{
               background: cursor === i ? "var(--sel-focus)" : undefined,
               color: it.disabled ? "var(--text-muted)" : cursor === i ? "#fff" : it.danger ? "var(--red)" : "var(--text)",
               opacity: it.disabled ? 0.55 : 1,
             }}
           >
+            {it.icon && <span className="flex size-3.5 shrink-0 items-center justify-center">{it.icon}</span>}
             <span className="truncate">{it.label}</span>
             {it.shortcut && (
               <span className="ml-auto shrink-0 text-[11px]" style={{ color: cursor === i ? "#cfe0ff" : "var(--text-muted)" }}>
