@@ -190,7 +190,7 @@ export default function App() {
     const win = getCurrentWindow();
     const pending = win.onCloseRequested((e) => {
       const { terminals, settings, tmuxMissing, killAllTerminals } = useApp.getState();
-      const action = quitAction(settings.terminal.onQuit, terminals.length, settings.terminal.useTmux && !tmuxMissing);
+      const action = quitAction(settings.terminal.onQuit, terminals.length, settings.terminal.engine === "tmux" && !tmuxMissing);
       if (action === "leave") return;
       e.preventDefault(); // the answer needs a round trip, so the window waits for it
       if (action === "kill") {

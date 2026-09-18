@@ -56,9 +56,15 @@ more for when no workspace is open.
 _Avoid_: layout, state, workspace
 
 **Terminal session**:
-A shell bound to one project folder. It outlives the window that shows it and the app that
-opened it, and ends only when it is killed on purpose.
+A shell bound to one project folder. Under the tmux engine it outlives the window that shows
+it and the app that opened it, and ends only when it is killed on purpose; under the shell
+engine, which is the default, it ends with the tab.
 _Avoid_: shell, console, pane
+
+**Terminal engine**:
+What a terminal tab runs in, named in Settings: `shell` or `tmux`. It decides whether a
+session can outlive the app, and nothing else about the terminal.
+_Avoid_: backend, multiplexer, driver
 
 **Update channel**:
 The set of versions an installed copy is offered. Flux has one, and it carries only

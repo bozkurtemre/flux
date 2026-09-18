@@ -74,8 +74,12 @@ export interface AdvancedSettings {
 /** What to do with terminal sessions that are still running when the app quits. */
 export type OnQuit = "ask" | "kill" | "leave";
 
+/** What a terminal tab runs in. tmux keeps the session alive after Flux quits; the shell
+ * is what every machine already has. */
+export type TerminalEngine = "shell" | "tmux";
+
 export interface TerminalSettings {
-  useTmux: boolean;
+  engine: TerminalEngine;
   tmuxPath: string; // empty: found on PATH, through the login shell
   shell: string; // empty: whichever login shell the machine gives us
   onQuit: OnQuit;
@@ -135,11 +139,17 @@ export const DEFAULTS: Settings = {
     rowHeight: 24,
     autoRefreshSeconds: 0,
   },
-  terminal: { useTmux: true, tmuxPath: "", shell: "", onQuit: "ask" },
+  terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },
   mcp: { enabled: false, port: 4319, token: "" },
   advanced: { requestTimeoutSeconds: 60, fieldCacheMinutes: 10, confirmOnClose: false },
 };
+
+/** Before the engine was chosen by name it was a tick box, and tmux was the only alternative. */
+function engineOf(saved: (Partial<TerminalSettings> & { useTmux?: boolean }) | undefined): { engine?: TerminalEngine } {
+  if (!saved || saved.engine) return {};
+  return saved.useTmux === undefined ? {} : { engine: saved.useTmux ? "tmux" : "shell" };
+}
 
 /** Old shapes lose keys as the model grows; merge each section over its defaults. */
 export function withDefaults(saved: Partial<Settings> | null | undefined): Settings {
@@ -158,7 +168,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
         ? { defaultRangeSeconds: (s as { defaultRangeSeconds: number }).defaultRangeSeconds }
         : {}),
     },
-    terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}) },
+    terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}), ...engineOf(s.terminal) },
     updates: { ...DEFAULTS.updates, ...(s.updates ?? {}) },
     mcp: { ...DEFAULTS.mcp, ...(s.mcp ?? {}) },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },

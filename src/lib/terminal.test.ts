@@ -3,7 +3,9 @@ import capability from "../../src-tauri/capabilities/default.json";
 import { killTabCommand, openCommand, pasteSequence, quitAction, sessionName } from "./terminal";
 import { DEFAULTS, type TerminalSettings } from "./settings";
 
-const t = (over: Partial<TerminalSettings> = {}): TerminalSettings => ({ ...DEFAULTS.terminal, ...over });
+// these are tmux's own commands, and tmux is no longer the default engine, so the base
+// here asks for it and a test about the shell says so
+const t = (over: Partial<TerminalSettings> = {}): TerminalSettings => ({ ...DEFAULTS.terminal, engine: "tmux", ...over });
 const open = (over: Partial<TerminalSettings> = {}, folder = "/src/api") => openCommand({ settings: t(over), projectId: "p1", tabId: "t1", folder });
 
 describe("session naming", () => {
@@ -50,7 +52,7 @@ describe("opening a terminal tab", () => {
   });
 
   it("falls back to a plain login shell when tmux is turned off", () => {
-    const cmd = open({ useTmux: false });
+    const cmd = open({ engine: "shell" });
     expect(cmd.args).toEqual(["-l"]);
     expect(cmd.cwd).toBe("/src/api");
   });
@@ -62,7 +64,7 @@ describe("closing a terminal tab", () => {
   });
 
   it("has nothing to kill when tmux is off, because the shell dies with the tab", () => {
-    expect(killTabCommand(t({ useTmux: false }), "p1", "t1")).toBeNull();
+    expect(killTabCommand(t({ engine: "shell" }), "p1", "t1")).toBeNull();
   });
 });
 

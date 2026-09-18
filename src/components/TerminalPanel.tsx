@@ -165,7 +165,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
     void (async () => {
       const configured = useApp.getState().settings.terminal;
       let settings = configured;
-      if (configured.useTmux) {
+      if (configured.engine === "tmux") {
         const tmux = configured.tmuxPath.trim() || "tmux";
         const found = await invoke("terminal_run", {
           program: configured.shell.trim(),
@@ -174,7 +174,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
           .then(() => true)
           .catch(() => false);
         if (!found) {
-          settings = { ...configured, useTmux: false };
+          settings = { ...configured, engine: "shell" };
           setNote("tmux not found: this session will not outlive the app");
           useApp.getState().setTmuxMissing();
         }

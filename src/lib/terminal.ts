@@ -50,7 +50,7 @@ export function openCommand({
   folder: string;
 }): TerminalCommand {
   const program = settings.shell.trim();
-  if (!settings.useTmux) return { program, args: ["-l"], cwd: folder };
+  if (settings.engine !== "tmux") return { program, args: ["-l"], cwd: folder };
 
   const tmux = settings.tmuxPath.trim() || "tmux";
   const session = sessionName(projectId);
@@ -66,7 +66,7 @@ export function openCommand({
 
 /** Null when there is no tmux to talk to: the shell dies with the pseudo-terminal anyway. */
 export function killTabCommand(settings: TerminalSettings, projectId: string, tabId: string): ShellCommand | null {
-  if (!settings.useTmux) return null;
+  if (settings.engine !== "tmux") return null;
   const tmux = settings.tmuxPath.trim() || "tmux";
   const target = q(`=${sessionName(projectId)}:=${safe(tabId)}`);
   return { program: settings.shell.trim(), args: ["-l", "-c", `${tmux} kill-window -t ${target}`] };

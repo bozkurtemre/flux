@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Check, Plug, Trash2 } from "lucide-react";
 import { Button, Checkbox, Num, Row, Section, Select, Swatches, Text } from "./controls";
 import { Graylog, QUICK_RANGES } from "@/lib/graylog";
-import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings } from "@/lib/settings";
+import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings, type TerminalSettings } from "@/lib/settings";
 import * as cache from "@/lib/cache";
 import { clientFor, useApp } from "@/store";
 import { failureReason } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
+import { invoke } from "@tauri-apps/api/core";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
@@ -618,17 +619,27 @@ export function TerminalPage({ s, patch }: { s: Settings; patch: Patch }) {
   return (
     <>
       <Section title="Sessions">
-        <Row>
-          <Checkbox
-            checked={t.useTmux}
-            onChange={(v) => set("useTmux", v)}
-            label="Persist sessions with tmux"
-            hint="A terminal keeps running after Flux closes, and comes back where you left it."
+        <Row
+          label="Terminal engine"
+          hint="The shell is what every machine has. tmux keeps a session running after Flux closes, and gives it back where you left it."
+        >
+          <Select
+            value={t.engine}
+            onChange={(v) => set("engine", v)}
+            options={[
+              { value: "shell", label: "Shell" },
+              { value: "tmux", label: "tmux" },
+            ]}
           />
         </Row>
-        <Row label="tmux path" hint="Leave empty to find it on PATH, through your login shell.">
-          <Text value={t.tmuxPath} onChange={(v) => set("tmuxPath", v)} width={260} placeholder="/opt/homebrew/bin/tmux" mono />
-        </Row>
+        {t.engine === "tmux" && (
+          <>
+            <TmuxCheck settings={t} />
+            <Row label="tmux path" hint="Leave empty to find it on PATH, through your login shell.">
+              <Text value={t.tmuxPath} onChange={(v) => set("tmuxPath", v)} width={260} placeholder="/opt/homebrew/bin/tmux" mono />
+            </Row>
+          </>
+        )}
         <Row label="On quit" hint="What happens to sessions still running when Flux closes.">
           <Select
             value={t.onQuit}
@@ -647,6 +658,36 @@ export function TerminalPage({ s, patch }: { s: Settings; patch: Patch }) {
         </Row>
       </Section>
     </>
+  );
+}
+
+/**
+ * Whether the tmux that was chosen is actually there, asked of the machine rather than
+ * assumed: the setting is the one place to find out before a terminal fails to open with it.
+ */
+function TmuxCheck({ settings }: { settings: TerminalSettings }) {
+  const [found, setFound] = useState<boolean | null>(null);
+  const tmux = settings.tmuxPath.trim() || "tmux";
+  const shell = settings.shell.trim();
+
+  useEffect(() => {
+    let current = true;
+    void invoke("terminal_run", { program: shell, args: ["-l", "-c", `command -v ${tmux} >/dev/null`] })
+      .then(() => current && setFound(true))
+      .catch(() => current && setFound(false));
+    return () => {
+      current = false;
+    };
+  }, [tmux, shell]);
+
+  if (found !== false) return null;
+  return (
+    <Row>
+      <p className="text-[12px]" style={{ color: "var(--amber)" }}>
+        {tmux} was not found. Install it — <span className="font-[var(--font-mono)]">brew install tmux</span> — or leave the engine on Shell; until
+        then a terminal opens without persistence.
+      </p>
+    </Row>
   );
 }
 
