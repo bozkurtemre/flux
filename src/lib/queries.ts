@@ -47,6 +47,15 @@ export function upsert(queries: SavedQuery[], entry: SavedQuery): SavedQuery[] {
   return queries.some((q) => q.id === entry.id) ? queries.map((q) => (q.id === entry.id ? entry : q)) : [entry, ...queries];
 }
 
+/**
+ * The line joins the history once: running the same query again moves it up rather than
+ * repeating it, which is what makes the list readable after an afternoon.
+ */
+export function remember<T extends { query: string; streamLabel: string }>(history: T[], entry: T, limit = 100): T[] {
+  const same = (h: T) => h.query.trim() === entry.query.trim() && h.streamLabel === entry.streamLabel;
+  return [entry, ...history.filter((h) => !same(h))].slice(0, limit);
+}
+
 let store: Store | undefined;
 async function file(): Promise<Store> {
   store ??= await load(QUERIES_FILE, { autoSave: false });

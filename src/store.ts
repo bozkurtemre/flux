@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Graylog, absolute, bucketFor, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
-import { loadSession, saveSession, type SavedTab } from "@/lib/session";
+import { loadSession, saveSession, type RanQuery, type SavedTab } from "@/lib/session";
 import {
   chosenConnections,
   readWorkspaceFile,
@@ -17,7 +17,7 @@ import {
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
-import { loadQueries, nameFor, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
+import { loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -109,6 +109,8 @@ interface State {
   showTerminal: boolean;
   /** The saved queries of the workspace that is open, newest first. */
   savedQueries: SavedQuery[];
+  /** Every query that was run, newest first, whether it was worth saving or not. */
+  history: RanQuery[];
   showQueries: boolean;
   /** The timeline folded away for now, as opposed to turned off in Settings. */
   timelineOpen: boolean;
@@ -174,6 +176,9 @@ interface State {
   showPatterns: (tabId: string, field: string) => void;
   openAround: (tabId: string, at: string, seconds: number) => void;
   openSavedQuery: (id: string) => void;
+  /** Run something out of the history again, in the console it belongs to. */
+  openHistory: (id: string) => void;
+  clearHistory: () => void;
   renameSavedQuery: (id: string, name: string) => void;
   deleteSavedQuery: (id: string) => void;
   setTerminalSize: (size: number) => void;
@@ -230,6 +235,7 @@ export const useApp = create<State>((set, get) => ({
   terminals: [],
   showTerminal: false,
   savedQueries: [],
+  history: [],
   showQueries: false,
   timelineOpen: true,
   terminalSize: 32,
@@ -384,29 +390,17 @@ export const useApp = create<State>((set, get) => ({
 
   openSavedQuery: (id) => {
     const query = get().savedQueries.find((q) => q.id === id);
-    if (!query) return;
-    const conn = get().settings.connections.find((c) => c.id === query.connId);
-    if (!conn) {
-      return get().notify("error", query.name, "The connection this query was saved against is no longer set up.");
-    }
-    // a saved query belongs to its own stream, so it opens the console for that stream
-    // rather than landing in whichever one happens to be in front
-    const tabId = query.streamIds[0] ? `s:${query.connId}:${query.streamIds[0]}` : `q:${query.id}`;
-    if (!get().tabs.some((t) => t.id === tabId)) {
-      const tab = blankTab(get().settings, conn, {
-        id: tabId,
-        title: query.streamLabel || query.name,
-        connId: query.connId,
-        streamIds: query.streamIds,
-        streamLabel: query.streamLabel,
-      });
-      set({ tabs: [...get().tabs, tab], activeTab: tabId });
-      void loadFields(tabId, set, get);
-    } else {
-      set({ activeTab: tabId });
-    }
-    get().patchTab(tabId, { query: query.query, rangeSeconds: query.rangeSeconds, savedQueryId: query.id, offset: 0 });
-    void get().runQuery(tabId);
+    if (query) runSomewhere(set, get, query, query.id);
+  },
+
+  openHistory: (id) => {
+    const ran = get().history.find((h) => h.id === id);
+    if (ran) runSomewhere(set, get, { ...ran, name: ran.query || "*" });
+  },
+
+  clearHistory: () => {
+    set({ history: [] });
+    persist(get);
   },
 
   toggleFollow: (tabId) => {
@@ -989,6 +983,19 @@ export const useApp = create<State>((set, get) => ({
         Promise.all(grouped),
         timeline,
       ]);
+      // what was run is worth keeping whether or not it was worth saving
+      set({
+        history: rememberQuery(get().history, {
+          id: crypto.randomUUID(),
+          query: tab.query,
+          connId: tab.connId,
+          streamIds: tab.streamIds,
+          streamLabel: tab.streamLabel,
+          rangeSeconds: tab.rangeSeconds,
+          at: now(),
+          rows: total || page.rows.length,
+        }),
+      });
       patchTab(id, {
         page,
         histogram: histogram.length ? histogram : undefined,
@@ -1067,6 +1074,38 @@ function blankTab(
   };
 }
 
+/**
+ * A query goes back to the console for the stream it belongs to, rather than landing in
+ * whichever one happens to be in front. Saved and run-before both arrive here.
+ */
+function runSomewhere(
+  set: Setter,
+  get: Getter,
+  q: { name: string; query: string; connId: string; streamIds: string[]; streamLabel: string; rangeSeconds: number },
+  savedQueryId?: string,
+): void {
+  const conn = get().settings.connections.find((c) => c.id === q.connId);
+  if (!conn) {
+    return get().notify("error", q.name, "The connection this query was saved against is no longer set up.");
+  }
+  const tabId = q.streamIds[0] ? `s:${q.connId}:${q.streamIds[0]}` : `q:${savedQueryId ?? q.connId}`;
+  if (!get().tabs.some((t) => t.id === tabId)) {
+    const tab = blankTab(get().settings, conn, {
+      id: tabId,
+      title: q.streamLabel || q.name,
+      connId: q.connId,
+      streamIds: q.streamIds,
+      streamLabel: q.streamLabel,
+    });
+    set({ tabs: [...get().tabs, tab], activeTab: tabId });
+    void loadFields(tabId, set, get);
+  } else {
+    set({ activeTab: tabId });
+  }
+  get().patchTab(tabId, { query: q.query, rangeSeconds: q.rangeSeconds, savedQueryId, offset: 0 });
+  void get().runQuery(tabId);
+}
+
 /** Keep an entry, point the tab at it, and show the panel it landed in. */
 function keepQuery(set: Setter, get: Getter, tab: Tab, entry: SavedQuery): void {
   set({ savedQueries: upsert(get().savedQueries, entry), showQueries: true });
@@ -1124,7 +1163,8 @@ export async function loadGlobals(): Promise<{ current?: string; recents: Recent
 }
 
 function persist(get: Getter) {
-  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, inspectorSize, projectFolders } = get();
+  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, inspectorSize, projectFolders, history } =
+    get();
   saveSession(
     {
       expanded,
@@ -1137,6 +1177,7 @@ function persist(get: Getter) {
       terminalSize,
       inspectorSize,
       projectFolders,
+      history: history.slice(0, 100),
     },
     get().workspaceFolder,
   );
@@ -1162,6 +1203,7 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     showTerminal: !!w.showTerminal && terminals.length > 0,
     terminalSize: w.terminalSize ?? 32,
     inspectorSize: w.inspectorSize ?? 30,
+    history: w.history ?? [],
   });
 
   const live = new Set(chosenConnections(get().settings.connections, get().workspaceConnections).map((c) => c.id));

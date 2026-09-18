@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Settings2, SunMoon, FoldVertical, RefreshCw } from "lucide-react";
+import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw } from "lucide-react";
 import { ConnectionIcon, EndpointIcon, ProjectIcon, StreamIcon } from "./icons";
 import { useApp, type TreeNode } from "@/store";
 
-type Tab = "all" | "streams" | "endpoints" | "projects" | "actions";
+type Tab = "all" | "streams" | "endpoints" | "projects" | "queries" | "actions";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "projects", label: "Projects" },
   { id: "streams", label: "Streams" },
   { id: "endpoints", label: "Endpoints" },
+  { id: "queries", label: "Queries" },
   { id: "actions", label: "Actions" },
 ];
 
@@ -113,6 +114,24 @@ export function SearchEverywhere() {
       });
     };
 
+    // what has been run, which is usually what is being looked for again
+    if (tab === "all" || tab === "queries") {
+      for (const h of app.history) {
+        const score = match(q, h.query || "*") ?? match(q, h.streamLabel);
+        if (score == null) continue;
+        out.push({
+          key: `h:${h.id}`,
+          group: "Queries",
+          title: h.query || "*",
+          sub: h.streamLabel,
+          trailing: h.rows != null ? `${h.rows.toLocaleString()} rows` : "",
+          score,
+          icon: <History size={13} style={{ color: "var(--text-dim)" }} />,
+          run: () => app.openHistory(h.id),
+        });
+      }
+    }
+
     const wanted: TreeNode["kind"][] =
       tab === "streams"
         ? ["stream"]
@@ -120,11 +139,11 @@ export function SearchEverywhere() {
           ? ["endpoint"]
           : tab === "projects"
             ? ["project"]
-            : tab === "actions"
+            : tab === "actions" || tab === "queries"
               ? []
               : ["connection", "project", "stream", "endpoint"];
 
-    if (tab !== "actions") for (const n of Object.values(nodes)) if (wanted.includes(n.kind)) push(n);
+    if (tab !== "actions" && tab !== "queries") for (const n of Object.values(nodes)) if (wanted.includes(n.kind)) push(n);
 
     if (tab === "all" || tab === "actions") {
       for (const a of actions) {
@@ -133,9 +152,9 @@ export function SearchEverywhere() {
       }
     }
 
-    const order = ["Actions", "Connections", "Projects", "Streams", "Endpoints"];
+    const order = ["Actions", "Queries", "Connections", "Projects", "Streams", "Endpoints"];
     return out.sort((a, b) => b.score - a.score || order.indexOf(a.group) - order.indexOf(b.group) || a.title.localeCompare(b.title)).slice(0, 60);
-  }, [query, tab, nodes, actions, settings.connections, openTab, revealNode]);
+  }, [query, tab, nodes, actions, settings.connections, openTab, revealNode, app]);
 
   useEffect(() => {
     listRef.current?.querySelector('[data-active="1"]')?.scrollIntoView({ block: "nearest" });

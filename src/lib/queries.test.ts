@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nameFor, unsaved, upsert, type SavedQuery } from "./queries";
+import { nameFor, remember, unsaved, upsert, type SavedQuery } from "./queries";
 
 const query = (over: Partial<SavedQuery> = {}): SavedQuery => ({
   id: "q1",
@@ -52,5 +52,28 @@ describe("keeping the list", () => {
     const list = upsert([query({ id: "q0" }), query()], query({ query: "level:WARN" }));
     expect(list.map((q) => q.id)).toEqual(["q0", "q1"]);
     expect(list[1].query).toBe("level:WARN");
+  });
+});
+
+describe("what was run before", () => {
+  const ran = (query: string, streamLabel = "payments") => ({ query, streamLabel });
+
+  it("puts the newest first and does not repeat itself", () => {
+    const one = remember([], ran("level:ERROR"));
+    const two = remember(one, ran("level:WARN"));
+    const again = remember(two, ran("level:ERROR"));
+    expect(again.map((h) => h.query)).toEqual(["level:ERROR", "level:WARN"]);
+  });
+
+  it("tells the same query on another stream apart", () => {
+    const list = remember(remember([], ran("level:ERROR", "payments")), ran("level:ERROR", "orders"));
+    expect(list).toHaveLength(2);
+  });
+
+  it("keeps an afternoon, not a career", () => {
+    let list: { query: string; streamLabel: string }[] = [];
+    for (let i = 0; i < 150; i++) list = remember(list, ran(`q${i}`));
+    expect(list).toHaveLength(100);
+    expect(list[0].query).toBe("q149");
   });
 });

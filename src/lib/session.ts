@@ -32,6 +32,19 @@ export interface SavedTerminal {
   title: string;
 }
 
+/** One run of a console, so a query nobody saved can still be found again. */
+export interface RanQuery {
+  id: string;
+  query: string;
+  connId: string;
+  streamIds: string[];
+  streamLabel: string;
+  rangeSeconds: number;
+  /** Seconds since the epoch, and how many rows came back. */
+  at: number;
+  rows?: number;
+}
+
 export interface Session {
   format: number;
   expanded: Record<string, boolean>;
@@ -47,6 +60,8 @@ export interface Session {
   terminalSize?: number;
   /** Width of the value inspector, as a percentage of the results area. */
   inspectorSize?: number;
+  /** The queries that were run, newest first. */
+  history?: RanQuery[];
 }
 
 const empty: Session = { format: FORMAT, expanded: {}, tabs: [], projectFolders: {}, terminals: [] };

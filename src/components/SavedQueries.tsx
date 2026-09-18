@@ -2,11 +2,91 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { ClipboardCopy, Filter, Pencil, SquareTerminal, Trash2 } from "lucide-react";
+import { ClipboardCopy, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 
 export function SavedQueries() {
+  const [page, setPage] = useState<"saved" | "history">("saved");
+  return (
+    <div className="island flex h-full flex-col overflow-hidden">
+      <div className="flex h-[26px] shrink-0 items-center gap-1 px-1.5" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+        {(["saved", "history"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPage(p)}
+            className="h-[18px] rounded px-1.5 text-[11px] font-medium"
+            style={{ background: page === p ? "var(--bg-active)" : undefined, color: page === p ? "var(--text)" : "var(--text-dim)" }}
+          >
+            {p === "saved" ? "Saved" : "History"}
+          </button>
+        ))}
+      </div>
+      {page === "saved" ? <SavedList /> : <HistoryList />}
+    </div>
+  );
+}
+
+/** Everything run in this window, newest first, whether it was worth saving or not. */
+function HistoryList() {
+  const { history, openHistory, clearHistory } = useApp();
+  const [filter, setFilter] = useState("");
+  const needle = filter.trim().toLowerCase();
+  const shown = needle ? history.filter((h) => `${h.query} ${h.streamLabel}`.toLowerCase().includes(needle)) : history;
+
+  if (!history.length) {
+    return (
+      <p className="p-3 text-[12px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        Nothing run yet. Every query you execute is kept here, and ⇧⇧ finds them too.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div className="mx-2 mt-1 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
+        <Filter size={11} style={{ color: "var(--text-muted)" }} />
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Filter…"
+          spellCheck={false}
+          className="selectable h-full w-full bg-transparent text-[12px] outline-none placeholder:text-[var(--text-muted)]"
+          style={{ color: "var(--text)" }}
+        />
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto pb-1">
+        {shown.map((h) => (
+          <div
+            key={h.id}
+            onClick={() => openHistory(h.id)}
+            className="flex cursor-default flex-col gap-0.5 px-2 py-1.5"
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+          >
+            <span className="truncate font-[var(--font-mono)] text-[11px]" style={{ color: "var(--text)" }} title={h.query}>
+              {h.query || "*"}
+            </span>
+            <span className="flex gap-2 truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
+              <span className="truncate">{h.streamLabel}</span>
+              <span className="ml-auto shrink-0 tabular-nums">{h.rows != null ? `${h.rows.toLocaleString()} rows` : ""}</span>
+              <span className="shrink-0 tabular-nums">{new Date(h.at * 1000).toLocaleTimeString()}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={clearHistory}
+        className="flex h-[24px] shrink-0 items-center gap-1.5 px-2 text-[11px] hover:bg-[var(--bg-hover)]"
+        style={{ borderTop: "1px solid var(--border-soft)", color: "var(--text-dim)" }}
+      >
+        <History size={11} /> Clear history
+      </button>
+    </>
+  );
+}
+
+function SavedList() {
   const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
@@ -22,16 +102,7 @@ export function SavedQueries() {
   }, [savedQueries, filter]);
 
   return (
-    <div className="island flex h-full flex-col overflow-hidden">
-      <div className="flex h-[26px] shrink-0 items-center gap-2 px-2" style={{ borderBottom: "1px solid var(--border-soft)" }}>
-        <span className="text-[11px] font-medium" style={{ color: "var(--text-dim)" }}>
-          Saved Queries
-        </span>
-        <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-          {filter.trim() ? `${shown.length}/${savedQueries.length}` : savedQueries.length || ""}
-        </span>
-      </div>
-
+    <>
       {savedQueries.length > 0 && (
         <div className="mx-2 mt-1 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
           <Filter size={11} style={{ color: "var(--text-muted)" }} />
@@ -138,7 +209,7 @@ export function SavedQueries() {
           onCancel={() => setConfirm(null)}
         />
       )}
-    </div>
+    </>
   );
 }
 
