@@ -3,6 +3,17 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.11.0
+
+### Added
+
+- **Watch a saved query.** Right-click one and Flux counts what has arrived since the last
+  round, once a minute, telling you in a balloon and in a notification outside the window. It
+  runs while Flux is open and not a moment longer — there is no service behind it.
+- **An endpoint's console draws how it behaved**, not only how much it said: the 95th
+  percentile of its duration and the share that failed, as two lines over the same buckets as
+  the timeline.
+
 ## 0.10.0
 
 ### Added
