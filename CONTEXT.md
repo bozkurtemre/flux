@@ -31,6 +31,12 @@ A query kept by name in the workspace it was written in, together with the strea
 written against. Opening one opens that stream's console and runs it there.
 _Avoid_: bookmark, favourite, snippet
 
+**Between clause**:
+A `between <from> and <to>` written in a console, in ISO time. It replaces "the last N
+minutes" for that console: the window is part of the query, so it can be read, edited and
+saved like the rest of it.
+_Avoid_: absolute range, time filter, pinned window
+
 **Group by clause**:
 A `| group by <field>` written after the query in a console. Each one asks Graylog for a
 count per value of that field and gets its own table above the messages; the messages

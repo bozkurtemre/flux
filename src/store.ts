@@ -16,7 +16,7 @@ import {
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { fieldClause, parseQuery, withClause, withGroupBy } from "@/lib/query";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy } from "@/lib/query";
 import { loadQueries, nameFor, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
@@ -66,8 +66,6 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
-  /** A fixed window to search, instead of the last `rangeSeconds`. */
-  around?: { from: string; to: string };
   /** The saved query this console was opened from, if it was. */
   savedQueryId?: string;
   /** One table per `| group by` clause in the query, above the messages. */
@@ -421,9 +419,12 @@ export const useApp = create<State>((set, get) => ({
     if (!tab || !conn) return;
     const centre = new Date(at);
     if (Number.isNaN(centre.getTime())) return;
-    const from = new Date(centre.getTime() - seconds * 1000).toISOString();
-    const to = new Date(centre.getTime() + seconds * 1000).toISOString();
-    const id = `around:${tab.id}:${from}`;
+    const from = new Date(centre.getTime() - seconds * 1000);
+    const to = new Date(centre.getTime() + seconds * 1000);
+    // the window is written into the query, where it can be read and edited like the rest of
+    // what the console is asking
+    const query = withBetween("", from, to);
+    const id = `around:${tab.id}:${from.toISOString()}`;
     if (!get().tabs.some((t) => t.id === id)) {
       const next = blankTab(get().settings, conn, {
         id,
@@ -432,10 +433,11 @@ export const useApp = create<State>((set, get) => ({
         streamIds: tab.streamIds,
         streamLabel: tab.streamLabel,
       });
-      set({ tabs: [...get().tabs, { ...next, around: { from, to } }], activeTab: id });
+      set({ tabs: [...get().tabs, { ...next, query }], activeTab: id });
       void loadFields(id, set, get);
     } else {
       set({ activeTab: id });
+      get().patchTab(id, { query });
     }
     void get().runQuery(id);
     persist(get);
@@ -852,9 +854,9 @@ export const useApp = create<State>((set, get) => ({
       if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
       const to = new Date();
       const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
-      // a tab opened around a message searches that window rather than the last minutes
-      const timerange = tab.around
-        ? absolute(new Date(tab.around.from), new Date(tab.around.to))
+      // a line that names a window searches it; everything else searches the last minutes
+      const timerange = parsed.between
+        ? absolute(new Date(parsed.between.from), new Date(parsed.between.to))
         : absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to);
       const client = clientFor(conn);
       // Each clause is its own aggregation: one row per value of the field with how many
@@ -984,7 +986,6 @@ const savedShape = (t: Tab): SavedTab => ({
   columns: t.columns,
   layout: t.layout,
   savedQueryId: t.savedQueryId,
-  around: t.around,
 });
 
 /**

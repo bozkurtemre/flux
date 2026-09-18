@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldClause, parseQuery, withClause, withGroupBy } from "./query";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy } from "./query";
 
 describe("reading the console line", () => {
   it("takes the whole line as the query when nothing is grouped", () => {
@@ -69,5 +69,45 @@ describe("narrowing from a row", () => {
 
   it("groups everything when there is no query to group", () => {
     expect(withGroupBy("", "route")).toBe("group by route");
+  });
+});
+
+describe("a window named in the line", () => {
+  it("is read off the line and taken out of the query", () => {
+    const parsed = parseQuery("level:ERROR | between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z");
+    expect(parsed).toEqual({
+      search: "level:ERROR",
+      groupBy: [],
+      between: { from: "2026-09-18T14:03:21Z", to: "2026-09-18T14:13:21Z" },
+    });
+  });
+
+  it("sits beside the tables, in either order", () => {
+    expect(parseQuery("* | between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z | group by route")).toEqual({
+      search: "*",
+      groupBy: ["route"],
+      between: { from: "2026-09-18T14:03:21Z", to: "2026-09-18T14:13:21Z" },
+    });
+    expect(parseQuery("* | group by route | between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z").groupBy).toEqual(["route"]);
+  });
+
+  it("is a window on its own, with everything searched in it", () => {
+    expect(parseQuery("between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z").search).toBe("");
+  });
+
+  it("stays in the line, and out of the search, when the dates make no sense", () => {
+    const parsed = parseQuery("between yesterday and tomorrow");
+    expect(parsed.between).toBeUndefined();
+    expect(parsed.search).toBe("between yesterday and tomorrow");
+  });
+
+  it("is written to the second, and replaces the one before it", () => {
+    const from = new Date("2026-09-18T14:03:21.123Z");
+    const to = new Date("2026-09-18T14:13:21.123Z");
+    expect(withBetween("level:ERROR", from, to)).toBe("level:ERROR | between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z");
+    expect(withBetween("level:ERROR | between 2020-01-01T00:00:00Z and 2020-01-02T00:00:00Z", from, to)).toBe(
+      "level:ERROR | between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z",
+    );
+    expect(withBetween("", from, to)).toBe("between 2026-09-18T14:03:21Z and 2026-09-18T14:13:21Z");
   });
 });
