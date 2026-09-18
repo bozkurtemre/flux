@@ -1096,7 +1096,9 @@ export const useApp = create<State>((set, get) => ({
           sortOrder: tab.sortOrder,
           signal: stop.signal,
         }),
-        client.count({ query, streams: tab.streamIds, timerange, signal: stop.signal }),
+        // the rows are the answer; a total that will not come is a number missing from the
+        // footer, not a query that failed
+        client.count({ query, streams: tab.streamIds, timerange, signal: stop.signal }).catch(() => 0),
         Promise.all(grouped),
         timeline,
       ]);

@@ -154,6 +154,26 @@ export class Graylog {
   }
 
   /**
+   * The views API, which is how the Graylog interface itself asks: a search is created, then
+   * executed. Three questions need it — the timeline, an endpoint's latency, and a total —
+   * because the scripting API cannot answer any of them.
+   */
+  private async views<T>(search: unknown, signal?: AbortSignal): Promise<Record<string, { search_types: Record<string, T> }>> {
+    const created = await this.call<{ id: string }>("/api/views/search", { signal, method: "POST", body: JSON.stringify(search) });
+    const run = await this.call<{ results: Record<string, { search_types: Record<string, T> }> }>(`/api/views/search/${created.id}/execute`, {
+      signal,
+      method: "POST",
+      body: "{}",
+    });
+    return run.results;
+  }
+
+  /** A stream filter in the shape the views API takes, or nothing when every stream will do. */
+  private static streamFilter(streams: string[]) {
+    return streams.length ? { filter: { type: "or", filters: streams.map((id) => ({ type: "stream", id })) } } : {};
+  }
+
+  /**
    * Counts per time bucket, for the timeline over the results. `/api/search/aggregate` has no
    * time pivot in 5.2 — it answers "Unable to map property type" — so this goes the way the
    * Graylog UI itself goes: a search is created, then executed, and the pivot it asked for
@@ -207,7 +227,7 @@ export class Graylog {
     interval: string;
     signal?: AbortSignal;
   }): Promise<Bucket[]> {
-    const filter = o.streams.length ? { filter: { type: "or", filters: o.streams.map((id) => ({ type: "stream", id })) } } : {};
+    const filter = Graylog.streamFilter(o.streams);
     const bucket = (id: string, series: unknown[]) => ({
       id,
       type: "pivot",
@@ -263,11 +283,29 @@ export class Graylog {
     }));
   }
 
-  /** Total messages matching a query, used for result counts. */
+  /**
+   * Total messages matching a query.
+   *
+   * Not through `/api/search/aggregate`: that endpoint refuses an aggregation with nothing to
+   * group by — `groupings: must not be empty`, a 400 — which is exactly what a total is. The
+   * views API takes a pivot with no rows at all and answers with the rollup.
+   */
   async count(o: { query: string; streams: string[]; timerange: TimeRange; signal?: AbortSignal }): Promise<number> {
-    const r = await this.aggregate({ ...o, groupBy: [], metrics: [{ function: "count" }] }).catch(() => null);
-    if (r?.rows.length) return Number(r.rows[0][r.rows[0].length - 1]) || 0;
-    return 0;
+    const results = await this.views<{ rows?: { values: { value: number }[] }[] }>(
+      {
+        queries: [
+          {
+            id: "q",
+            query: { type: "elasticsearch", query_string: o.query || "*" },
+            timerange: o.timerange,
+            ...Graylog.streamFilter(o.streams),
+            search_types: [{ id: "t", type: "pivot", rollup: true, row_groups: [], series: [{ type: "count", id: "count()" }] }],
+          },
+        ],
+      },
+      o.signal,
+    );
+    return Number(results.q?.search_types.t?.rows?.[0]?.values[0]?.value ?? 0) || 0;
   }
 }
 
