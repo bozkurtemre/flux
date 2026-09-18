@@ -110,6 +110,8 @@ interface State {
   /** The saved queries of the workspace that is open, newest first. */
   savedQueries: SavedQuery[];
   showQueries: boolean;
+  /** The timeline folded away for now, as opposed to turned off in Settings. */
+  timelineOpen: boolean;
   /** The tab whose query is being named, while the dialog is up. */
   namingQuery?: string;
   terminalSize: number;
@@ -159,6 +161,7 @@ interface State {
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
   toggleQueries: () => void;
+  toggleTimeline: () => void;
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
@@ -227,6 +230,7 @@ export const useApp = create<State>((set, get) => ({
   showTerminal: false,
   savedQueries: [],
   showQueries: false,
+  timelineOpen: true,
   terminalSize: 32,
   inspectorSize: 30,
   projectFolders: {},
@@ -350,6 +354,7 @@ export const useApp = create<State>((set, get) => ({
   },
 
   toggleQueries: () => set({ showQueries: !get().showQueries }),
+  toggleTimeline: () => set({ timelineOpen: !get().timelineOpen }),
 
   saveActiveQuery: () => {
     const tab = get().tabs.find((t) => t.id === get().activeTab);

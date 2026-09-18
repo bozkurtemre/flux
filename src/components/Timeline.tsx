@@ -2,6 +2,7 @@
 // the `between` clause into the query, which is how a range is narrowed everywhere else too:
 // the bar chart is a way of writing the same line the console would take typed.
 import { useRef, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatTs } from "./ResultGrid";
 import { withBetween } from "@/lib/query";
 import { useApp, type Tab } from "@/store";
@@ -9,7 +10,7 @@ import { useApp, type Tab } from "@/store";
 const HEIGHT = 56;
 
 export function Timeline({ tab }: { tab: Tab }) {
-  const { patchTab, runQuery, settings } = useApp();
+  const { patchTab, runQuery, settings, timelineOpen, toggleTimeline } = useApp();
   const host = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ from: number; to: number } | null>(null);
   const buckets = tab.histogram ?? [];
@@ -57,26 +58,35 @@ export function Timeline({ tab }: { tab: Tab }) {
 
   return (
     <div className="shrink-0 px-2 pt-1.5 pb-1" style={{ borderBottom: "1px solid var(--border-soft)" }}>
-      <div className="flex items-end gap-2 pb-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+      <div className="flex items-center gap-1.5 pb-1 text-[10px]" style={{ color: "var(--text-muted)" }}>
+        <button
+          onClick={toggleTimeline}
+          data-tip={timelineOpen ? "Hide the timeline" : "Show the timeline"}
+          className="flex size-3.5 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+        >
+          {timelineOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        </button>
         <span>{total.toLocaleString()} messages</span>
-        <span className="ml-auto">drag to narrow the range</span>
+        {timelineOpen && <span className="ml-auto">drag to narrow the range</span>}
       </div>
-      <div ref={host} onMouseDown={onDown} className="flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
-        {buckets.map((b, i) => (
-          <div
-            key={b.at}
-            data-tip={label(b)}
-            className="flex-1"
-            style={{
-              height: `${Math.max(2, (b.count / peak) * HEIGHT)}px`,
-              minWidth: 2,
-              background: "var(--accent)",
-              opacity: drag ? (selected(i) ? 1 : 0.35) : 0.75,
-              borderRadius: 1,
-            }}
-          />
-        ))}
-      </div>
+      {timelineOpen && (
+        <div ref={host} onMouseDown={onDown} className="flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
+          {buckets.map((b, i) => (
+            <div
+              key={b.at}
+              data-tip={label(b)}
+              className="flex-1"
+              style={{
+                height: `${Math.max(2, (b.count / peak) * HEIGHT)}px`,
+                minWidth: 2,
+                background: "var(--accent)",
+                opacity: drag ? (selected(i) ? 1 : 0.35) : 0.75,
+                borderRadius: 1,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
