@@ -2,7 +2,7 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { Filter, Trash2 } from "lucide-react";
+import { ClipboardCopy, Filter, Pencil, SquareTerminal, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 
@@ -102,11 +102,11 @@ export function SavedQueries() {
           y={menu.y}
           items={
             [
-              { label: "Open", onClick: () => openSavedQuery(menu.id) },
-              { label: "Copy query", onClick: () => void navigator.clipboard.writeText(menu.query) },
-              { label: "Rename…", onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
+              { label: "Open", icon: <SquareTerminal size={12} />, onClick: () => openSavedQuery(menu.id) },
+              { label: "Copy query", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.query) },
+              { label: "Rename…", icon: <Pencil size={12} />, onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
               { separator: true },
-              { label: "Delete", danger: true, onClick: () => setConfirm({ id: menu.id, name: menu.name }) },
+              { label: "Delete", icon: <Trash2 size={12} />, danger: true, onClick: () => setConfirm({ id: menu.id, name: menu.name }) },
             ] satisfies MenuItem[]
           }
           onClose={() => setMenu(null)}
