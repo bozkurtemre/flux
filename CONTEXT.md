@@ -26,6 +26,11 @@ A route a service answers on, derived from the logs of a stream rather than decl
 anywhere.
 _Avoid_: route, path, URL
 
+**Saved query**:
+A query kept by name in the workspace it was written in, together with the stream it was
+written against. Opening one opens that stream's console and runs it there.
+_Avoid_: bookmark, favourite, snippet
+
 **Group by clause**:
 A `| group by <field>` written after the query in a console. Each one asks Graylog for a
 count per value of that field and gets its own table above the messages; the messages

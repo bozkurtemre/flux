@@ -21,6 +21,8 @@ export interface SavedTab {
   rangeSeconds: number;
   columns: string[];
   layout?: string[];
+  /** The saved query it was opened from, so the tab still knows after a restart. */
+  savedQueryId?: string;
 }
 
 /** A terminal tab is its project and its name; the shell behind it is tmux's problem. */

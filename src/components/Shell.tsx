@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  Bookmark,
   Bug,
   ChevronDown,
   GitBranch,
@@ -155,7 +156,7 @@ export function LeftStripe() {
 }
 
 export function RightStripe() {
-  const { tabs, activeTab, patchTab } = useApp();
+  const { tabs, activeTab, patchTab, showQueries, toggleQueries } = useApp();
   const tab = tabs.find((t) => t.id === activeTab);
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
@@ -165,6 +166,9 @@ export function RightStripe() {
         onClick={() => tab && patchTab(tab.id, { selectedRow: tab.selectedRow == null ? 0 : undefined })}
       >
         <PanelRight size={16} />
+      </StripeButton>
+      <StripeButton tip="Saved Queries" active={showQueries} onClick={toggleQueries}>
+        <Bookmark size={16} />
       </StripeButton>
     </div>
   );

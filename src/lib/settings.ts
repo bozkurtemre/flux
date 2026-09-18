@@ -325,6 +325,7 @@ export const SHORTCUTS: { group: string; keys: string; action: string }[] = [
   { group: "Query Console", keys: "⌘⏎", action: "Execute query" },
   { group: "Query Console", keys: "⌃Space", action: "Complete field name" },
   { group: "Query Console", keys: "⌘R", action: "Refresh results" },
+  { group: "Query Console", keys: "⌘S", action: "Save query" },
   { group: "Search", keys: "⇧⇧", action: "Search Everywhere" },
   { group: "Search", keys: "⌘⇧F", action: "Search Everywhere" },
   { group: "Search", keys: "⇧⌘O", action: "Go to Endpoint" },

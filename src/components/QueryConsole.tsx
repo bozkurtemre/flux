@@ -8,8 +8,9 @@ import { solr } from "@codemirror/legacy-modes/mode/solr";
 import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { Play, RotateCw } from "lucide-react";
+import { Play, RotateCw, Save } from "lucide-react";
 import { QUICK_RANGES } from "@/lib/graylog";
+import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
 
 const highlight = HighlightStyle.define([
@@ -42,8 +43,9 @@ const clauses = ViewPlugin.fromClass(
 );
 
 export function QueryConsole({ tab }: { tab: Tab }) {
-  const { patchTab, runQuery, settings } = useApp();
+  const { patchTab, runQuery, settings, saveActiveQuery, savedQueries } = useApp();
   const e = settings.editor;
+  const dirty = unsaved(tab, savedQueries);
 
   const extensions = useMemo(() => {
     const fieldNames = tab.fields.map((f) => f.name);
@@ -106,6 +108,14 @@ export function QueryConsole({ tab }: { tab: Tab }) {
           className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
         >
           <RotateCw size={13} style={{ color: "var(--text-dim)" }} />
+        </button>
+        <button
+          onClick={() => saveActiveQuery()}
+          data-tip={dirty ? "Save query — edited since it was saved" : "Save query"}
+          data-tip-key="⌘S"
+          className="relative flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+        >
+          <Save size={13} style={{ color: dirty ? "var(--accent)" : "var(--text-dim)" }} />
         </button>
         <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
         <select

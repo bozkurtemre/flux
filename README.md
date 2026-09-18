@@ -143,8 +143,9 @@ Three tiers, split by what happens if a file is lost.
 | `projects.json`      | config directory   | how streams are grouped; worth sharing with a team       |
 | `preferences.json`   | config directory   | how you like the window                                  |
 | `session.json`       | config directory   | which tabs and branches were open with no workspace open |
+| `queries.json`       | config directory   | the queries you kept with no workspace open              |
 | `.window-state.json` | config directory   | the size and place of the window                         |
-| `<folder>/.flux/`    | the workspace      | that folder's stream grouping and its own session        |
+| `<folder>/.flux/`    | the workspace      | that folder's stream grouping, saved queries and session |
 | Introspection cache  | OS cache directory | nothing, it is re-read from Graylog                      |
 
 `connections.json` holds access tokens in the clear, so treat it as a credential: do not

@@ -8,6 +8,7 @@ import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
+import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
 import { About } from "@/components/About";
@@ -22,8 +23,9 @@ import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
 export default function App() {
-  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal, terminalSize, setTerminalSize } = useApp();
+  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal, terminalSize, setTerminalSize, showQueries } = useApp();
   const terminalPanel = useRef<PanelImperativeHandle>(null);
+  const queriesPanel = useRef<PanelImperativeHandle>(null);
   const [askQuit, setAskQuit] = useState(false);
   const [remember, setRemember] = useState(false);
 
@@ -52,6 +54,11 @@ export default function App() {
       }
       // Cmd+R re-runs the query rather than reloading the window, which is what the webview
       // would otherwise do with it.
+      // ⌘S keeps the query, as it saves a file everywhere else
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && activeTab) {
+        e.preventDefault();
+        useApp.getState().saveActiveQuery();
+      }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "r" && activeTab) {
         e.preventDefault();
         void runQuery(activeTab);
@@ -109,6 +116,18 @@ export default function App() {
     // terminalSize is deliberately absent: dragging must not re-drive the panel it came from
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTerminal]);
+
+  // the right tool window answers its stripe button the way the terminal answers its own
+  useEffect(() => {
+    const panel = queriesPanel.current;
+    if (!panel) return;
+    if (showQueries) {
+      panel.expand();
+      panel.resize("18%");
+    } else {
+      panel.collapse();
+    }
+  }, [showQueries]);
 
   const onTerminalResize = (size: { asPercentage: number }) => {
     if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
@@ -238,6 +257,10 @@ export default function App() {
                   <EditorArea />
                 </div>
               </Panel>
+              <Separator className="w-1.5" style={{ display: showQueries ? undefined : "none" }} />
+              <Panel panelRef={queriesPanel} collapsible collapsedSize={0} defaultSize={0} minSize="12" maxSize="40">
+                <SavedQueries />
+              </Panel>
             </Group>
           </Panel>
           <Separator className="h-1.5" style={{ display: showTerminal ? undefined : "none" }} />
@@ -254,6 +277,7 @@ export default function App() {
       <UpdateNotes />
       <Notifications />
       <Tooltips />
+      <NameQuery />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}
       {askQuit && <QuitPrompt remember={remember} setRemember={setRemember} onDone={() => setAskQuit(false)} />}

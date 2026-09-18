@@ -7,6 +7,7 @@ import { ResultGrid } from "./ResultGrid";
 import { ValueInspector } from "./ValueInspector";
 import { EndpointIcon, StreamIcon } from "./icons";
 import { Logo } from "./Logo";
+import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
 
 export function EditorArea() {
@@ -22,7 +23,7 @@ export function EditorArea() {
 }
 
 function TabStrip() {
-  const { tabs, activeTab, setActive, closeTab, moveTab } = useApp();
+  const { tabs, activeTab, setActive, closeTab, moveTab, savedQueries } = useApp();
   const [drag, setDrag] = useState<{ id: string; dx: number } | null>(null);
   const [dropOn, setDropOn] = useState<string | null>(null);
   const dragged = useRef(false);
@@ -89,6 +90,9 @@ function TabStrip() {
           >
             <span className="flex size-3.5 shrink-0 items-center justify-center">{t.endpoint ? <EndpointIcon /> : <StreamIcon />}</span>
             <span className="truncate font-[var(--font-mono)]">{t.title}</span>
+            {unsaved(t, savedQueries) && (
+              <span className="size-[5px] shrink-0 rounded-full" style={{ background: "var(--accent)" }} data-tip="Edited since it was saved" />
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();

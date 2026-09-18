@@ -17,6 +17,7 @@ import {
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { parseQuery } from "@/lib/query";
+import { loadQueries, nameFor, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -65,6 +66,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** The saved query this console was opened from, if it was. */
+  savedQueryId?: string;
   /** One table per `| group by` clause in the query, above the messages. */
   groups?: GroupResult[];
   /** How far into the result the page on screen starts. */
@@ -98,6 +101,11 @@ interface State {
   terminals: TerminalTab[];
   activeTerminal?: string;
   showTerminal: boolean;
+  /** The saved queries of the workspace that is open, newest first. */
+  savedQueries: SavedQuery[];
+  showQueries: boolean;
+  /** The tab whose query is being named, while the dialog is up. */
+  namingQuery?: string;
   terminalSize: number;
   inspectorSize: number;
   projectFolders: Record<string, string>;
@@ -144,6 +152,12 @@ interface State {
   closeTerminal: (id: string) => void;
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
+  toggleQueries: () => void;
+  /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
+  saveActiveQuery: () => void;
+  nameAndSaveQuery: (name: string) => void;
+  openSavedQuery: (id: string) => void;
+  deleteSavedQuery: (id: string) => void;
   setTerminalSize: (size: number) => void;
   setInspectorSize: (size: number) => void;
   setActiveTerminal: (id: string) => void;
@@ -197,6 +211,8 @@ export const useApp = create<State>((set, get) => ({
   indexing: false,
   terminals: [],
   showTerminal: false,
+  savedQueries: [],
+  showQueries: false,
   terminalSize: 32,
   inspectorSize: 30,
   projectFolders: {},
@@ -316,6 +332,70 @@ export const useApp = create<State>((set, get) => ({
     );
     // the workspace still lists them otherwise, and the next launch reopens what was closed
     set({ terminals: [], activeTerminal: undefined });
+    persist(get);
+  },
+
+  toggleQueries: () => set({ showQueries: !get().showQueries }),
+
+  saveActiveQuery: () => {
+    const tab = get().tabs.find((t) => t.id === get().activeTab);
+    if (!tab) return;
+    // one it already has a name for is saved where it stands; a new one is named first
+    const saved = get().savedQueries.find((q) => q.id === tab.savedQueryId);
+    if (!saved) return set({ namingQuery: tab.id });
+    keepQuery(set, get, tab, { ...saved, query: tab.query, rangeSeconds: tab.rangeSeconds, savedAt: now() });
+  },
+
+  nameAndSaveQuery: (name) => {
+    const tab = get().tabs.find((t) => t.id === get().namingQuery);
+    set({ namingQuery: undefined });
+    if (!tab) return;
+    keepQuery(set, get, tab, {
+      id: crypto.randomUUID(),
+      name: name.trim() || nameFor(tab.query, tab.streamLabel),
+      query: tab.query,
+      connId: tab.connId,
+      streamIds: tab.streamIds,
+      streamLabel: tab.streamLabel,
+      rangeSeconds: tab.rangeSeconds,
+      savedAt: now(),
+    });
+  },
+
+  openSavedQuery: (id) => {
+    const query = get().savedQueries.find((q) => q.id === id);
+    if (!query) return;
+    const conn = get().settings.connections.find((c) => c.id === query.connId);
+    if (!conn) {
+      return get().notify("error", query.name, "The connection this query was saved against is no longer set up.");
+    }
+    // a saved query belongs to its own stream, so it opens the console for that stream
+    // rather than landing in whichever one happens to be in front
+    const tabId = query.streamIds[0] ? `s:${query.connId}:${query.streamIds[0]}` : `q:${query.id}`;
+    if (!get().tabs.some((t) => t.id === tabId)) {
+      const tab = blankTab(get().settings, conn, {
+        id: tabId,
+        title: query.streamLabel || query.name,
+        connId: query.connId,
+        streamIds: query.streamIds,
+        streamLabel: query.streamLabel,
+      });
+      set({ tabs: [...get().tabs, tab], activeTab: tabId });
+      void loadFields(tabId, set, get);
+    } else {
+      set({ activeTab: tabId });
+    }
+    get().patchTab(tabId, { query: query.query, rangeSeconds: query.rangeSeconds, savedQueryId: query.id, offset: 0 });
+    void get().runQuery(tabId);
+  },
+
+  deleteSavedQuery: (id) => {
+    set({
+      savedQueries: get().savedQueries.filter((q) => q.id !== id),
+      // a tab that came from it is its own again, dot and all
+      tabs: get().tabs.map((t) => (t.savedQueryId === id ? { ...t, savedQueryId: undefined } : t)),
+    });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
     persist(get);
   },
 
@@ -588,20 +668,14 @@ export const useApp = create<State>((set, get) => ({
 
     const streamIds = node.kind === "endpoint" || node.kind === "stream" ? [node.streamId!] : [];
     const parentLabel = node.kind === "endpoint" ? (get().nodes[`s:${node.connId}:${node.streamId}`]?.label ?? "") : node.label;
-    const tab: Tab = {
+    const tab = blankTab(settings, conn, {
       id: node.id,
       title: node.kind === "endpoint" ? `${node.endpoint?.method ?? ""} ${node.label}`.trim() : node.label,
       connId: node.connId,
       streamIds,
       streamLabel: parentLabel,
       endpoint: node.endpoint,
-      query: "",
-      rangeSeconds: settings.results.defaultRangeSeconds,
-      running: false,
-      fields: [],
-      columns: conn.columns?.length ? conn.columns : DEFAULT_COLUMNS,
-      layout: conn.columns?.length ? conn.columns : undefined,
-    };
+    });
     set({ tabs: [...tabs, tab], activeTab: tab.id });
     persist(get);
     void loadFields(tab.id, set, get);
@@ -810,6 +884,32 @@ export function endpointClause(ep: EndpointRow): string {
 type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void;
 type Getter = () => State;
 
+const now = () => Math.floor(Date.now() / 1000);
+
+/** A console with nothing in it yet: what a tree node and a saved query both start from. */
+function blankTab(
+  settings: Settings,
+  conn: Connection,
+  o: { id: string; title: string; connId: string; streamIds: string[]; streamLabel: string; endpoint?: EndpointRow },
+): Tab {
+  return {
+    ...o,
+    query: "",
+    rangeSeconds: settings.results.defaultRangeSeconds,
+    running: false,
+    fields: [],
+    columns: conn.columns?.length ? conn.columns : DEFAULT_COLUMNS,
+    layout: conn.columns?.length ? conn.columns : undefined,
+  };
+}
+
+/** Keep an entry, point the tab at it, and show the panel it landed in. */
+function keepQuery(set: Setter, get: Getter, tab: Tab, entry: SavedQuery): void {
+  set({ savedQueries: upsert(get().savedQueries, entry), showQueries: true });
+  get().patchTab(tab.id, { savedQueryId: entry.id });
+  void saveQueries(get().savedQueries, get().workspaceFolder);
+}
+
 const savedShape = (t: Tab): SavedTab => ({
   id: t.id,
   title: t.title,
@@ -821,6 +921,7 @@ const savedShape = (t: Tab): SavedTab => ({
   rangeSeconds: t.rangeSeconds,
   columns: t.columns,
   layout: t.layout,
+  savedQueryId: t.savedQueryId,
 });
 
 /**
@@ -883,6 +984,9 @@ function persist(get: Getter) {
  */
 async function restoreWorkspace(set: Setter, get: Getter) {
   const w = await loadSession(get().workspaceFolder);
+  // the saved queries belong to the same folder, and are read before anything below can
+  // return early
+  set({ savedQueries: await loadQueries(get().workspaceFolder) });
   // terminals come back before the early return below: a window with only a terminal open
   // is a perfectly ordinary way to have left the app
   const projects = new Set(get().settings.projects.map((p) => p.id));
