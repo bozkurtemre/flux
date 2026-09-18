@@ -89,7 +89,8 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               opacity: it.disabled ? 0.55 : 1,
             }}
           >
-            {it.icon && <span className="flex size-3.5 shrink-0 items-center justify-center">{it.icon}</span>}
+            {/* 16px, the size of the app's own icons; a 12px lucide mark centres inside it */}
+            {it.icon && <span className="flex size-4 shrink-0 items-center justify-center">{it.icon}</span>}
             <span className="truncate">{it.label}</span>
             {it.shortcut && (
               <span className="ml-auto shrink-0 text-[11px]" style={{ color: cursor === i ? "#cfe0ff" : "var(--text-muted)" }}>
