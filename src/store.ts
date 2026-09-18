@@ -114,6 +114,8 @@ interface State {
   savedQueries: SavedQuery[];
   /** Every query that was run, newest first, whether it was worth saving or not. */
   history: RanQuery[];
+  /** Whether each connection answered when it was last asked, by connection id. */
+  health: Record<string, { up: boolean; at: number; error?: string }>;
   showQueries: boolean;
   /** Width of the saved queries panel, kept across openings. */
   queriesSize: number;
@@ -167,6 +169,8 @@ interface State {
   closeTerminal: (id: string) => void;
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
+  /** Ask every connection whether it is there. Quiet: nothing is notified, the tree shows it. */
+  checkConnections: () => Promise<void>;
   toggleQueries: () => void;
   setQueriesSize: (n: number) => void;
   toggleTimeline: () => void;
@@ -245,6 +249,7 @@ export const useApp = create<State>((set, get) => ({
   showTerminal: false,
   savedQueries: [],
   history: [],
+  health: {},
   showQueries: false,
   timelineOpen: true,
   terminalSize: 32,
@@ -368,6 +373,22 @@ export const useApp = create<State>((set, get) => ({
     // the workspace still lists them otherwise, and the next launch reopens what was closed
     set({ terminals: [], activeTerminal: undefined });
     persist(get);
+  },
+
+  checkConnections: async () => {
+    const connections = chosenConnections(get().settings.connections, get().workspaceConnections);
+    const answers = await Promise.all(
+      connections.map(async (c) => {
+        // the version endpoint is the cheapest thing Graylog answers, and its own timeout
+        // keeps a hung connection from holding the next check up
+        const up = await clientFor(c)
+          .version(AbortSignal.timeout(8000))
+          .then(() => true)
+          .catch(() => false);
+        return [c.id, { up, at: Date.now() }] as const;
+      }),
+    );
+    set({ health: Object.fromEntries(answers) });
   },
 
   toggleQueries: () => set({ showQueries: !get().showQueries }),

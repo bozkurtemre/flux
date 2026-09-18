@@ -147,6 +147,16 @@ export default function App() {
     if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
   };
 
+  // Is each connection still there? The tree used to answer "whatever was loaded last", so a
+  // connection nobody had expanded looked as dead as one that was. Half a minute apart, and
+  // the cheapest request Graylog answers.
+  const connectionIds = settings.connections.map((c) => c.id).join();
+  useEffect(() => {
+    void useApp.getState().checkConnections();
+    const beat = setInterval(() => void useApp.getState().checkConnections(), 30_000);
+    return () => clearInterval(beat);
+  }, [connectionIds]);
+
   // Once an hour, without saying anything unless it finds something. A log explorer left
   // open for a day should not have to be restarted to learn there is a new version.
   useEffect(() => {

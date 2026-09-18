@@ -249,6 +249,7 @@ function EmptyState() {
 
 function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, node: TreeNode) => void }) {
   const { expanded, loading, selectedNode, select, toggle, openTab, settings } = useApp();
+  const health = useApp((s) => (node.kind === "connection" ? s.health[node.connId] : undefined));
   const t = settings.tree;
   const open = !!expanded[node.id];
   const busy = !!loading[node.id];
@@ -282,7 +283,7 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       onMouseLeave={(e) => {
         if (!selected) e.currentTarget.style.background = "";
       }}
-      title={`${node.label}${node.sub ? ` · ${node.sub}` : ""}`}
+      title={`${node.label}${node.sub ? ` · ${node.sub}` : ""}${health?.up === false ? " · not answering" : ""}`}
     >
       <span
         className="flex size-4 shrink-0 items-center justify-center"
@@ -295,7 +296,7 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       </span>
       <span className="flex size-4 shrink-0 items-center justify-center">
         {node.kind === "connection" ? (
-          <ConnectionIcon live={!!node.childrenIds && !node.error} failed={!!node.error} />
+          <ConnectionIcon live={health?.up || (!!node.childrenIds && !node.error)} failed={!!node.error || health?.up === false} />
         ) : node.kind === "project" ? (
           <ProjectIcon />
         ) : node.kind === "stream" ? (
