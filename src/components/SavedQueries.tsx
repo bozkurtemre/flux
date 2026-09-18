@@ -3,12 +3,14 @@
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
 import { Filter, Trash2, X } from "lucide-react";
-import { ConfirmDialog } from "./ContextMenu";
+import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 
 export function SavedQueries() {
-  const { savedQueries, openSavedQuery, deleteSavedQuery, toggleQueries, tabs, activeTab } = useApp();
+  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleQueries, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string; name: string; query: string } | null>(null);
   const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
   // the name is what you remember, the query is what you remember it by, and the stream is
@@ -66,6 +68,10 @@ export function SavedQueries() {
             <div
               key={q.id}
               onClick={() => openSavedQuery(q.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY, id: q.id, name: q.name, query: q.query });
+              }}
               className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
               style={{ background: current === q.id ? "var(--bg-active)" : undefined }}
               onMouseEnter={(e) => current !== q.id && (e.currentTarget.style.background = "var(--bg-hover)")}
@@ -98,6 +104,37 @@ export function SavedQueries() {
         </div>
       )}
 
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={
+            [
+              { label: "Open", onClick: () => openSavedQuery(menu.id) },
+              { label: "Copy query", onClick: () => void navigator.clipboard.writeText(menu.query) },
+              { label: "Rename…", onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
+              { separator: true },
+              { label: "Delete", danger: true, onClick: () => setConfirm({ id: menu.id, name: menu.name }) },
+            ] satisfies MenuItem[]
+          }
+          onClose={() => setMenu(null)}
+        />
+      )}
+
+      {renaming && (
+        <NameDialog
+          title="Rename query"
+          message="What it is called in this panel; the query itself is untouched."
+          initial={renaming.name}
+          confirmLabel="Rename"
+          onConfirm={(name) => {
+            renameSavedQuery(renaming.id, name);
+            setRenaming(null);
+          }}
+          onCancel={() => setRenaming(null)}
+        />
+      )}
+
       {confirm && (
         <ConfirmDialog
           title={`Delete “${confirm.name}”?`}
@@ -113,31 +150,59 @@ export function SavedQueries() {
   );
 }
 
-/** Asked once, the first time a console's query is kept. */
-export function NameQuery() {
-  const { namingQuery, tabs, nameAndSaveQuery } = useApp();
-  const tab = tabs.find((t) => t.id === namingQuery);
-  const [name, setName] = useState("");
-  if (!tab) return null;
-
+/** The confirmation with a name in it, which saving and renaming both are. */
+function NameDialog({
+  title,
+  message,
+  initial,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  message: string;
+  initial: string;
+  confirmLabel: string;
+  onConfirm: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(initial);
   return (
     <ConfirmDialog
-      title="Save query"
-      message={`It is kept with this workspace, on ${tab.streamLabel || "this stream"}.`}
-      confirmLabel="Save"
+      title={title}
+      message={message}
+      confirmLabel={confirmLabel}
       danger={false}
       extra={
         <input
           autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onFocus={(e) => e.currentTarget.select()}
           placeholder="Name this query"
           spellCheck={false}
           className="selectable h-[26px] w-full rounded-[4px] px-2 text-[13px] outline-none"
           style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)" }}
         />
       }
-      onConfirm={() => nameAndSaveQuery(name)}
+      onConfirm={() => onConfirm(name)}
+      onCancel={onCancel}
+    />
+  );
+}
+
+/** Asked once, the first time a console's query is kept. */
+export function NameQuery() {
+  const { namingQuery, tabs, nameAndSaveQuery } = useApp();
+  const tab = tabs.find((t) => t.id === namingQuery);
+  if (!tab) return null;
+  return (
+    <NameDialog
+      title="Save query"
+      message={`It is kept with this workspace, on ${tab.streamLabel || "this stream"}.`}
+      initial=""
+      confirmLabel="Save"
+      onConfirm={nameAndSaveQuery}
       onCancel={() => useApp.setState({ namingQuery: undefined })}
     />
   );

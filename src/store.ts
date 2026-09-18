@@ -157,6 +157,7 @@ interface State {
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
   openSavedQuery: (id: string) => void;
+  renameSavedQuery: (id: string, name: string) => void;
   deleteSavedQuery: (id: string) => void;
   setTerminalSize: (size: number) => void;
   setInspectorSize: (size: number) => void;
@@ -387,6 +388,13 @@ export const useApp = create<State>((set, get) => ({
     }
     get().patchTab(tabId, { query: query.query, rangeSeconds: query.rangeSeconds, savedQueryId: query.id, offset: 0 });
     void get().runQuery(tabId);
+  },
+
+  renameSavedQuery: (id, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    set({ savedQueries: get().savedQueries.map((q) => (q.id === id ? { ...q, name: trimmed } : q)) });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 
   deleteSavedQuery: (id) => {
