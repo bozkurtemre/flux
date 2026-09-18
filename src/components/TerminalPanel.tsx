@@ -5,6 +5,7 @@ import { Channel, invoke } from "@tauri-apps/api/core";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { Plus, X } from "lucide-react";
+import { ProjectIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { openCommand, pasteSequence } from "@/lib/terminal";
 import { useApp } from "@/store";
@@ -35,12 +36,13 @@ export function TerminalPanel() {
   const projectItems: MenuItem[] = settings.projects.length
     ? settings.projects.map((p) => ({
         label: p.name || "Untitled project",
+        icon: <ProjectIcon />,
         onClick: () => openTerminal(p.id, p.name || "Untitled project"),
       }))
     : [
         { label: "No projects yet", disabled: true },
         { separator: true },
-        { label: "Add project…", onClick: () => setShowSettings(true, "projects") },
+        { label: "Add project…", icon: <Plus size={12} />, onClick: () => setShowSettings(true, "projects") },
       ];
 
   return (

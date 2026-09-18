@@ -1,6 +1,19 @@
 import { useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Filter, FoldVertical, Plus, RefreshCw, SearchCode, Settings2, SquareTerminal } from "lucide-react";
+import {
+  ChevronRight,
+  ClipboardCopy,
+  CopyPlus,
+  Filter,
+  FoldVertical,
+  Plus,
+  RefreshCw,
+  SearchCode,
+  Settings2,
+  SquareTerminal,
+  Terminal,
+  Trash2,
+} from "lucide-react";
 import { Chevron, ConnectionIcon, EndpointIcon, ProjectIcon, Spinner, StreamIcon } from "./icons";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp, visibleRows, type TreeNode } from "@/store";
@@ -59,18 +72,23 @@ export function ConnectionExplorer() {
 /** Right-click actions, mirroring the data-source menu in the IDE. */
 function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run: () => void }) => void): MenuItem[] {
   const app = useApp.getState();
+  // one icon per kind of action, so a menu is read by its shapes before its words
+  const console_ = <SquareTerminal size={12} />;
+  const refresh = <RefreshCw size={12} />;
+  const clip = <ClipboardCopy size={12} />;
   const conn = app.settings.connections.find((c) => c.id === node.connId);
   const copy = (t: string) => void navigator.clipboard.writeText(t).catch(() => {});
   const openIt = () => (node.kind === "endpoint" || node.kind === "stream" ? app.openTab(node) : void app.toggle(node.id));
 
   if (node.kind === "connection") {
     return [
-      { label: "New Query Console", disabled: true },
-      { label: "Refresh", shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
+      { label: "New Query Console", icon: console_, disabled: true },
+      { label: "Refresh", icon: refresh, shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
       { separator: true },
-      { label: "Properties…", shortcut: "F4", onClick: () => app.setShowSettings(true, "connections", node.connId) },
+      { label: "Properties…", icon: <Settings2 size={12} />, shortcut: "F4", onClick: () => app.setShowSettings(true, "connections", node.connId) },
       {
         label: "Duplicate",
+        icon: <CopyPlus size={12} />,
         onClick: () => {
           if (!conn) return;
           const copyConn = { ...conn, id: crypto.randomUUID(), name: `${conn.name} copy` };
@@ -78,11 +96,12 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
         },
       },
       { separator: true },
-      { label: "Copy Name", onClick: () => copy(node.label) },
-      { label: "Copy URL", onClick: () => copy(conn?.graylogUrl ?? "") },
+      { label: "Copy Name", icon: clip, onClick: () => copy(node.label) },
+      { label: "Copy URL", icon: clip, onClick: () => copy(conn?.graylogUrl ?? "") },
       { separator: true },
       {
         label: "Delete…",
+        icon: <Trash2 size={12} />,
         shortcut: "⌫",
         danger: true,
         onClick: () =>
@@ -98,37 +117,38 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
   if (node.kind === "project") {
     const project = app.settings.projects.find((p) => p.id === node.projectId);
     return [
-      { label: "Expand", onClick: () => void app.toggle(node.id) },
+      { label: "Expand", icon: <ChevronRight size={12} />, onClick: () => void app.toggle(node.id) },
       { label: "Refresh", shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
       { separator: true },
       {
         label: "Open Terminal",
+        icon: <Terminal size={12} />,
         disabled: !project,
         onClick: () => project && app.openTerminal(project.id, project.name),
       },
       { separator: true },
       { label: "Copy Name", onClick: () => copy(node.label) },
-      { label: "Copy GitHub Repository", disabled: !node.sub, onClick: () => copy(node.sub ?? "") },
+      { label: "Copy GitHub Repository", icon: clip, disabled: !node.sub, onClick: () => copy(node.sub ?? "") },
     ];
   }
 
   if (node.kind === "stream") {
     return [
-      { label: "Open Query Console", shortcut: "↵", onClick: openIt },
-      { label: "Refresh Endpoints", shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
+      { label: "Open Query Console", icon: console_, shortcut: "↵", onClick: openIt },
+      { label: "Refresh Endpoints", icon: refresh, shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
       { separator: true },
-      { label: "Copy Stream Name", onClick: () => copy(node.label) },
-      { label: "Copy Stream ID", onClick: () => copy(node.streamId ?? "") },
-      { label: "Copy Graylog URL", onClick: () => copy(`${conn?.graylogUrl ?? ""}/streams/${node.streamId}/search`) },
+      { label: "Copy Stream Name", icon: clip, onClick: () => copy(node.label) },
+      { label: "Copy Stream ID", icon: clip, onClick: () => copy(node.streamId ?? "") },
+      { label: "Copy Graylog URL", icon: clip, onClick: () => copy(`${conn?.graylogUrl ?? ""}/streams/${node.streamId}/search`) },
     ];
   }
 
   return [
     { label: "Open Query Console", shortcut: "↵", onClick: openIt },
     { separator: true },
-    { label: "Copy Path", onClick: () => copy(node.label) },
-    { label: "Copy as Lucene Filter", onClick: () => copy(`route:"${node.label}"`) },
-    { label: "Copy Method and Path", onClick: () => copy(`${node.endpoint?.method ?? ""} ${node.label}`.trim()) },
+    { label: "Copy Path", icon: clip, onClick: () => copy(node.label) },
+    { label: "Copy as Lucene Filter", icon: clip, onClick: () => copy(`route:"${node.label}"`) },
+    { label: "Copy Method and Path", icon: clip, onClick: () => copy(`${node.endpoint?.method ?? ""} ${node.label}`.trim()) },
   ];
 }
 

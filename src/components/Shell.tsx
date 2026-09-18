@@ -3,6 +3,13 @@ import {
   Bookmark,
   Bug,
   ChevronDown,
+  Folder,
+  FolderOpen,
+  FolderX,
+  Keyboard,
+  Palette,
+  Plug,
+  RefreshCw,
   GitBranch,
   MoreHorizontal,
   MoreVertical,
@@ -11,6 +18,7 @@ import {
   Server,
   Settings2,
   SquareTerminal,
+  Unplug,
   Wrench,
 } from "lucide-react";
 import { Logo } from "./Logo";
@@ -43,13 +51,13 @@ export function TitleBar() {
 
   // the folder that is open, then the ones before it, as the IDE lists them
   const workspaceItems: MenuItem[] = [
-    { label: "Open…", onClick: () => void choose() },
+    { label: "Open…", icon: <FolderOpen size={12} />, onClick: () => void choose() },
     ...(workspaceFolder
       ? ([
           { separator: true },
           { label: "Current Workspace", disabled: true },
           { label: workspaceName(workspaceFolder), shortcut: shortPath(workspaceFolder, home), disabled: true },
-          { label: "Close Workspace", onClick: () => void closeWorkspace() },
+          { label: "Close Workspace", icon: <FolderX size={12} />, onClick: () => void closeWorkspace() },
         ] as MenuItem[])
       : []),
     ...(recentWorkspaces.filter((r) => r.folder !== workspaceFolder).length
@@ -59,6 +67,7 @@ export function TitleBar() {
       .filter((r) => r.folder !== workspaceFolder)
       .map((r) => ({
         label: workspaceName(r.folder),
+        icon: <Folder size={12} />,
         shortcut: shortPath(r.folder, home),
         onClick: () => void openWorkspace(r.folder),
       })),
@@ -67,18 +76,18 @@ export function TitleBar() {
   // Flux keeps no connection open, so these are about what the window knows: re-read what is
   // on screen, forget it, or forget it and fetch it again.
   const connectionItems: MenuItem[] = [
-    { label: "Reconnect all connections", onClick: () => void reconnectAll() },
-    { label: "Disconnect all connections", onClick: () => disconnectAll() },
+    { label: "Reconnect all connections", icon: <Plug size={12} />, onClick: () => void reconnectAll() },
+    { label: "Disconnect all connections", icon: <Unplug size={12} />, onClick: () => disconnectAll() },
     { separator: true },
-    { label: "Refresh all connections", onClick: () => void refreshAll() },
+    { label: "Refresh all connections", icon: <RefreshCw size={12} />, onClick: () => void refreshAll() },
   ];
 
   // each row opens the settings page it names; the theme lives on the appearance page
   const items: MenuItem[] = [
-    { label: "Theme", onClick: () => setShowSettings(true, "appearance") },
-    { label: "Keymap", onClick: () => setShowSettings(true, "keymap") },
+    { label: "Theme", icon: <Palette size={12} />, onClick: () => setShowSettings(true, "appearance") },
+    { label: "Keymap", icon: <Keyboard size={12} />, onClick: () => setShowSettings(true, "keymap") },
     { separator: true },
-    { label: "Settings…", shortcut: "⌘,", onClick: () => setShowSettings(true) },
+    { label: "Settings…", icon: <Settings2 size={12} />, shortcut: "⌘,", onClick: () => setShowSettings(true) },
   ];
 
   const icon = "flex size-7 items-center justify-center rounded-md hover:bg-[var(--bg-hover)]";
