@@ -13,7 +13,9 @@ export function Timeline({ tab }: { tab: Tab }) {
   const { patchTab, runQuery, settings, timelineOpen, toggleTimeline } = useApp();
   const host = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<{ from: number; to: number } | null>(null);
-  const buckets = tab.histogram ?? [];
+  // the setting says whether there is a timeline at all: without this the bars a query
+  // already fetched stayed on screen until the next one
+  const buckets = settings.results.timeline ? (tab.histogram ?? []) : [];
   if (!buckets.length) return null;
 
   const peak = Math.max(...buckets.map((b) => b.count), 1);
