@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Check, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Copy, Check, ChevronDown, ChevronRight, ChevronUp, FoldVertical, X } from "lucide-react";
 import { findAll, lines, withMatches, type Span } from "@/lib/find";
+import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
+import { useApp } from "@/store";
 import type { Tab } from "@/store";
+
+const EMPTY: Set<number> = new Set();
 
 /** The selected row, as syntax-coloured JSON with strings that hold JSON expanded. */
 export function ValueInspector({ tab }: { tab: Tab }) {
@@ -10,8 +14,22 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState(0);
   const input = useRef<HTMLInputElement>(null);
+  const tree = useApp((s) => s.settings.results.jsonTree);
+  // the folds belong to the document they were made in: another row is another document, and
+  // carrying line numbers over to it would fold whatever happens to be there
+  const [kept, setKept] = useState<{ of: string; lines: Set<number> }>({ of: "", lines: new Set() });
   const row = tab.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
   const text = row ? JSON.stringify(expand(row), null, 2) : "";
+  const blocks = useMemo(() => (tree ? blocksOf(text) : new Map<number, number>()), [tree, text]);
+  const folded = kept.of === text ? kept.lines : EMPTY;
+
+  const fold = (line: number) =>
+    setKept(() => {
+      const next = new Set(folded);
+      if (!next.delete(line)) next.add(line);
+      return { of: text, lines: next };
+    });
+  const foldAll = () => setKept({ of: text, lines: folded.size ? new Set() : new Set([...blocks.keys()].filter((k) => k > 0)) });
 
   // no bar, no highlights; the term itself is kept, so the next ⌘F opens on it
   const matches = useMemo(() => (finding ? findAll(text, query) : []), [finding, text, query]);
@@ -34,6 +52,12 @@ export function ValueInspector({ tab }: { tab: Tab }) {
 
   const step = (by: number) => matches.length && setCurrent((at + by + matches.length) % matches.length);
 
+  // a match under a fold: the fold gives way while that match is the one being looked at,
+  // and closes again afterwards. Worked out here rather than remembered, so nothing has to
+  // be put back
+  const hiding = matches[at] ? foldAround(text.slice(0, matches[at].start).split("\n").length - 1, blocks, folded) : null;
+  const shownFolds = hiding == null ? folded : new Set([...folded].filter((l) => l !== hiding));
+
   return (
     <div className="flex h-full flex-col" style={{ background: "var(--bg-tool)" }}>
       <div className="flex h-[26px] shrink-0 items-center gap-2 px-2" style={{ borderBottom: "1px solid var(--border)" }}>
@@ -43,8 +67,18 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
           row {(tab.selectedRow ?? 0) + 1}
         </span>
+        {tree && !!blocks.size && (
+          <button
+            onClick={foldAll}
+            data-tip={folded.size ? "Expand all" : "Collapse all"}
+            className="ml-auto flex size-[18px] items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+            style={{ color: "var(--text-dim)" }}
+          >
+            <FoldVertical size={11} />
+          </button>
+        )}
         <button
-          className="ml-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] hover:bg-[var(--bg-hover)]"
+          className={`${tree && blocks.size ? "" : "ml-auto "}flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] hover:bg-[var(--bg-hover)]`}
           style={{ color: "var(--text-dim)" }}
           onClick={async () => {
             try {
@@ -102,7 +136,11 @@ export function ValueInspector({ tab }: { tab: Tab }) {
       )}
 
       <div className="selectable min-h-0 flex-1 overflow-auto p-2 font-[var(--font-mono)] text-[11.5px] leading-[1.6]">
-        {row ? <Json text={text} matches={matches} current={at} /> : <span style={{ color: "var(--text-muted)" }}>Select a row</span>}
+        {row ? (
+          <Json text={text} matches={matches} current={at} blocks={blocks} folded={shownFolds} onFold={fold} />
+        ) : (
+          <span style={{ color: "var(--text-muted)" }}>Select a row</span>
+        )}
       </div>
     </div>
   );
@@ -110,15 +148,45 @@ export function ValueInspector({ tab }: { tab: Tab }) {
 
 const TOKEN = /("(?:[^"\\]|\\.)*")(\s*:)|("(?:[^"\\]|\\.)*")|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
 
-function Json({ text, matches, current }: { text: string; matches: { start: number; end: number }[]; current: number }) {
+function Json({
+  text,
+  matches,
+  current,
+  blocks,
+  folded,
+  onFold,
+}: {
+  text: string;
+  matches: { start: number; end: number }[];
+  current: number;
+  blocks: Map<number, number>;
+  folded: Set<number>;
+  onFold: (line: number) => void;
+}) {
   const here = useRef<HTMLSpanElement>(null);
   useEffect(() => here.current?.scrollIntoView({ block: "nearest" }), [current, matches]);
 
+  const all = lines(text);
+  const shown = visibleLines(all.length, blocks, folded);
+
   return (
     <>
-      {lines(text).map(({ line, start }, i) => {
+      {shown.map((i) => {
+        const { line, start } = all[i];
+        const end = blocks.get(i);
+        const isFolded = folded.has(i);
         return (
-          <div key={i} className="whitespace-pre-wrap break-all" style={{ color: "var(--syn-op)" }}>
+          <div key={i} className="group relative whitespace-pre-wrap break-all" style={{ color: "var(--syn-op)" }}>
+            {end !== undefined && (
+              <button
+                onClick={() => onFold(i)}
+                className="absolute -left-2 flex size-3.5 items-center justify-center opacity-40 hover:opacity-100"
+                style={{ color: "var(--text-dim)" }}
+                tabIndex={-1}
+              >
+                {isFolded ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
+              </button>
+            )}
             {withMatches(tokens(line), start, matches).map((span, j) => (
               <span
                 key={j}
@@ -131,6 +199,7 @@ function Json({ text, matches, current }: { text: string; matches: { start: numb
                 {span.text}
               </span>
             ))}
+            {isFolded && end !== undefined && <span style={{ color: "var(--text-muted)" }}>{` … ${end - i - 1} lines`}</span>}
           </div>
         );
       })}

@@ -60,6 +60,8 @@ export interface Session {
   terminalSize?: number;
   /** Width of the value inspector, as a percentage of the results area. */
   inspectorSize?: number;
+  /** Width of the saved queries panel, as a percentage of the window. */
+  queriesSize?: number;
   /** The queries that were run, newest first. */
   history?: RanQuery[];
 }

@@ -169,6 +169,14 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
             hint="Messages per bucket across the range, which you can drag across to narrow it. Two more requests per query."
           />
         </Row>
+        <Row>
+          <Checkbox
+            checked={r.jsonTree}
+            onChange={(v) => set("jsonTree", v)}
+            label="Fold nested JSON in the value inspector"
+            hint="A chevron beside anything that opens a block, so a long message can be read a level at a time."
+          />
+        </Row>
         <Row label="Auto-refresh" hint="0 turns it off. The active tab re-runs its query on this interval.">
           <Num value={r.autoRefreshSeconds} onChange={(v) => set("autoRefreshSeconds", v)} min={0} max={3600} suffix="seconds" />
         </Row>

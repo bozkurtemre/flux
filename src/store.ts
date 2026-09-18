@@ -112,6 +112,8 @@ interface State {
   /** Every query that was run, newest first, whether it was worth saving or not. */
   history: RanQuery[];
   showQueries: boolean;
+  /** Width of the saved queries panel, kept across openings. */
+  queriesSize: number;
   /** The timeline folded away for now, as opposed to turned off in Settings. */
   timelineOpen: boolean;
   /** The tab whose query is being named, while the dialog is up. */
@@ -163,6 +165,7 @@ interface State {
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
   toggleQueries: () => void;
+  setQueriesSize: (n: number) => void;
   toggleTimeline: () => void;
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
   saveActiveQuery: () => void;
@@ -240,6 +243,7 @@ export const useApp = create<State>((set, get) => ({
   timelineOpen: true,
   terminalSize: 32,
   inspectorSize: 30,
+  queriesSize: 18,
   projectFolders: {},
   tmuxMissing: false,
   tasks: [],
@@ -361,6 +365,11 @@ export const useApp = create<State>((set, get) => ({
   },
 
   toggleQueries: () => set({ showQueries: !get().showQueries }),
+
+  setQueriesSize: (queriesSize) => {
+    set({ queriesSize });
+    persist(get);
+  },
   toggleTimeline: () => set({ timelineOpen: !get().timelineOpen }),
 
   saveActiveQuery: () => {
@@ -1163,8 +1172,20 @@ export async function loadGlobals(): Promise<{ current?: string; recents: Recent
 }
 
 function persist(get: Getter) {
-  const { expanded, selectedNode, tabs, activeTab, terminals, activeTerminal, showTerminal, terminalSize, inspectorSize, projectFolders, history } =
-    get();
+  const {
+    expanded,
+    selectedNode,
+    tabs,
+    activeTab,
+    terminals,
+    activeTerminal,
+    showTerminal,
+    terminalSize,
+    inspectorSize,
+    queriesSize,
+    projectFolders,
+    history,
+  } = get();
   saveSession(
     {
       expanded,
@@ -1176,6 +1197,7 @@ function persist(get: Getter) {
       showTerminal,
       terminalSize,
       inspectorSize,
+      queriesSize,
       projectFolders,
       history: history.slice(0, 100),
     },
@@ -1203,6 +1225,7 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     showTerminal: !!w.showTerminal && terminals.length > 0,
     terminalSize: w.terminalSize ?? 32,
     inspectorSize: w.inspectorSize ?? 30,
+    queriesSize: w.queriesSize ?? 18,
     history: w.history ?? [],
   });
 

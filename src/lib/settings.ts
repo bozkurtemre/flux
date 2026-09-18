@@ -65,6 +65,8 @@ export interface ResultSettings {
   autoRefreshSeconds: number; // 0 = off
   /** The timeline over the results. It is two more requests per query, so it can be turned off. */
   timeline: boolean;
+  /** Nested JSON in the value inspector folds away behind a chevron. */
+  jsonTree: boolean;
 }
 
 export interface AdvancedSettings {
@@ -141,6 +143,7 @@ export const DEFAULTS: Settings = {
     rowHeight: 24,
     autoRefreshSeconds: 0,
     timeline: true,
+    jsonTree: true,
   },
   terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },

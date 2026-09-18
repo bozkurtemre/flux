@@ -24,7 +24,20 @@ import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
 export default function App() {
-  const { init, ready, showSettings, showSearch, activeTab, runQuery, settings, showTerminal, terminalSize, setTerminalSize, showQueries } = useApp();
+  const {
+    init,
+    ready,
+    showSettings,
+    showSearch,
+    activeTab,
+    runQuery,
+    settings,
+    showTerminal,
+    terminalSize,
+    setTerminalSize,
+    showQueries,
+    setQueriesSize,
+  } = useApp();
   const terminalPanel = useRef<PanelImperativeHandle>(null);
   const queriesPanel = useRef<PanelImperativeHandle>(null);
   const [askQuit, setAskQuit] = useState(false);
@@ -124,7 +137,7 @@ export default function App() {
     if (!panel) return;
     if (showQueries) {
       panel.expand();
-      panel.resize("18%");
+      panel.resize(`${Math.min(40, Math.max(12, useApp.getState().queriesSize))}%`);
     } else {
       panel.collapse();
     }
@@ -277,7 +290,15 @@ export default function App() {
                 </div>
               </Panel>
               <Separator className="w-1.5" style={{ display: showQueries ? undefined : "none" }} />
-              <Panel panelRef={queriesPanel} collapsible collapsedSize={0} defaultSize={0} minSize="12" maxSize="40">
+              <Panel
+                panelRef={queriesPanel}
+                collapsible
+                collapsedSize={0}
+                defaultSize={0}
+                minSize="12"
+                maxSize="40"
+                onResize={(size) => useApp.getState().showQueries && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
+              >
                 <SavedQueries />
               </Panel>
             </Group>
