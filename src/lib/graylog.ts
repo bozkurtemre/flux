@@ -27,6 +27,12 @@ export interface FieldInfo {
   type: string;
 }
 
+/** One column of the timeline: when the bucket starts, and how many messages fell in it. */
+export interface Bucket {
+  at: string;
+  count: number;
+}
+
 export interface MessagePage {
   columns: string[];
   rows: Record<string, unknown>[];
@@ -144,6 +150,45 @@ export class Graylog {
     return { columns: r.schema.map((c) => c.name), rows: r.datarows };
   }
 
+  /**
+   * Counts per time bucket, for the timeline over the results. `/api/search/aggregate` has no
+   * time pivot in 5.2 — it answers "Unable to map property type" — so this goes the way the
+   * Graylog UI itself goes: a search is created, then executed, and the pivot it asked for
+   * comes back as rows. Two round trips, which is why only a visible timeline asks for it.
+   */
+  async histogram(o: { query: string; streams: string[]; timerange: TimeRange; interval: string; signal?: AbortSignal }): Promise<Bucket[]> {
+    const search = {
+      queries: [
+        {
+          id: "q",
+          query: { type: "elasticsearch", query_string: o.query || "*" },
+          timerange: o.timerange,
+          ...(o.streams.length ? { filter: { type: "or", filters: o.streams.map((id) => ({ type: "stream", id })) } } : {}),
+          search_types: [
+            {
+              id: "h",
+              type: "pivot",
+              rollup: true,
+              row_groups: [{ type: "time", field: "timestamp", interval: { type: "timeunit", timeunit: o.interval } }],
+              series: [{ type: "count", id: "count()" }],
+            },
+          ],
+        },
+      ],
+    };
+    const created = await this.call<{ id: string }>("/api/views/search", {
+      signal: o.signal,
+      method: "POST",
+      body: JSON.stringify(search),
+    });
+    const run = await this.call<{
+      results: Record<string, { search_types: Record<string, { rows?: { key: string[]; source: string; values: { value: number }[] }[] }> }>;
+    }>(`/api/views/search/${created.id}/execute`, { signal: o.signal, method: "POST", body: "{}" });
+    const rows = run.results.q?.search_types.h?.rows ?? [];
+    // the rollup row carries the total under an empty key, and is not a bucket
+    return rows.filter((r) => r.source === "leaf" && r.key.length).map((r) => ({ at: r.key[0], count: Number(r.values[0]?.value ?? 0) }));
+  }
+
   /** Total messages matching a query, used for result counts. */
   async count(o: { query: string; streams: string[]; timerange: TimeRange; signal?: AbortSignal }): Promise<number> {
     const r = await this.aggregate({ ...o, groupBy: [], metrics: [{ function: "count" }] }).catch(() => null);
@@ -166,3 +211,32 @@ export const QUICK_RANGES: { label: string; seconds: number }[] = [
   { label: "7d", seconds: 604800 },
   { label: "30d", seconds: 2592000 },
 ];
+
+/**
+ * The bucket width for a span, in Graylog's own units: about fifty columns whatever the
+ * range, from a minute of logs to a month of them.
+ */
+export function bucketFor(seconds: number, columns = 50): string {
+  const units: [number, string][] = [
+    [1, "1s"],
+    [5, "5s"],
+    [10, "10s"],
+    [30, "30s"],
+    [60, "1m"],
+    [300, "5m"],
+    [600, "10m"],
+    [1800, "30m"],
+    [3600, "1h"],
+    [10800, "3h"],
+    [21600, "6h"],
+    [86400, "1d"],
+    [604800, "1w"],
+  ];
+  // the unit that comes closest to that many columns, rather than the first one over: an
+  // hour is fifty-odd minutes or a dozen five-minute blocks, and the first reads better
+  let best = units[0];
+  for (const unit of units) {
+    if (Math.abs(seconds / unit[0] - columns) < Math.abs(seconds / best[0] - columns)) best = unit;
+  }
+  return best[1];
+}

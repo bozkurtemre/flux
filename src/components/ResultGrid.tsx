@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Rows3, RotateCcw } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
@@ -8,6 +8,9 @@ import { useApp, type Tab } from "@/store";
 import { moveBefore } from "@/lib/reorder";
 
 export const NUM_W = 52;
+
+/** The same identity the tail uses to tell a new message from one already on screen. */
+const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
 
 /** The result grid: a row-number gutter, sortable headers, one-line cells. */
 export function ResultGrid({ tab }: { tab: Tab }) {
@@ -90,6 +93,19 @@ export function ResultGrid({ tab }: { tab: Tab }) {
       return x.localeCompare(y, undefined, { numeric: true }) * sort.dir;
     });
   }, [tab.page, sort]);
+
+  // Rows arriving on top would otherwise push what is being read down the screen: the
+  // scroller is moved by as much as was added, so the page under the cursor does not move.
+  const lastTick = useRef(0);
+  useLayoutEffect(() => {
+    const tail = tab.tail;
+    if (!tail || tail.tick === lastTick.current) return;
+    const first = lastTick.current === 0;
+    lastTick.current = tail.tick;
+    const el = parentRef.current;
+    if (!first && el && el.scrollTop > 0) el.scrollTop += tail.added * ROW;
+  }, [tab.tail, ROW]);
+  const fresh = useMemo(() => new Set(tab.tail?.keys ?? []), [tab.tail]);
 
   const v = useVirtualizer({ count: rows.length, getScrollElement: () => parentRef.current, estimateSize: () => ROW, overscan: 25 });
   const line = `${ROW}px`;
@@ -193,7 +209,13 @@ export function ResultGrid({ tab }: { tab: Tab }) {
                   style={{
                     height: ROW,
                     transform: `translateY(${item.start}px)`,
-                    background: selected ? "var(--sel-focus)" : r.stripedRows && item.index % 2 ? "var(--row-alt)" : undefined,
+                    background: selected
+                      ? "var(--sel-focus)"
+                      : fresh.has(rowKey(row))
+                        ? "color-mix(in srgb, var(--green) 14%, transparent)"
+                        : r.stripedRows && item.index % 2
+                          ? "var(--row-alt)"
+                          : undefined,
                     color: selected ? "#fff" : undefined,
                   }}
                 >

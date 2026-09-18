@@ -3,6 +3,7 @@ import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resiz
 import { MoreVertical, X } from "lucide-react";
 import { QueryConsole } from "./QueryConsole";
 import { GroupTables } from "./GroupTables";
+import { Timeline } from "./Timeline";
 import { ResultGrid } from "./ResultGrid";
 import { ValueInspector } from "./ValueInspector";
 import { EndpointIcon, StreamIcon } from "./icons";
@@ -145,6 +146,7 @@ function TabBody({ tab }: { tab: Tab }) {
         <Group orientation="horizontal">
           <Panel minSize="30">
             <div className="flex h-full min-h-0 flex-col">
+              <Timeline tab={tab} />
               <GroupTables tab={tab} />
               <div className="min-h-0 flex-1">
                 <ResultGrid tab={tab} />

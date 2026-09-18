@@ -228,6 +228,15 @@ export default function App() {
     return () => window.removeEventListener("keyup", onKeyUp);
   }, []);
 
+  // Following: every couple of seconds the active tab asks for what has arrived since its
+  // newest message. Only the tab in front follows, because only it is being read.
+  const following = useApp((z) => !!z.tabs.find((t) => t.id === z.activeTab)?.follow);
+  useEffect(() => {
+    if (!following || !activeTab) return;
+    const tick = setInterval(() => void useApp.getState().tailTab(activeTab), 2000);
+    return () => clearInterval(tick);
+  }, [following, activeTab]);
+
   // Settings > Results > Auto-refresh re-runs the active tab on an interval
   const refreshEvery = settings.results.autoRefreshSeconds;
   useEffect(() => {

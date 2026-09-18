@@ -50,6 +50,14 @@ pub async fn workspace_write(folder: String, file: String, contents: String) -> 
     fs::write(&path, contents).map_err(|e| e.to_string())
 }
 
+/// A file the person chose themselves, in the save dialog. The path is theirs rather than
+/// ours, so there is nothing to restrict it to — but it is still only ever written whole,
+/// never appended to or read back.
+#[tauri::command]
+pub async fn save_file(path: String, contents: String) -> Result<(), String> {
+    fs::write(Path::new(&path), contents).map_err(|e| e.to_string())
+}
+
 /// Whether this folder has been opened as a workspace before.
 #[tauri::command]
 pub async fn workspace_exists(folder: String) -> Result<bool, String> {

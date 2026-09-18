@@ -34,6 +34,7 @@ pub fn run() {
             workspace::workspace_read,
             workspace::workspace_write,
             workspace::workspace_exists,
+            workspace::save_file,
             mcp::mcp_start,
             mcp::mcp_stop,
             mcp::mcp_status,

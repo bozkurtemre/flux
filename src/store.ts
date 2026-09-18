@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { Graylog, absolute, setRequestTimeout, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
+import { Graylog, absolute, bucketFor, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type SavedTab } from "@/lib/session";
@@ -66,6 +66,12 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** The timeline over the results: counts per bucket for what this tab last asked. */
+  histogram?: Bucket[];
+  /** Newest messages are fetched and put on top while this is on. Off when a tab opens. */
+  follow?: boolean;
+  /** What the last tail brought in: the keys to tint, and a tick the grid can act on once. */
+  tail?: { tick: number; keys: string[]; added: number };
   /** The saved query this console was opened from, if it was. */
   savedQueryId?: string;
   /** One table per `| group by` clause in the query, above the messages. */
@@ -157,6 +163,9 @@ interface State {
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
   /** The row menu: narrow to a field, exclude it, count by it, or look around a moment. */
+  /** The toolbar toggle, and the tick that follows while it is on. */
+  toggleFollow: (tabId: string) => void;
+  tailTab: (tabId: string) => Promise<void>;
   filterByField: (tabId: string, field: string, value: unknown, negate?: boolean) => void;
   groupByField: (tabId: string, field: string) => void;
   openAround: (tabId: string, at: string, seconds: number) => void;
@@ -392,6 +401,60 @@ export const useApp = create<State>((set, get) => ({
     }
     get().patchTab(tabId, { query: query.query, rangeSeconds: query.rangeSeconds, savedQueryId: query.id, offset: 0 });
     void get().runQuery(tabId);
+  },
+
+  toggleFollow: (tabId) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    get().patchTab(tabId, { follow: !tab.follow, tail: undefined });
+  },
+
+  /**
+   * One tick of following: everything since the newest message on screen, put on top. It is a
+   * second search rather than a re-run, so the page below it — and the place you had scrolled
+   * to in it — stays where it was.
+   */
+  tailTab: async (tabId) => {
+    const { tabs, settings } = get();
+    const tab = tabs.find((t) => t.id === tabId);
+    const conn = settings.connections.find((c) => c.id === tab?.connId);
+    if (!tab || !conn || !tab.page || tab.running) return;
+    const parsed = parseQuery(tab.query);
+    // a window that does not move has nothing to follow, and neither has a page you have
+    // turned away from the first one
+    if (parsed.between || (tab.offset ?? 0) > 0) return;
+
+    const newest = tab.page.rows[0]?.timestamp;
+    const since = newest ? new Date(String(newest)) : null;
+    if (!since || Number.isNaN(since.getTime())) return;
+    const clauses = [parsed.search].filter(Boolean);
+    if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
+    const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
+
+    try {
+      const page = await clientFor(conn).messages({
+        query,
+        streams: tab.streamIds,
+        timerange: absolute(since, new Date()),
+        fields: columnsForQuery(tab),
+        size: settings.results.pageSize,
+      });
+      const current = get().tabs.find((t) => t.id === tabId);
+      if (!current?.page || !current.follow) return;
+      // the window is inclusive at both ends, so the message it started from comes back
+      const known = new Set(current.page.rows.map(rowKey));
+      const fresh = page.rows.filter((r) => !known.has(rowKey(r)));
+      if (!fresh.length) return;
+      get().patchTab(tabId, {
+        page: { columns: current.page.columns, rows: [...fresh, ...current.page.rows].slice(0, settings.results.pageSize) },
+        total: current.total != null ? current.total + fresh.length : undefined,
+        // the selection is an index into those rows, and they all just moved down
+        selectedRow: current.selectedRow == null ? undefined : current.selectedRow + fresh.length,
+        tail: { tick: (current.tail?.tick ?? 0) + 1, keys: fresh.map(rowKey), added: fresh.length },
+      });
+    } catch {
+      /* a tick that fails is a tick; the next one is two seconds away */
+    }
   },
 
   filterByField: (tabId, field, value, negate) => {
@@ -879,9 +942,27 @@ export const useApp = create<State>((set, get) => ({
         }
       });
 
+      // the timeline is two round trips of its own, so it is asked for only when it is on
+      // screen, and never blocks the rows
+      const timeline = settings.results.timeline
+        ? client
+            .histogram({
+              query,
+              streams: tab.streamIds,
+              timerange,
+              interval: bucketFor(
+                parsed.between
+                  ? Math.max(1, (new Date(parsed.between.to).getTime() - new Date(parsed.between.from).getTime()) / 1000)
+                  : tab.rangeSeconds,
+              ),
+              signal: stop.signal,
+            })
+            .catch(() => [])
+        : Promise.resolve([]);
+
       // the total rides alongside rather than after: it is a second search, and waiting for
       // it would put its time on every page turn
-      const [page, total, groups] = await Promise.all([
+      const [page, total, groups, histogram] = await Promise.all([
         client.messages({
           query,
           streams: tab.streamIds,
@@ -893,9 +974,12 @@ export const useApp = create<State>((set, get) => ({
         }),
         client.count({ query, streams: tab.streamIds, timerange, signal: stop.signal }),
         Promise.all(grouped),
+        timeline,
       ]);
       patchTab(id, {
         page,
+        histogram: histogram.length ? histogram : undefined,
+        tail: undefined,
         groups: groups.length ? groups : undefined,
         total: total || undefined, // a count that failed comes back as zero, and zero rows say so themselves
         took: Math.round(performance.now() - started),
@@ -905,7 +989,7 @@ export const useApp = create<State>((set, get) => ({
     } catch (e) {
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {
-        patchTab(id, { error: errorText(e), running: false, page: undefined, groups: undefined });
+        patchTab(id, { error: errorText(e), running: false, page: undefined, groups: undefined, histogram: undefined });
         get().notify("error", conn.name || conn.graylogUrl, `Query failed: ${failureReason(e)}`);
       }
     } finally {
@@ -949,6 +1033,9 @@ type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void
 type Getter = () => State;
 
 const now = () => Math.floor(Date.now() / 1000);
+
+/** What makes a message that one: its id when Graylog gave one, its content when it did not. */
+const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
 
 /** A console with nothing in it yet: what a tree node and a saved query both start from. */
 function blankTab(

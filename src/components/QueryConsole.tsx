@@ -1,5 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
+import { invoke } from "@tauri-apps/api/core";
+import { save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { Decoration, EditorView, MatchDecorator, ViewPlugin, keymap, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { Prec } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
@@ -8,11 +11,32 @@ import { solr } from "@codemirror/legacy-modes/mode/solr";
 import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { Play, RotateCw, Save } from "lucide-react";
+import { Download, Play, Radio, RotateCw, Save } from "lucide-react";
 import { QUICK_RANGES } from "@/lib/graylog";
+import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery } from "@/lib/query";
+import { failureReason } from "@/lib/progress";
 import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
+
+/** The results as they are on screen, written where the save dialog says. */
+function exportItems(tab: Tab): MenuItem[] {
+  const columns = tab.layout?.length ? tab.layout : (tab.page?.columns ?? []);
+  const write = async (format: "csv" | "json") => {
+    if (!tab.page) return;
+    const path = await saveDialog({ defaultPath: exportName(tab.title, format) });
+    if (!path) return;
+    const contents = format === "csv" ? toCsv(tab.page, columns) : toJson(tab.page, columns);
+    await invoke("save_file", { path, contents });
+    useApp.getState().notify("info", "Export", `${tab.page.rows.length.toLocaleString()} rows written.`);
+  };
+  const run = (format: "csv" | "json") => () =>
+    void write(format).catch((e: unknown) => useApp.getState().notify("error", "Export", failureReason(e)));
+  return [
+    { label: "Export as CSV", icon: <Download size={12} />, onClick: run("csv") },
+    { label: "Export as JSON", icon: <Download size={12} />, onClick: run("json") },
+  ];
+}
 
 const highlight = HighlightStyle.define([
   { tag: tags.propertyName, color: "var(--syn-key)" },
@@ -44,7 +68,8 @@ const clauses = ViewPlugin.fromClass(
 );
 
 export function QueryConsole({ tab }: { tab: Tab }) {
-  const { patchTab, runQuery, settings, saveActiveQuery, savedQueries } = useApp();
+  const { patchTab, runQuery, settings, saveActiveQuery, savedQueries, toggleFollow } = useApp();
+  const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
   const e = settings.editor;
   const dirty = unsaved(tab, savedQueries);
   // a line that names its own window is the one deciding, so the quick ranges step aside
@@ -121,6 +146,26 @@ export function QueryConsole({ tab }: { tab: Tab }) {
         >
           <Save size={13} style={{ color: dirty ? "var(--accent)" : "var(--text-dim)" }} />
         </button>
+        <button
+          onClick={() => toggleFollow(tab.id)}
+          disabled={pinned}
+          data-tip={pinned ? "A window that does not move has nothing to follow" : tab.follow ? "Following new messages" : "Follow new messages"}
+          className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+        >
+          <Radio size={13} className={tab.follow ? "animate-pulse" : undefined} style={{ color: tab.follow ? "var(--green)" : "var(--text-dim)" }} />
+        </button>
+        <button
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setExporting({ x: r.left, y: r.bottom + 4 });
+          }}
+          disabled={!tab.page?.rows.length}
+          data-tip="Export results"
+          className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+        >
+          <Download size={13} style={{ color: "var(--text-dim)" }} />
+        </button>
+        {exporting && <ContextMenu x={exporting.x} y={exporting.y} items={exportItems(tab)} onClose={() => setExporting(null)} />}
         <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
         <select
           value={tab.rangeSeconds}

@@ -161,6 +161,14 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
         <Row label="Rows per query" hint="Graylog is asked for this many messages. Above 10,000 the index refuses the request.">
           <Num value={r.pageSize} onChange={(v) => set("pageSize", v)} min={50} max={10000} step={50} width={110} />
         </Row>
+        <Row>
+          <Checkbox
+            checked={r.timeline}
+            onChange={(v) => set("timeline", v)}
+            label="Show the timeline over the results"
+            hint="Messages per bucket across the range, which you can drag across to narrow it. Two more requests per query."
+          />
+        </Row>
         <Row label="Auto-refresh" hint="0 turns it off. The active tab re-runs its query on this interval.">
           <Num value={r.autoRefreshSeconds} onChange={(v) => set("autoRefreshSeconds", v)} min={0} max={3600} suffix="seconds" />
         </Row>

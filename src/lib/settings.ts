@@ -63,6 +63,8 @@ export interface ResultSettings {
   fontSize: number;
   rowHeight: number;
   autoRefreshSeconds: number; // 0 = off
+  /** The timeline over the results. It is two more requests per query, so it can be turned off. */
+  timeline: boolean;
 }
 
 export interface AdvancedSettings {
@@ -138,6 +140,7 @@ export const DEFAULTS: Settings = {
     fontSize: 12,
     rowHeight: 24,
     autoRefreshSeconds: 0,
+    timeline: true,
   },
   terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },
