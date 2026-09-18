@@ -1,15 +1,23 @@
 // The right tool window: the queries this workspace has kept. Clicking one opens the console
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
-import { useState } from "react";
-import { Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Filter, Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "./ContextMenu";
 import { useApp } from "@/store";
 
 export function SavedQueries() {
   const { savedQueries, openSavedQuery, deleteSavedQuery, toggleQueries, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
+  const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
+  // the name is what you remember, the query is what you remember it by, and the stream is
+  // which of the four "errors" you meant
+  const shown = useMemo(() => {
+    const needle = filter.trim().toLowerCase();
+    if (!needle) return savedQueries;
+    return savedQueries.filter((q) => `${q.name} ${q.query} ${q.streamLabel}`.toLowerCase().includes(needle));
+  }, [savedQueries, filter]);
 
   return (
     <div className="island flex h-full flex-col overflow-hidden">
@@ -18,7 +26,7 @@ export function SavedQueries() {
           Saved Queries
         </span>
         <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
-          {savedQueries.length || ""}
+          {filter.trim() ? `${shown.length}/${savedQueries.length}` : savedQueries.length || ""}
         </span>
         <button
           onClick={toggleQueries}
@@ -30,13 +38,31 @@ export function SavedQueries() {
         </button>
       </div>
 
+      {savedQueries.length > 0 && (
+        <div className="mx-2 mt-1 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
+          <Filter size={11} style={{ color: "var(--text-muted)" }} />
+          <input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter…"
+            spellCheck={false}
+            className="selectable h-full w-full bg-transparent text-[12px] outline-none placeholder:text-[var(--text-muted)]"
+            style={{ color: "var(--text)" }}
+          />
+        </div>
+      )}
+
       {!savedQueries.length ? (
         <p className="p-3 text-[12px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
           Nothing saved yet. Write a query and press ⌘S, or use the save button beside Execute.
         </p>
+      ) : !shown.length ? (
+        <p className="p-3 text-[12px]" style={{ color: "var(--text-muted)" }}>
+          Nothing matches “{filter.trim()}”
+        </p>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto py-1">
-          {savedQueries.map((q) => (
+        <div className="min-h-0 flex-1 overflow-auto pb-1">
+          {shown.map((q) => (
             <div
               key={q.id}
               onClick={() => openSavedQuery(q.id)}
