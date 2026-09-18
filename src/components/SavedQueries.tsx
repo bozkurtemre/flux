@@ -2,12 +2,12 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { Filter, Trash2, X } from "lucide-react";
+import { Filter, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 
 export function SavedQueries() {
-  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleQueries, tabs, activeTab } = useApp();
+  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; id: string; name: string; query: string } | null>(null);
@@ -30,14 +30,6 @@ export function SavedQueries() {
         <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>
           {filter.trim() ? `${shown.length}/${savedQueries.length}` : savedQueries.length || ""}
         </span>
-        <button
-          onClick={toggleQueries}
-          data-tip="Hide"
-          className="ml-auto flex size-[18px] items-center justify-center rounded hover:bg-[var(--bg-hover)]"
-          style={{ color: "var(--text-dim)" }}
-        >
-          <X size={12} />
-        </button>
       </div>
 
       {savedQueries.length > 0 && (
