@@ -3,6 +3,37 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.10.0
+
+### Added
+
+- **Follow a request across every stream.** A request crosses services and each service writes
+  to its own stream; the row menu picks the id they share — trace, request, correlation,
+  transaction, session, order, iccid, or whichever column was right-clicked — and opens a
+  console over every stream of that connection, an hour either side, oldest first, with the
+  stream each line came from as a column. The value inspector offers the same on a right-click,
+  on the selection or on the line under the pointer.
+- **Message patterns.** `| patterns` masks what differs every time — ids, times, addresses,
+  numbers — and counts the templates that are left, so five hundred lines of the same failure
+  read as one line with a number beside it. Counted in the rows on screen, at no cost to
+  Graylog.
+- **Query history.** Every run is kept with its stream, the time and the rows it found: a
+  History tab beside Saved, and a Queries section in ⇧⇧.
+- **A Fields panel under the tree**: every field in the rows on screen, how many carry it, and
+  its commonest values — click one to filter by it or out of it, or count by the field.
+- **A date picker beside the ranges**, drawn here rather than by the system: a month to click
+  a range across and a time of day for each end, to the second, in the zone the grid shows.
+- **Folding in the value inspector**, so a message that is a JSON blob can be read a level at
+  a time. On by default, and in Settings › Results.
+- **Connections are checked every half minute** and the tree says which are answering, rather
+  than which have had something loaded from them.
+
+### Fixed
+
+- The saved queries panel keeps the width it was dragged to.
+- Turning the timeline off hides the one already on screen.
+- Right-clicking a row no longer opens the value inspector.
+
 ## 0.9.0
 
 ### Added
