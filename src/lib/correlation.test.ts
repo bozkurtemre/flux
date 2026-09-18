@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { correlationOf, identifying } from "./correlation";
+import { correlationOf, identifying, pairOnLine } from "./correlation";
 
 describe("what is worth following", () => {
   it("takes a dash for the empty field it is", () => {
@@ -32,5 +32,25 @@ describe("the field a row is followed by", () => {
 
   it("finds nothing rather than following a message", () => {
     expect(correlationOf({ timestamp: "2026-09-18T11:00:00Z", message: "it broke" })).toBeNull();
+  });
+});
+
+describe("the line under the pointer", () => {
+  it("reads the key and the value off a pair", () => {
+    expect(pairOnLine('  "requestId": "abc-123",')).toEqual({ key: "requestId", value: "abc-123" });
+    expect(pairOnLine('  "httpStatusCode": 500')).toEqual({ key: "httpStatusCode", value: "500" });
+  });
+
+  it("undoes JSON's escaping, so what is searched is what was logged", () => {
+    expect(pairOnLine('  "message": "he said \\"no\\""')?.value).toBe('he said "no"');
+  });
+
+  it("has nothing to offer on a line that only opens a block", () => {
+    expect(pairOnLine('  "context": {')).toBeNull();
+    expect(pairOnLine("  }")).toBeNull();
+  });
+
+  it("takes an element of an array as a value of its own", () => {
+    expect(pairOnLine('    "one",')).toEqual({ value: "one" });
   });
 });

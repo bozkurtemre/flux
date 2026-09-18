@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Check, ChevronDown, ChevronRight, ChevronUp, FoldVertical, X } from "lucide-react";
+import { Copy, Check, ChevronDown, ChevronRight, ChevronUp, ClipboardCopy, Filter, FilterX, FoldVertical, Route, X } from "lucide-react";
 import { findAll, lines, withMatches, type Span } from "@/lib/find";
 import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
+import { identifying, pairOnLine } from "@/lib/correlation";
+import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import type { Tab } from "@/store";
 
@@ -55,6 +57,41 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   // a match under a fold: the fold gives way while that match is the one being looked at,
   // and closes again afterwards. Worked out here rather than remembered, so nothing has to
   // be put back
+  // Right-clicking in here acts on what is under the pointer: the selection if there is one,
+  // otherwise the pair the line holds. It is the row menu's Follow, reached from the value.
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const onContextMenu = (e: React.MouseEvent) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>("[data-line]");
+    const selected = window.getSelection()?.toString().trim() ?? "";
+    const pair = el ? pairOnLine(text.split("\n")[Number(el.dataset.line)] ?? "") : null;
+    const value = selected || pair?.value || "";
+    if (!value) return;
+    e.preventDefault();
+    const field = selected ? undefined : pair?.key;
+    const known = field && row && field in row ? field : undefined;
+    const app = useApp.getState();
+    setMenu({
+      x: e.clientX,
+      y: e.clientY,
+      items: [
+        {
+          label: field ? `Follow this ${field}` : "Follow this value",
+          icon: <Route size={12} />,
+          disabled: !identifying(value),
+          onClick: () => void app.followValue(tab.id, value, field),
+        },
+        ...(known
+          ? [
+              { label: `Filter by ${known}`, icon: <Filter size={12} />, onClick: () => app.filterByField(tab.id, known, value) },
+              { label: `Exclude ${known}`, icon: <FilterX size={12} />, onClick: () => app.filterByField(tab.id, known, value, true) },
+            ]
+          : []),
+        { separator: true },
+        { label: "Copy value", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(value) },
+      ],
+    });
+  };
+
   const hiding = matches[at] ? foldAround(text.slice(0, matches[at].start).split("\n").length - 1, blocks, folded) : null;
   const shownFolds = hiding == null ? folded : new Set([...folded].filter((l) => l !== hiding));
 
@@ -135,13 +172,14 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         </div>
       )}
 
-      <div className="selectable min-h-0 flex-1 overflow-auto p-2 font-[var(--font-mono)] text-[11.5px] leading-[1.6]">
+      <div onContextMenu={onContextMenu} className="selectable min-h-0 flex-1 overflow-auto p-2 font-[var(--font-mono)] text-[11.5px] leading-[1.6]">
         {row ? (
           <Json text={text} matches={matches} current={at} blocks={blocks} folded={shownFolds} onFold={fold} />
         ) : (
           <span style={{ color: "var(--text-muted)" }}>Select a row</span>
         )}
       </div>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
     </div>
   );
 }
@@ -176,7 +214,7 @@ function Json({
         const end = blocks.get(i);
         const isFolded = folded.has(i);
         return (
-          <div key={i} className="group relative whitespace-pre-wrap break-all" style={{ color: "var(--syn-op)" }}>
+          <div key={i} data-line={i} className="group relative whitespace-pre-wrap break-all" style={{ color: "var(--syn-op)" }}>
             {end !== undefined && (
               <button
                 onClick={() => onFold(i)}

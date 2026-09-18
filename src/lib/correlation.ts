@@ -38,3 +38,27 @@ export function correlationOf(row: Record<string, unknown>, preferred?: string):
   }
   return null;
 }
+
+/** What a line of the inspector's JSON says: the key it names, and the value it holds. */
+export function pairOnLine(line: string): { key?: string; value: string } | null {
+  const pair = /^\s*"((?:[^"\\]|\\.)*)"\s*:\s*(.*?),?\s*$/.exec(line);
+  if (pair) {
+    const value = unquote(pair[2]);
+    // `"context": {` names a block rather than a value; there is nothing to follow in `{`
+    if (value === "{" || value === "[") return null;
+    return { key: unquote(pair[1]), value };
+  }
+  const bare = line.trim().replace(/,$/, "");
+  return bare && !"{}[]".includes(bare) ? { value: unquote(bare) } : null;
+}
+
+/** JSON's own escaping, undone: what is copied or searched is what was logged. */
+function unquote(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('"')) return trimmed;
+  try {
+    return JSON.parse(trimmed) as string;
+  } catch {
+    return trimmed.replace(/^"|"$/g, "");
+  }
+}

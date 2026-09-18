@@ -16,7 +16,7 @@ import {
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { correlationOf } from "@/lib/correlation";
+import { correlationOf, identifying } from "@/lib/correlation";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
 import { loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
@@ -182,6 +182,7 @@ interface State {
   showPatterns: (tabId: string, field: string) => void;
   /** Everything a request touched, across every stream of its connection. */
   followRequest: (tabId: string, row: Record<string, unknown>, field?: string) => Promise<void>;
+  followValue: (tabId: string, value: string, field?: string) => Promise<void>;
   openAround: (tabId: string, at: string, seconds: number) => void;
   openSavedQuery: (id: string) => void;
   /** Run something out of the history again, in the console it belongs to. */
@@ -498,45 +499,23 @@ export const useApp = create<State>((set, get) => ({
    * carries, oldest first, with the stream each line came from beside it.
    */
   followRequest: async (tabId, row, field) => {
-    const tab = get().tabs.find((t) => t.id === tabId);
-    const conn = get().settings.connections.find((c) => c.id === tab?.connId);
-    if (!tab || !conn) return;
     const found = correlationOf(row, field);
     if (!found) {
       return get().notify("info", "Follow this request", "This row carries no id to follow: no trace, request, correlation or order id.");
     }
+    await followAcross(set, get, tabId, { ...found, at: String(row.timestamp ?? "") });
+  },
 
-    const task = get().startTask(`Following ${found.field} across ${conn.name || "the connection"}`);
-    try {
-      const streams = (await clientFor(conn).streams()).map((s) => s.id);
-      const at = new Date(String(row.timestamp ?? ""));
-      const centre = Number.isNaN(at.getTime()) ? new Date() : at;
-      // an hour either side: long enough for a retry, short enough to stay one story
-      const query = withBetween(fieldClause(found.field, found.value), new Date(centre.getTime() - 3600_000), new Date(centre.getTime() + 3600_000));
-      const id = `follow:${conn.id}:${found.field}:${found.value}`;
-      if (!get().tabs.some((t) => t.id === id)) {
-        const next = blankTab(get().settings, conn, {
-          id,
-          title: `${found.field} ${found.value.slice(0, 12)}`,
-          connId: conn.id,
-          streamIds: streams,
-          streamLabel: `${streams.length} streams`,
-        });
-        // which stream a line came from is the point of this tab, and oldest first is the
-        // order a story is read in
-        const columns = ["timestamp", "streams", "source", "level", "message"];
-        set({ tabs: [...get().tabs, { ...next, query, columns, layout: columns, sortOrder: "asc" as const }], activeTab: id });
-        void loadFields(id, set, get);
-      } else {
-        set({ activeTab: id });
-        get().patchTab(id, { query, offset: 0 });
-      }
-      await get().runQuery(id);
-    } catch (e) {
-      get().notify("error", "Follow this request", failureReason(e));
-    } finally {
-      get().endTask(task);
-    }
+  /**
+   * Something pointed at in the inspector. A key that is a field of the message is followed
+   * as that field; anything else — a key inside a JSON blob, a selection — is followed as the
+   * text it is, which is what Graylog searches the message for anyway.
+   */
+  followValue: async (tabId, value, field) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    const row = tab?.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
+    const known = field && row && field in row ? field : undefined;
+    await followAcross(set, get, tabId, { field: known, value, at: String(row?.timestamp ?? "") });
   },
 
   /**
@@ -1134,6 +1113,52 @@ function blankTab(
     columns: conn.columns?.length ? conn.columns : DEFAULT_COLUMNS,
     layout: conn.columns?.length ? conn.columns : undefined,
   };
+}
+
+/**
+ * One console over every stream of a connection, for the hour around a message: a request
+ * crosses services and each service writes to its own stream, so this is where its lines meet.
+ * Without a field it is the value itself that is searched, which is how Graylog reads a bare
+ * term against the message.
+ */
+async function followAcross(set: Setter, get: Getter, tabId: string, o: { field?: string; value: string; at: string }): Promise<void> {
+  const tab = get().tabs.find((t) => t.id === tabId);
+  const conn = get().settings.connections.find((c) => c.id === tab?.connId);
+  if (!tab || !conn || !identifying(o.value)) return;
+
+  const label = o.field ?? "value";
+  const task = get().startTask(`Following ${label} across ${conn.name || "the connection"}`);
+  try {
+    const streams = (await clientFor(conn).streams()).map((s) => s.id);
+    const at = new Date(o.at);
+    const centre = Number.isNaN(at.getTime()) ? new Date() : at;
+    const clause = o.field ? fieldClause(o.field, o.value) : `"${o.value.replace(/(["\\])/g, "\\$1")}"`;
+    // an hour either side: long enough for a retry, short enough to stay one story
+    const query = withBetween(clause, new Date(centre.getTime() - 3600_000), new Date(centre.getTime() + 3600_000));
+    const id = `follow:${conn.id}:${label}:${o.value}`;
+    if (!get().tabs.some((t) => t.id === id)) {
+      const next = blankTab(get().settings, conn, {
+        id,
+        title: `${label} ${o.value.slice(0, 12)}`,
+        connId: conn.id,
+        streamIds: streams,
+        streamLabel: `${streams.length} streams`,
+      });
+      // which stream a line came from is the point of this tab, and oldest first is the order
+      // a story is read in
+      const columns = ["timestamp", "streams", "source", "level", "message"];
+      set({ tabs: [...get().tabs, { ...next, query, columns, layout: columns, sortOrder: "asc" as const }], activeTab: id });
+      void loadFields(id, set, get);
+    } else {
+      set({ activeTab: id });
+      get().patchTab(id, { query, offset: 0 });
+    }
+    await get().runQuery(id);
+  } catch (e) {
+    get().notify("error", "Follow", failureReason(e));
+  } finally {
+    get().endTask(task);
+  }
 }
 
 /**
