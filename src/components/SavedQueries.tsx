@@ -13,10 +13,10 @@ import { useApp } from "@/store";
 const LEVELS: NoticeKind[] = ["info", "warning", "error"];
 
 const INTERVALS = [
-  { seconds: 15, label: "Every 15 seconds" },
-  { seconds: 60, label: "Every minute" },
-  { seconds: 300, label: "Every 5 minutes" },
-  { seconds: 900, label: "Every 15 minutes" },
+  { seconds: 15, label: "15 seconds" },
+  { seconds: 60, label: "A minute" },
+  { seconds: 300, label: "5 minutes" },
+  { seconds: 900, label: "15 minutes" },
 ];
 
 export function SavedQueries() {
@@ -243,26 +243,34 @@ function SavedList() {
                 icon: menu.watch ? <BellOff size={12} /> : <Bell size={12} />,
                 onClick: () => toggleWatch(menu.id),
               },
-              // how often this one looks, which is usually not how often the rest should
+              // the two knobs a watch has, each behind the row that names it
               ...(menu.watch
                 ? [
-                    { separator: true },
-                    ...INTERVALS.map((i) => ({
-                      label: i.label,
-                      icon: menu.every === i.seconds ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,
-                      onClick: () => setWatchInterval(menu.id, i.seconds),
-                    })),
-                    { separator: true },
-                    ...LEVELS.map((l) => ({
-                      label: `${alarm(l).mark}  Report as ${l}`,
-                      icon: (menu.level ?? "warning") === l ? <Check size={12} /> : undefined,
-                      onClick: () => setWatchLevel(menu.id, l),
-                    })),
-                    { separator: true },
                     {
-                      label: `Use the default (${settings.advanced.watchSeconds}s)`,
-                      icon: menu.own === undefined ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,
-                      onClick: () => setWatchInterval(menu.id, undefined),
+                      label: "Check every",
+                      icon: <Clock size={12} />,
+                      items: [
+                        ...INTERVALS.map((i) => ({
+                          label: i.label,
+                          icon: menu.own === i.seconds ? <Check size={12} /> : undefined,
+                          onClick: () => setWatchInterval(menu.id, i.seconds),
+                        })),
+                        { separator: true },
+                        {
+                          label: `The default (${short(settings.advanced.watchSeconds)})`,
+                          icon: menu.own === undefined ? <Check size={12} /> : undefined,
+                          onClick: () => setWatchInterval(menu.id, undefined),
+                        },
+                      ],
+                    },
+                    {
+                      label: "Report as",
+                      icon: <Bell size={12} />,
+                      items: LEVELS.map((l) => ({
+                        label: `${alarm(l).mark}  ${l[0].toUpperCase()}${l.slice(1)}`,
+                        icon: (menu.level ?? "warning") === l ? <Check size={12} /> : undefined,
+                        onClick: () => setWatchLevel(menu.id, l),
+                      })),
                     },
                   ]
                 : []),

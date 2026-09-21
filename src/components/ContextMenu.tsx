@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronRight } from "lucide-react";
 
 export interface MenuItem {
   label?: string;
@@ -9,6 +10,13 @@ export interface MenuItem {
   disabled?: boolean;
   danger?: boolean;
   onClick?: () => void;
+  /** A menu of its own, opened by resting on this row rather than by clicking it. */
+  items?: MenuItem[];
+}
+
+function Submenu({ at, items, onClose }: { at: { x: number; y: number }; items?: MenuItem[]; onClose: () => void }) {
+  if (!items?.length) return null;
+  return <ContextMenu x={at.x} y={at.y} items={items} onClose={onClose} />;
 }
 
 /** A JetBrains popup menu: 24px rows, label left, shortcut right, thin separators. */
@@ -16,6 +24,9 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
   const [cursor, setCursor] = useState(-1);
+  // the row a submenu belongs to, and where that submenu starts: beside the row, not under
+  // the pointer, which is what makes it feel attached to what opened it
+  const [sub, setSub] = useState<{ at: number; x: number; y: number } | null>(null);
   const selectable = items.map((it, i) => (it.separator || it.disabled ? -1 : i)).filter((i) => i >= 0);
 
   // keep the menu inside the window
@@ -41,6 +52,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
       }
       if (e.key === "Enter" && cursor >= 0) {
         e.preventDefault();
+        if (items[cursor].items) return;
         items[cursor].onClick?.();
         onClose();
       }
@@ -76,9 +88,15 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
         ) : (
           <div
             key={i}
-            onMouseEnter={() => !it.disabled && setCursor(i)}
-            onClick={() => {
+            onMouseEnter={(e) => {
               if (it.disabled) return;
+              setCursor(i);
+              const r = e.currentTarget.getBoundingClientRect();
+              // a row with a menu of its own opens it; any other row closes whatever was open
+              setSub(it.items ? { at: i, x: r.right - 2, y: r.top - 5 } : null);
+            }}
+            onClick={() => {
+              if (it.disabled || it.items) return;
               it.onClick?.();
               onClose();
             }}
@@ -97,9 +115,11 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
                 {it.shortcut}
               </span>
             )}
+            {it.items && <ChevronRight size={11} className="ml-auto shrink-0" style={{ color: cursor === i ? "#cfe0ff" : "var(--text-muted)" }} />}
           </div>
         ),
       )}
+      {sub && <Submenu at={sub} items={items[sub.at]?.items} onClose={onClose} />}
     </div>
   );
 }
