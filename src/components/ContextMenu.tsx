@@ -14,19 +14,33 @@ export interface MenuItem {
   items?: MenuItem[];
 }
 
-function Submenu({ at, items, onClose }: { at: { x: number; y: number }; items?: MenuItem[]; onClose: () => void }) {
+function Submenu({ at, items, onClose }: { at: { x: number; y: number; flipX: number }; items?: MenuItem[]; onClose: () => void }) {
   if (!items?.length) return null;
-  return <ContextMenu x={at.x} y={at.y} items={items} onClose={onClose} />;
+  return <ContextMenu x={at.x} y={at.y} flipX={at.flipX} items={items} onClose={onClose} />;
 }
 
 /** A JetBrains popup menu: 24px rows, label left, shortcut right, thin separators. */
-export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }) {
+export function ContextMenu({
+  x,
+  y,
+  items,
+  onClose,
+  flipX,
+}: {
+  x: number;
+  y: number;
+  items: MenuItem[];
+  onClose: () => void;
+  /** Where the menu's right edge goes when it will not fit at `x`: a submenu opens to the
+   *  left of the row that owns it rather than over the menu it came from. */
+  flipX?: number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
   const [cursor, setCursor] = useState(-1);
   // the row a submenu belongs to, and where that submenu starts: beside the row, not under
   // the pointer, which is what makes it feel attached to what opened it
-  const [sub, setSub] = useState<{ at: number; x: number; y: number } | null>(null);
+  const [sub, setSub] = useState<{ at: number; x: number; y: number; flipX: number } | null>(null);
   const selectable = items.map((it, i) => (it.separator || it.disabled ? -1 : i)).filter((i) => i >= 0);
 
   // keep the menu inside the window
@@ -34,11 +48,12 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();
+    const room = x + r.width <= window.innerWidth - 6;
     setPos({
-      left: Math.min(x, window.innerWidth - r.width - 6),
-      top: Math.min(y, window.innerHeight - r.height - 6),
+      left: room || flipX === undefined ? Math.min(x, window.innerWidth - r.width - 6) : Math.max(6, flipX - r.width),
+      top: Math.max(6, Math.min(y, window.innerHeight - r.height - 6)),
     });
-  }, [x, y]);
+  }, [x, y, flipX]);
 
   useEffect(() => {
     const close = () => onClose();
@@ -93,7 +108,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               setCursor(i);
               const r = e.currentTarget.getBoundingClientRect();
               // a row with a menu of its own opens it; any other row closes whatever was open
-              setSub(it.items ? { at: i, x: r.right - 2, y: r.top - 5 } : null);
+              setSub(it.items ? { at: i, x: r.right - 2, y: r.top - 5, flipX: r.left + 2 } : null);
             }}
             onClick={() => {
               if (it.disabled || it.items) return;
