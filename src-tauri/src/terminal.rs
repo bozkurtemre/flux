@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use tauri::ipc::Channel;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 pub struct Session {
     /// Behind its own lock, so a blocked write holds nothing but its own terminal.
@@ -42,6 +42,7 @@ pub struct Spawn {
 pub async fn terminal_open(
     spawn: Spawn,
     on_data: Channel<String>,
+    app: AppHandle,
     terminals: State<'_, Terminals>,
 ) -> Result<(), String> {
     let Spawn {
@@ -122,8 +123,10 @@ pub async fn terminal_open(
                 }
             }
         }
-        // the shell ended on its own: forget the session so a reopen starts clean
+        // the shell ended on its own: forget the session so a reopen starts clean, and say so,
+        // because a tab whose shell has exited is a tab with nothing behind its cursor
         map.lock().unwrap().remove(&key);
+        let _ = app.emit("terminal-exit", &key);
     });
 
     Ok(())

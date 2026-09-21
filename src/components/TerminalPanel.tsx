@@ -2,6 +2,7 @@
 // session. What every tab runs is worked out in lib/terminal.ts; this file is the screen.
 import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { FitAddon } from "@xterm/addon-fit";
 import { Terminal } from "@xterm/xterm";
 import { Plus, X } from "lucide-react";
@@ -208,6 +209,14 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
       }).catch((e: unknown) => term.write(`\r\n\x1b[31m${String(e)}\x1b[0m\r\n`));
     })();
 
+    // the shell exited — `exit`, a crash, tmux killing the window — and the tab is a cursor
+    // blinking over nothing. It closes itself, which is what a terminal does.
+    const ended = listen<string>("terminal-exit", (event) => {
+      // not when we are the ones closing it: tearing the view down ends the pty too, and
+      // acting on that would kill a tmux window the person asked to leave running
+      if (event.payload === pty && !disposed) useApp.getState().closeTerminal(id);
+    });
+
     const observer = new ResizeObserver(() => {
       // hidden tab, or a collapsed panel: fitting to nothing confuses both xterm and tmux
       if (hiddenRef.current || !host.current?.clientHeight || !host.current.clientWidth) return;
@@ -218,6 +227,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
 
     return () => {
       disposed = true;
+      void ended.then((stop) => stop());
       observer.disconnect();
       onInput.dispose();
       term.dispose();
