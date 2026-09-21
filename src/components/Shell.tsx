@@ -167,11 +167,14 @@ export function LeftStripe() {
 export function RightStripe() {
   const { tabs, activeTab, patchTab, showQueries, toggleQueries } = useApp();
   const tab = tabs.find((t) => t.id === activeTab);
+  const rows = !!tab?.page?.rows.length;
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton
-        tip="Value inspector"
-        active={!!tab?.selectedRow || tab?.selectedRow === 0}
+        // there is nothing to inspect until a query has returned a row
+        tip={rows ? "Value inspector" : "Value inspector — run a query first"}
+        disabled={!rows}
+        active={tab?.selectedRow != null}
         onClick={() => tab && patchTab(tab.id, { selectedRow: tab.selectedRow == null ? 0 : undefined })}
       >
         <PanelRight size={16} />
@@ -188,23 +191,27 @@ function StripeButton({
   active,
   tip,
   tipKey,
+  disabled,
   onClick,
 }: {
   children: ReactNode;
   active?: boolean;
   tip?: string;
   tipKey?: string;
+  /** A tool window with nothing to show says so by not being pressable. */
+  disabled?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       data-tip={tip}
       data-tip-key={tipKey}
+      disabled={disabled}
       onClick={onClick}
-      className="flex size-7 items-center justify-center rounded-md"
+      className="flex size-7 items-center justify-center rounded-md disabled:opacity-35"
       style={{ background: active ? "var(--stripe-active)" : undefined, color: "var(--text-dim)" }}
       onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = "var(--bg-hover)";
+        if (!active && !disabled) e.currentTarget.style.background = "var(--bg-hover)";
       }}
       onMouseLeave={(e) => {
         if (!active) e.currentTarget.style.background = "";
