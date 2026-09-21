@@ -3,6 +3,23 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.12.0
+
+### Added
+
+- **Each watched query looks as often as it deserves.** Fifteen seconds, a minute, five or
+  fifteen, chosen on the query's right-click menu, with a default in **Settings › Advanced**
+  for the ones that have no opinion. The bell in the list says which it is.
+
+### Fixed
+
+- **Counts were always zero.** Graylog refuses an aggregation with nothing to group by —
+  which is exactly what a total is — and the refusal was swallowed: the footer quietly lost
+  its total, the MCP tool answered zero, and a watched query never had anything to report.
+  Counts now go through the views API, as the timeline already does.
+- Following new messages updates the timeline as they arrive, instead of leaving it as a
+  picture of when the query ran.
+
 ## 0.11.0
 
 ### Added
