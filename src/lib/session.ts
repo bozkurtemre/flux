@@ -62,6 +62,9 @@ export interface Session {
   inspectorSize?: number;
   /** Width of the saved queries panel, as a percentage of the window. */
   queriesSize?: number;
+  /** Whether the fields panel is open under the tree, and how tall it was left. */
+  showFields?: boolean;
+  fieldsSize?: number;
   /** The queries that were run, newest first. */
   history?: RanQuery[];
 }

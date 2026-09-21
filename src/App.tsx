@@ -38,9 +38,12 @@ export default function App() {
     setTerminalSize,
     showQueries,
     setQueriesSize,
+    showFields,
+    setFieldsSize,
   } = useApp();
   const terminalPanel = useRef<PanelImperativeHandle>(null);
   const queriesPanel = useRef<PanelImperativeHandle>(null);
+  const fieldsPanel = useRef<PanelImperativeHandle>(null);
   const [askQuit, setAskQuit] = useState(false);
   const [remember, setRemember] = useState(false);
 
@@ -143,6 +146,18 @@ export default function App() {
       panel.collapse();
     }
   }, [showQueries]);
+
+  // the fields panel answers its stripe button, at the height it was left at
+  useEffect(() => {
+    const panel = fieldsPanel.current;
+    if (!panel) return;
+    if (showFields) {
+      panel.expand();
+      panel.resize(`${Math.min(70, Math.max(10, useApp.getState().fieldsSize))}%`);
+    } else {
+      panel.collapse();
+    }
+  }, [showFields]);
 
   const onTerminalResize = (size: { asPercentage: number }) => {
     if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
@@ -298,9 +313,17 @@ export default function App() {
                       <ConnectionExplorer />
                     </div>
                   </Panel>
-                  <Separator className="h-1.5" />
+                  <Separator className="h-1.5" style={{ display: showFields ? undefined : "none" }} />
                   {/* the fields of what is on screen, under the tree of what can be asked */}
-                  <Panel defaultSize="34" minSize="10" collapsible collapsedSize={0}>
+                  <Panel
+                    panelRef={fieldsPanel}
+                    collapsible
+                    collapsedSize={0}
+                    defaultSize={0}
+                    minSize="10"
+                    maxSize="70"
+                    onResize={(size) => useApp.getState().showFields && size.asPercentage > 1 && setFieldsSize(size.asPercentage)}
+                  >
                     <FieldsPanel />
                   </Panel>
                 </Group>

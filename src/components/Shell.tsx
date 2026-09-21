@@ -6,18 +6,18 @@ import {
   Folder,
   FolderOpen,
   FolderX,
+  GitBranch,
   Keyboard,
+  MoreVertical,
   Palette,
+  PanelRight,
   Plug,
   RefreshCw,
-  GitBranch,
-  MoreHorizontal,
-  MoreVertical,
-  PanelRight,
   Search,
   Server,
   Settings2,
   SquareTerminal,
+  Tags,
   Unplug,
   Wrench,
 } from "lucide-react";
@@ -144,14 +144,14 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
-  const { showTerminal, toggleTerminal } = useApp();
+  const { showTerminal, toggleTerminal, showFields, toggleFields } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton active tip="Connection Explorer">
         <Server size={16} />
       </StripeButton>
-      <StripeButton tip="More tool windows">
-        <MoreHorizontal size={16} />
+      <StripeButton tip="Fields" active={showFields} onClick={toggleFields}>
+        <Tags size={16} />
       </StripeButton>
       <div className="flex-1" />
       <StripeButton tip="Terminal" tipKey="⌥F12" active={showTerminal} onClick={toggleTerminal}>

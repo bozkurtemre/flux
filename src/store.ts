@@ -122,6 +122,9 @@ interface State {
   queriesSize: number;
   /** The timeline folded away for now, as opposed to turned off in Settings. */
   timelineOpen: boolean;
+  /** The fields of the results, under the tree. */
+  showFields: boolean;
+  fieldsSize: number;
   /** The tab whose query is being named, while the dialog is up. */
   namingQuery?: string;
   terminalSize: number;
@@ -175,6 +178,8 @@ interface State {
   toggleQueries: () => void;
   setQueriesSize: (n: number) => void;
   toggleTimeline: () => void;
+  toggleFields: () => void;
+  setFieldsSize: (n: number) => void;
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
@@ -261,6 +266,8 @@ export const useApp = create<State>((set, get) => ({
   health: {},
   showQueries: false,
   timelineOpen: true,
+  showFields: true,
+  fieldsSize: 34,
   terminalSize: 32,
   inspectorSize: 30,
   queriesSize: 18,
@@ -407,6 +414,16 @@ export const useApp = create<State>((set, get) => ({
     persist(get);
   },
   toggleTimeline: () => set({ timelineOpen: !get().timelineOpen }),
+
+  toggleFields: () => {
+    set({ showFields: !get().showFields });
+    persist(get);
+  },
+
+  setFieldsSize: (fieldsSize) => {
+    set({ fieldsSize });
+    persist(get);
+  },
 
   saveActiveQuery: () => {
     const tab = get().tabs.find((t) => t.id === get().activeTab);
@@ -1368,6 +1385,8 @@ function persist(get: Getter) {
     terminalSize,
     inspectorSize,
     queriesSize,
+    showFields,
+    fieldsSize,
     projectFolders,
     history,
   } = get();
@@ -1383,6 +1402,8 @@ function persist(get: Getter) {
       terminalSize,
       inspectorSize,
       queriesSize,
+      showFields,
+      fieldsSize,
       projectFolders,
       history: history.slice(0, 100),
     },
@@ -1411,6 +1432,8 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     terminalSize: w.terminalSize ?? 32,
     inspectorSize: w.inspectorSize ?? 30,
     queriesSize: w.queriesSize ?? 18,
+    showFields: w.showFields ?? true,
+    fieldsSize: w.fieldsSize ?? 34,
     history: w.history ?? [],
   });
 
