@@ -140,6 +140,30 @@ button {
   background: transparent;
 }
 
+/*
+ * The terminal's own viewport paints a black gutter behind its scrollbar — xterm does that so
+ * the bar is opaque on a black terminal — and against a panel that is not black it reads as a
+ * bar of chrome down the side. The gutter goes; the thumb is the app's, a little slimmer than
+ * the rest because the lines behind it are 12px.
+ */
+.xterm .xterm-viewport {
+  background-color: transparent !important;
+}
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 9px;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--bg-raised);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 8px;
+  min-height: 24px;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+  background-clip: content-box;
+}
+
 /* CodeMirror shaped like the query console it sits in */
 .cm-editor {
   background: var(--bg-editor) !important;
