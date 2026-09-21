@@ -18,6 +18,14 @@ import "@xterm/xterm/css/xterm.css";
  */
 const ptys = new Map<string, string>();
 
+/** The terminal in front, so a click on the panel around it lands in the shell. */
+const focusers = new Map<string, () => void>();
+
+function focusTerminal(): void {
+  const active = useApp.getState().activeTerminal;
+  if (active) focusers.get(active)?.();
+}
+
 /** Hand text to the terminal in front as a paste. False when there is no terminal open. */
 export async function pasteIntoTerminal(text: string): Promise<boolean> {
   const active = useApp.getState().activeTerminal;
@@ -80,7 +88,13 @@ export function TerminalPanel() {
         {menu && <ContextMenu x={menu.x} y={menu.y} items={projectItems} onClose={() => setMenu(null)} />}
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      {/* the shell is a surface of its own inside the panel, framed rather than run together
+          with the tab strip above it */}
+      <div
+        onMouseDown={() => focusTerminal()}
+        className="relative m-1.5 mt-0 min-h-0 flex-1 overflow-hidden rounded-[6px]"
+        style={{ background: "var(--bg-editor)", border: "1px solid var(--border)" }}
+      >
         {terminals.map((t) => (
           <TerminalView key={t.id} id={t.id} projectId={t.projectId} hidden={t.id !== activeTerminal} />
         ))}
@@ -144,6 +158,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
     term.loadAddon(fit);
     term.open(host.current);
     fit.fit();
+    focusers.set(id, () => term.focus());
 
     // everything except copy and paste belongs to the shell, so a tmux prefix arrives intact
     term.attachCustomKeyEventHandler((e) => {
@@ -152,10 +167,9 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
         void navigator.clipboard.writeText(term.getSelection());
         return false;
       }
-      if (e.key === "v") {
-        void navigator.clipboard.readText().then((text) => void invoke("terminal_write", { id: pty, data: text }));
-        return false;
-      }
+      // ⌘V is left to xterm: it arrives as a paste event on the terminal's own textarea, which
+      // is a paste the system already agreed to. Reading the clipboard ourselves instead is
+      // what made macOS ask permission every time.
       return true;
     });
 
@@ -204,6 +218,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
       term.dispose();
       // the tab may be closing or the window reloading; either way this pty has no viewer
       if (ptys.get(id) === pty) ptys.delete(id);
+      focusers.delete(id);
       void invoke("terminal_close", { id: pty }).catch(() => {});
     };
   }, [id, projectId, hasFolder]);
@@ -226,7 +241,7 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
           {note}
         </div>
       )}
-      <div ref={host} className="min-h-0 flex-1 px-1" />
+      <div ref={host} className="min-h-0 flex-1 px-1.5 pt-1" />
     </div>
   );
 }
