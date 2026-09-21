@@ -3,6 +3,22 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.13.0
+
+### Added
+
+- **A watched query says how loud it is.** Info, a warning or an error: the balloon takes
+  that colour and glyph, the notification takes a mark, and the badge in the list says which
+  it will be. A warning and an error make a sound outside the window, chosen in **Settings ›
+  Advanced** from the ones macOS ships with, with a Test beside it; info stays silent.
+- **A menu row can hold a menu.** Watching keeps two rows — Check every, Report as — and the
+  choices live behind them, opening to the side with a tick on the one in force.
+
+### Fixed
+
+- Sending a notification asks macOS for permission first, so the Test button works the first
+  time instead of doing nothing, and says so when notifications are turned off for Flux.
+
 ## 0.12.0
 
 ### Added
