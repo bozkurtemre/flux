@@ -273,6 +273,11 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
           </Row>
         )}
       </Section>
+      <Section title="Watched queries">
+        <Row label="Check every" hint="How often a watched query asks what has arrived since the last round. 0 stops the rounds.">
+          <Num value={a.watchSeconds} onChange={(v) => set("watchSeconds", v)} min={0} max={3600} suffix="seconds" />
+        </Row>
+      </Section>
       <Section title="Network">
         <Row label="Request timeout">
           <Num value={a.requestTimeoutSeconds} onChange={(v) => set("requestTimeoutSeconds", v)} min={5} max={600} suffix="seconds" />
