@@ -9,7 +9,7 @@ import { failureReason } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
 import { SOUNDS } from "@/lib/queries";
-import { sendNotification } from "@tauri-apps/plugin-notification";
+import { announce } from "@/lib/notify";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
@@ -286,7 +286,18 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
               onChange={(v) => set("watchSound", v)}
               options={[{ value: "none", label: "Silent" }, ...SOUNDS.map((s) => ({ value: s, label: s }))]}
             />
-            <Button onClick={() => void sendNotification({ title: "⚠️ Flux", body: "A watched query sounds like this.", sound: a.watchSound })}>
+            {/* the first test is also where macOS is asked, which is the point of having one */}
+            <Button
+              onClick={() =>
+                void announce("⚠️ Flux", "A watched query sounds like this.", a.watchSound).then((shown) => {
+                  if (!shown) {
+                    useApp
+                      .getState()
+                      .notify("warning", "Notifications are off", "macOS is not allowing them for Flux. System Settings › Notifications › Flux.");
+                  }
+                })
+              }
+            >
               Test
             </Button>
           </span>

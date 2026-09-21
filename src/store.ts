@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { Graylog, absolute, bucketFor, bucketed, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
 import { endpointsFromGraylog, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
@@ -16,6 +15,7 @@ import {
   type WorkspaceFile,
 } from "@/lib/workspaces";
 import { killTabCommand } from "@/lib/terminal";
+import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
@@ -642,7 +642,7 @@ export const useApp = create<State>((set, get) => ({
         const message = `${found.toLocaleString()} new ${found === 1 ? "match" : "matches"} on ${q.streamLabel}`;
         const { mark, sound } = alarm(q.level, get().settings.advanced.watchSound);
         get().notify(q.level ?? "warning", q.name, message, [{ label: "Open", run: () => get().openSavedQuery(q.id) }]);
-        void announce(`${mark} ${q.name}`, message, sound);
+        void announce(`${mark} ${q.name}`, message, sound).catch(() => {});
       }),
     );
   },
@@ -1201,16 +1201,6 @@ const now = () => Math.floor(Date.now() / 1000);
 
 /** When each watched query was last asked, so the next round starts where this one ended. */
 const watching = new Map<string, number>();
-
-/** The same news outside the window, for whoever is not looking at it. */
-async function announce(title: string, body: string, sound?: string): Promise<void> {
-  try {
-    const granted = (await isPermissionGranted()) || (await requestPermission()) === "granted";
-    if (granted) sendNotification({ title, body, sound });
-  } catch {
-    /* an alert nobody could show is still in the balloon */
-  }
-}
 
 /** What makes a message that one: its id when Graylog gave one, its content when it did not. */
 const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
