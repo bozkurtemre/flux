@@ -3,6 +3,30 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.15.0
+
+### Added
+
+- **⌘K clears the terminal**, as it does in every other terminal on the machine, and the
+  Keymap page lists it along with ⌥F12.
+- **The Fields panel has the stripe button** that used to say "More tool windows" and do
+  nothing: it shows and hides the panel, which comes back the height it was left at.
+
+### Changed
+
+- **The terminal is a surface of its own** — framed and inset rather than running into the tab
+  strip — a click anywhere on it puts the cursor in the shell, and its scrollbar is the app's
+  rather than xterm's black gutter.
+
+### Fixed
+
+- **⌘V pastes into the terminal without macOS asking.** Intercepting the key to read the
+  clipboard turned a paste the system had agreed to into a clipboard read it questions every
+  time; xterm's own paste handling carries the text.
+- **A terminal tab closes when its shell exits** instead of leaving a cursor blinking over
+  nothing — without touching a tmux session that was asked to keep running.
+- The value inspector's button cannot be pressed until a query has returned a row.
+
 ## 0.14.0
 
 ### Added
