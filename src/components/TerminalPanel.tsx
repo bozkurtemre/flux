@@ -167,6 +167,11 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
         void navigator.clipboard.writeText(term.getSelection());
         return false;
       }
+      if (e.key === "k") {
+        // what ⌘K does in every terminal on this machine: the screen and everything above it
+        term.clear();
+        return false;
+      }
       // ⌘V is left to xterm: it arrives as a paste event on the terminal's own textarea, which
       // is a paste the system already agreed to. Reading the clipboard ourselves instead is
       // what made macOS ask permission every time.
