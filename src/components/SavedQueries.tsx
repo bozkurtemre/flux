@@ -2,15 +2,33 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { Bell, BellOff, Check, ClipboardCopy, Clock, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Check,
+  CircleX,
+  ClipboardCopy,
+  Clock,
+  Filter,
+  History,
+  Info,
+  Pencil,
+  SquareTerminal,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
-import { alarm, watchEvery } from "@/lib/queries";
+import { watchEvery } from "@/lib/queries";
 import type { NoticeKind } from "@/lib/progress";
 import { useApp } from "@/store";
 
 /** The intervals worth a click; anything else is typed into Settings once. */
 /** How loudly an alert arrives: the balloon's colour, a mark on the notification, a sound. */
-const LEVELS: NoticeKind[] = ["info", "warning", "error"];
+const LEVELS: { level: NoticeKind; Glyph: typeof Info; color: string }[] = [
+  { level: "info", Glyph: Info, color: "var(--cyan)" },
+  { level: "warning", Glyph: TriangleAlert, color: "var(--amber)" },
+  { level: "error", Glyph: CircleX, color: "var(--red)" },
+];
 
 const INTERVALS = [
   { seconds: 15, label: "15 seconds" },
@@ -98,6 +116,8 @@ function HistoryList() {
     </>
   );
 }
+
+const levelOf = (level?: NoticeKind) => LEVELS.find((l) => l.level === (level ?? "warning")) ?? LEVELS[1];
 
 /** `15s`, `1m`, `15m`: what the bell shows beside a watched query. */
 function short(seconds: number): string {
@@ -196,10 +216,13 @@ function SavedList() {
                 {q.watch && (
                   <span
                     className="flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums"
-                    style={{ color: q.level === "error" ? "var(--red)" : q.level === "info" ? "var(--text-dim)" : "var(--amber)" }}
-                    data-tip={`Looking every ${every(q)}`}
+                    style={{ color: levelOf(q.level).color }}
+                    data-tip={`Looking every ${every(q)}, reported as ${q.level ?? "warning"}`}
                   >
-                    <Bell size={10} />
+                    {(() => {
+                      const { Glyph } = levelOf(q.level);
+                      return <Glyph size={10} />;
+                    })()}
                     {every(q)}
                   </span>
                 )}
@@ -266,10 +289,11 @@ function SavedList() {
                     {
                       label: "Report as",
                       icon: <Bell size={12} />,
-                      items: LEVELS.map((l) => ({
-                        label: `${alarm(l).mark}  ${l[0].toUpperCase()}${l.slice(1)}`,
-                        icon: (menu.level ?? "warning") === l ? <Check size={12} /> : undefined,
-                        onClick: () => setWatchLevel(menu.id, l),
+                      // the balloon's own glyphs, so a level looks the same wherever it is named
+                      items: LEVELS.map(({ level, Glyph, color }) => ({
+                        label: `${level[0].toUpperCase()}${level.slice(1)}`,
+                        icon: (menu.level ?? "warning") === level ? <Check size={12} /> : <Glyph size={12} style={{ color, opacity: 0.85 }} />,
+                        onClick: () => setWatchLevel(menu.id, level),
                       })),
                     },
                   ]
