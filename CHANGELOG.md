@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.14.0
+
+### Added
+
+- **Copy a row as a code block.** Right-clicking Copy in the value inspector offers the
+  fences Slack, Markdown and Jira each take, for the paste that usually follows reading a row.
+
 ## 0.13.0
 
 ### Added
