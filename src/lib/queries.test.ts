@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nameFor, remember, unsaved, upsert, type SavedQuery } from "./queries";
+import { due, nameFor, remember, unsaved, upsert, watchEvery, type SavedQuery } from "./queries";
 
 const query = (over: Partial<SavedQuery> = {}): SavedQuery => ({
   id: "q1",
@@ -75,5 +75,36 @@ describe("what was run before", () => {
     for (let i = 0; i < 150; i++) list = remember(list, ran(`q${i}`));
     expect(list).toHaveLength(100);
     expect(list[0].query).toBe("q149");
+  });
+});
+
+describe("how often a watched query looks", () => {
+  it("takes its own interval over the one in settings", () => {
+    expect(watchEvery({ watch: true, watchSeconds: 15 }, 60)).toBe(15);
+    expect(watchEvery({ watch: true }, 60)).toBe(60);
+  });
+
+  it("is not watched at all when it is not watched", () => {
+    expect(watchEvery({ watchSeconds: 15 }, 60)).toBe(0);
+  });
+
+  it("is off when its own interval, or the default, says zero", () => {
+    expect(watchEvery({ watch: true, watchSeconds: 0 }, 60)).toBe(0);
+    expect(watchEvery({ watch: true }, 0)).toBe(0);
+  });
+});
+
+describe("when a round is owed", () => {
+  it("is owed at once when there has never been one", () => {
+    expect(due(undefined, 1_000_000, 60)).toBe(true);
+  });
+
+  it("waits out the interval and no longer", () => {
+    expect(due(1_000_000, 1_030_000, 60)).toBe(false);
+    expect(due(1_000_000, 1_060_000, 60)).toBe(true);
+  });
+
+  it("is never owed when the watching is off", () => {
+    expect(due(undefined, 1_000_000, 0)).toBe(false);
   });
 });

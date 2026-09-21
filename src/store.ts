@@ -19,7 +19,7 @@ import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
-import { loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, type SavedQuery } from "@/lib/queries";
+import { due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -196,6 +196,8 @@ interface State {
   renameSavedQuery: (id: string, name: string) => void;
   /** Watch a saved query: new matches are reported while the window is open. */
   toggleWatch: (id: string) => void;
+  /** How often this one looks, in seconds; undefined hands it back to the setting. */
+  setWatchInterval: (id: string, seconds?: number) => void;
   /** One round of watching, run on a timer by the window. */
   checkWatches: () => Promise<void>;
   deleteSavedQuery: (id: string) => void;
@@ -601,15 +603,24 @@ export const useApp = create<State>((set, get) => ({
     void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 
+  setWatchInterval: (id, seconds) => {
+    set({ savedQueries: get().savedQueries.map((q) => (q.id === id ? { ...q, watch: true, watchSeconds: seconds } : q)) });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
   /**
    * What has arrived since the last round, for each watched query. It is a count rather than a
    * search — the cheapest question Graylog answers about a query — and the window it counts
    * over starts where the last one ended, so nothing is reported twice or missed between them.
    */
   checkWatches: async () => {
-    const watched = get().savedQueries.filter((q) => q.watch);
+    const fallback = get().settings.advanced.watchSeconds;
+    const at = Date.now();
+    // each query keeps its own clock, so the window can hold one query looking every fifteen
+    // seconds and another every quarter of an hour
+    const owed = get().savedQueries.filter((q) => due(watching.get(q.id), at, watchEvery(q, fallback)));
     await Promise.all(
-      watched.map(async (q) => {
+      owed.map(async (q) => {
         const conn = get().settings.connections.find((c) => c.id === q.connId);
         const parsed = parseQuery(q.query);
         // a fixed window has nothing new in it, ever

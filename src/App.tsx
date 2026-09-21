@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/settings/controls";
 import { quitAction } from "@/lib/terminal";
 import { runTool, TOOLS } from "@/lib/mcp";
 import { failureReason } from "@/lib/progress";
+import { watchEvery } from "@/lib/queries";
 import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
@@ -159,13 +160,14 @@ export default function App() {
 
   // Watched queries, every minute while the window is open. Nothing runs when Flux is closed —
   // there is no service behind it, and an alert that lies about that would be worse than none.
-  const watching = useApp((z) => z.savedQueries.filter((q) => q.watch).length);
-  const every = settings.advanced.watchSeconds;
+  // one heartbeat, and each watched query decides on it whether its own round is owed; the
+  // beat does nothing at all when none of them is
+  const watching = useApp((z) => z.savedQueries.some((q) => watchEvery(q, z.settings.advanced.watchSeconds) > 0));
   useEffect(() => {
-    if (!watching || every <= 0) return;
-    const beat = setInterval(() => void useApp.getState().checkWatches(), every * 1000);
+    if (!watching) return;
+    const beat = setInterval(() => void useApp.getState().checkWatches(), 5_000);
     return () => clearInterval(beat);
-  }, [watching, every]);
+  }, [watching]);
 
   // Once an hour, without saying anything unless it finds something. A log explorer left
   // open for a day should not have to be restarted to learn there is a new version.

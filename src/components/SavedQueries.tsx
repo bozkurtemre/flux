@@ -2,9 +2,18 @@
 // for the stream it was saved against and runs it there, rather than dropping its text into
 // whichever console happens to be in front.
 import { useMemo, useState } from "react";
-import { Bell, BellOff, ClipboardCopy, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
+import { Bell, BellOff, Check, ClipboardCopy, Clock, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
+import { watchEvery } from "@/lib/queries";
 import { useApp } from "@/store";
+
+/** The intervals worth a click; anything else is typed into Settings once. */
+const INTERVALS = [
+  { seconds: 15, label: "Every 15 seconds" },
+  { seconds: 60, label: "Every minute" },
+  { seconds: 300, label: "Every 5 minutes" },
+  { seconds: 900, label: "Every 15 minutes" },
+];
 
 export function SavedQueries() {
   const [page, setPage] = useState<"saved" | "history">("saved");
@@ -86,13 +95,30 @@ function HistoryList() {
   );
 }
 
+/** `15s`, `1m`, `15m`: what the bell shows beside a watched query. */
+function short(seconds: number): string {
+  if (seconds % 3600 === 0) return `${seconds / 3600}h`;
+  if (seconds % 60 === 0) return `${seconds / 60}m`;
+  return `${seconds}s`;
+}
+
 function SavedList() {
-  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleWatch, tabs, activeTab } = useApp();
+  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleWatch, setWatchInterval, settings, tabs, activeTab } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; id: string; name: string; query: string; watch?: boolean } | null>(null);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    id: string;
+    name: string;
+    query: string;
+    watch?: boolean;
+    every?: number;
+    own?: number;
+  } | null>(null);
   const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
+  const every = (q: { watch?: boolean; watchSeconds?: number }) => short(watchEvery(q, settings.advanced.watchSeconds));
   // the name is what you remember, the query is what you remember it by, and the stream is
   // which of the four "errors" you meant
   const shown = useMemo(() => {
@@ -133,7 +159,16 @@ function SavedList() {
               onClick={() => openSavedQuery(q.id)}
               onContextMenu={(e) => {
                 e.preventDefault();
-                setMenu({ x: e.clientX, y: e.clientY, id: q.id, name: q.name, query: q.query, watch: q.watch });
+                setMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  id: q.id,
+                  name: q.name,
+                  query: q.query,
+                  watch: q.watch,
+                  every: watchEvery(q, settings.advanced.watchSeconds),
+                  own: q.watchSeconds,
+                });
               }}
               className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
               style={{ background: current === q.id ? "var(--bg-active)" : undefined }}
@@ -141,7 +176,16 @@ function SavedList() {
               onMouseLeave={(e) => current !== q.id && (e.currentTarget.style.background = "")}
             >
               <div className="flex items-center gap-1.5">
-                {q.watch && <Bell size={10} className="shrink-0" style={{ color: "var(--amber)" }} />}
+                {q.watch && (
+                  <span
+                    className="flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums"
+                    style={{ color: "var(--amber)" }}
+                    data-tip={`Looking every ${every(q)}`}
+                  >
+                    <Bell size={10} />
+                    {every(q)}
+                  </span>
+                )}
                 <span className="truncate text-[12px]" style={{ color: "var(--text)" }}>
                   {q.name}
                 </span>
@@ -182,6 +226,22 @@ function SavedList() {
                 icon: menu.watch ? <BellOff size={12} /> : <Bell size={12} />,
                 onClick: () => toggleWatch(menu.id),
               },
+              // how often this one looks, which is usually not how often the rest should
+              ...(menu.watch
+                ? [
+                    { separator: true },
+                    ...INTERVALS.map((i) => ({
+                      label: i.label,
+                      icon: menu.every === i.seconds ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,
+                      onClick: () => setWatchInterval(menu.id, i.seconds),
+                    })),
+                    {
+                      label: `Use the default (${settings.advanced.watchSeconds}s)`,
+                      icon: menu.own === undefined ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,
+                      onClick: () => setWatchInterval(menu.id, undefined),
+                    },
+                  ]
+                : []),
               { separator: true },
               { label: "Delete", icon: <Trash2 size={12} />, danger: true, onClick: () => setConfirm({ id: menu.id, name: menu.name }) },
             ] satisfies MenuItem[]

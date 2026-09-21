@@ -21,6 +21,8 @@ export interface SavedQuery {
   savedAt: number;
   /** Watched: while the window is open, new matches are reported as they arrive. */
   watch?: boolean;
+  /** How often this one looks, in seconds. Absent means whatever Settings says. */
+  watchSeconds?: number;
 }
 
 /** A name for a query nobody named: its first line, shortened to fit the panel. */
@@ -56,6 +58,18 @@ export function upsert(queries: SavedQuery[], entry: SavedQuery): SavedQuery[] {
 export function remember<T extends { query: string; streamLabel: string }>(history: T[], entry: T, limit = 100): T[] {
   const same = (h: T) => h.query.trim() === entry.query.trim() && h.streamLabel === entry.streamLabel;
   return [entry, ...history.filter((h) => !same(h))].slice(0, limit);
+}
+
+/** How often a watched query looks: its own answer, or the one the settings give. 0 is off. */
+export function watchEvery(query: { watch?: boolean; watchSeconds?: number }, fallback: number): number {
+  if (!query.watch) return 0;
+  return Math.max(0, query.watchSeconds ?? fallback);
+}
+
+/** Whether a round is owed, given when the last one was. */
+export function due(last: number | undefined, now: number, seconds: number): boolean {
+  if (seconds <= 0) return false;
+  return last === undefined || now - last >= seconds * 1000;
 }
 
 let store: Store | undefined;
