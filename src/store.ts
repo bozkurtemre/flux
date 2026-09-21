@@ -19,7 +19,7 @@ import { killTabCommand } from "@/lib/terminal";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
-import { due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
+import { alarm, due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -198,6 +198,8 @@ interface State {
   toggleWatch: (id: string) => void;
   /** How often this one looks, in seconds; undefined hands it back to the setting. */
   setWatchInterval: (id: string, seconds?: number) => void;
+  /** How loudly a watched query reports: info, warning or error. */
+  setWatchLevel: (id: string, level: NoticeKind) => void;
   /** One round of watching, run on a timer by the window. */
   checkWatches: () => Promise<void>;
   deleteSavedQuery: (id: string) => void;
@@ -608,6 +610,11 @@ export const useApp = create<State>((set, get) => ({
     void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 
+  setWatchLevel: (id, level) => {
+    set({ savedQueries: get().savedQueries.map((q) => (q.id === id ? { ...q, watch: true, level } : q)) });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
   /**
    * What has arrived since the last round, for each watched query. It is a count rather than a
    * search — the cheapest question Graylog answers about a query — and the window it counts
@@ -633,8 +640,9 @@ export const useApp = create<State>((set, get) => ({
           .catch(() => 0);
         if (!found) return;
         const message = `${found.toLocaleString()} new ${found === 1 ? "match" : "matches"} on ${q.streamLabel}`;
-        get().notify("warning", q.name, message, [{ label: "Open", run: () => get().openSavedQuery(q.id) }]);
-        void announce(q.name, message);
+        const { mark, sound } = alarm(q.level, get().settings.advanced.watchSound);
+        get().notify(q.level ?? "warning", q.name, message, [{ label: "Open", run: () => get().openSavedQuery(q.id) }]);
+        void announce(`${mark} ${q.name}`, message, sound);
       }),
     );
   },
@@ -1195,10 +1203,10 @@ const now = () => Math.floor(Date.now() / 1000);
 const watching = new Map<string, number>();
 
 /** The same news outside the window, for whoever is not looking at it. */
-async function announce(title: string, body: string): Promise<void> {
+async function announce(title: string, body: string, sound?: string): Promise<void> {
   try {
     const granted = (await isPermissionGranted()) || (await requestPermission()) === "granted";
-    if (granted) sendNotification({ title, body });
+    if (granted) sendNotification({ title, body, sound });
   } catch {
     /* an alert nobody could show is still in the balloon */
   }

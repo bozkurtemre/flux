@@ -4,10 +4,14 @@
 import { useMemo, useState } from "react";
 import { Bell, BellOff, Check, ClipboardCopy, Clock, Filter, History, Pencil, SquareTerminal, Trash2 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
-import { watchEvery } from "@/lib/queries";
+import { alarm, watchEvery } from "@/lib/queries";
+import type { NoticeKind } from "@/lib/progress";
 import { useApp } from "@/store";
 
 /** The intervals worth a click; anything else is typed into Settings once. */
+/** How loudly an alert arrives: the balloon's colour, a mark on the notification, a sound. */
+const LEVELS: NoticeKind[] = ["info", "warning", "error"];
+
 const INTERVALS = [
   { seconds: 15, label: "Every 15 seconds" },
   { seconds: 60, label: "Every minute" },
@@ -103,7 +107,18 @@ function short(seconds: number): string {
 }
 
 function SavedList() {
-  const { savedQueries, openSavedQuery, deleteSavedQuery, renameSavedQuery, toggleWatch, setWatchInterval, settings, tabs, activeTab } = useApp();
+  const {
+    savedQueries,
+    openSavedQuery,
+    deleteSavedQuery,
+    renameSavedQuery,
+    toggleWatch,
+    setWatchInterval,
+    setWatchLevel,
+    settings,
+    tabs,
+    activeTab,
+  } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [menu, setMenu] = useState<{
@@ -115,6 +130,7 @@ function SavedList() {
     watch?: boolean;
     every?: number;
     own?: number;
+    level?: NoticeKind;
   } | null>(null);
   const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
@@ -168,6 +184,7 @@ function SavedList() {
                   watch: q.watch,
                   every: watchEvery(q, settings.advanced.watchSeconds),
                   own: q.watchSeconds,
+                  level: q.level,
                 });
               }}
               className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
@@ -179,7 +196,7 @@ function SavedList() {
                 {q.watch && (
                   <span
                     className="flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums"
-                    style={{ color: "var(--amber)" }}
+                    style={{ color: q.level === "error" ? "var(--red)" : q.level === "info" ? "var(--text-dim)" : "var(--amber)" }}
                     data-tip={`Looking every ${every(q)}`}
                   >
                     <Bell size={10} />
@@ -235,6 +252,13 @@ function SavedList() {
                       icon: menu.every === i.seconds ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,
                       onClick: () => setWatchInterval(menu.id, i.seconds),
                     })),
+                    { separator: true },
+                    ...LEVELS.map((l) => ({
+                      label: `${alarm(l).mark}  Report as ${l}`,
+                      icon: (menu.level ?? "warning") === l ? <Check size={12} /> : undefined,
+                      onClick: () => setWatchLevel(menu.id, l),
+                    })),
+                    { separator: true },
                     {
                       label: `Use the default (${settings.advanced.watchSeconds}s)`,
                       icon: menu.own === undefined ? <Check size={12} /> : <Clock size={12} style={{ opacity: 0.35 }} />,

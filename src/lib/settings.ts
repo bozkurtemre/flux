@@ -73,6 +73,8 @@ export interface AdvancedSettings {
   requestTimeoutSeconds: number;
   /** How often a watched query asks what has arrived since the last round. */
   watchSeconds: number;
+  /** Which macOS sound a watched query's alert makes; "none" for a silent one. */
+  watchSound: string;
   fieldCacheMinutes: number;
   confirmOnClose: boolean;
 }
@@ -150,7 +152,7 @@ export const DEFAULTS: Settings = {
   terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },
   mcp: { enabled: false, port: 4319, token: "" },
-  advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, fieldCacheMinutes: 10, confirmOnClose: false },
+  advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, watchSound: "Ping", fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
 /** Before the engine was chosen by name it was a tick box, and tmux was the only alternative. */

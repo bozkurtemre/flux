@@ -8,6 +8,8 @@ import { clientFor, useApp } from "@/store";
 import { failureReason } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
+import { SOUNDS } from "@/lib/queries";
+import { sendNotification } from "@tauri-apps/plugin-notification";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFolder } from "@tauri-apps/plugin-dialog";
 
@@ -276,6 +278,18 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
       <Section title="Watched queries">
         <Row label="Check every" hint="How often a watched query asks what has arrived since the last round. 0 stops the rounds.">
           <Num value={a.watchSeconds} onChange={(v) => set("watchSeconds", v)} min={0} max={3600} suffix="seconds" />
+        </Row>
+        <Row label="Alert sound" hint="What a warning or an error sounds like outside the window. A query reported as info is always silent.">
+          <span className="flex items-center gap-2">
+            <Select
+              value={a.watchSound}
+              onChange={(v) => set("watchSound", v)}
+              options={[{ value: "none", label: "Silent" }, ...SOUNDS.map((s) => ({ value: s, label: s }))]}
+            />
+            <Button onClick={() => void sendNotification({ title: "⚠️ Flux", body: "A watched query sounds like this.", sound: a.watchSound })}>
+              Test
+            </Button>
+          </span>
         </Row>
       </Section>
       <Section title="Network">

@@ -4,6 +4,7 @@
 // list along with everything else that folder remembers.
 import { load, type Store } from "@tauri-apps/plugin-store";
 import { readWorkspaceFile, writeWorkspaceFile } from "./workspaces";
+import type { NoticeKind } from "./progress";
 
 export const QUERIES_FILE = "queries.json";
 const FORMAT = 1;
@@ -23,6 +24,8 @@ export interface SavedQuery {
   watch?: boolean;
   /** How often this one looks, in seconds. Absent means whatever Settings says. */
   watchSeconds?: number;
+  /** How loudly it says so: a warning unless it is told otherwise. */
+  level?: NoticeKind;
 }
 
 /** A name for a query nobody named: its first line, shortened to fit the panel. */
@@ -64,6 +67,21 @@ export function remember<T extends { query: string; streamLabel: string }>(histo
 export function watchEvery(query: { watch?: boolean; watchSeconds?: number }, fallback: number): number {
   if (!query.watch) return 0;
   return Math.max(0, query.watchSeconds ?? fallback);
+}
+
+/** The sounds macOS ships with, which is what the notification can name. */
+export const SOUNDS = ["Ping", "Glass", "Blow", "Bottle", "Funk", "Hero", "Morse", "Pop", "Purr", "Sosumi", "Submarine", "Tink", "Basso"];
+
+/**
+ * How an alert announces itself outside the window. Info is left silent whatever sound is
+ * chosen: something worth a sound is something worth stopping for, and a stream that hums
+ * along is neither.
+ */
+export function alarm(level: NoticeKind = "warning", sound = "Ping"): { mark: string; sound?: string } {
+  const heard = sound && sound !== "none" ? sound : undefined;
+  if (level === "error") return { mark: "🛑", sound: heard };
+  if (level === "info") return { mark: "ℹ️" };
+  return { mark: "⚠️", sound: heard };
 }
 
 /** Whether a round is owed, given when the last one was. */
