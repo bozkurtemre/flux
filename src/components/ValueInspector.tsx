@@ -1,17 +1,40 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Check, ChevronDown, ChevronRight, ChevronUp, ClipboardCopy, Filter, FilterX, FoldVertical, Route, X } from "lucide-react";
+import {
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  ClipboardCopy,
+  Code,
+  Filter,
+  FilterX,
+  FoldVertical,
+  MessageSquare,
+  Route,
+  X,
+} from "lucide-react";
 import { findAll, lines, withMatches, type Span } from "@/lib/find";
 import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
 import { identifying, pairOnLine } from "@/lib/correlation";
+import { codeBlock, type Flavour } from "@/lib/export";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import type { Tab } from "@/store";
 
 const EMPTY: Set<number> = new Set();
 
+/** The places a row gets pasted into, and what each of them calls a code block. */
+const FLAVOURS: { flavour: Flavour; label: string; Glyph: typeof Code }[] = [
+  { flavour: "slack", label: "Copy as Slack code block", Glyph: MessageSquare },
+  { flavour: "markdown", label: "Copy as Markdown code block", Glyph: Code },
+  { flavour: "jira", label: "Copy as Jira code block", Glyph: Code },
+];
+
 /** The selected row, as syntax-coloured JSON with strings that hold JSON expanded. */
 export function ValueInspector({ tab }: { tab: Tab }) {
   const [copied, setCopied] = useState(false);
+  const [copyAs, setCopyAs] = useState<{ x: number; y: number } | null>(null);
   const [finding, setFinding] = useState(false);
   const [query, setQuery] = useState("");
   const [current, setCurrent] = useState(0);
@@ -57,6 +80,17 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   // a match under a fold: the fold gives way while that match is the one being looked at,
   // and closes again afterwards. Worked out here rather than remembered, so nothing has to
   // be put back
+  /** Anything copied from here says so for a moment, so a silent clipboard is not a mystery. */
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* clipboard unavailable; the text is selectable */
+    }
+  };
+
   // Right-clicking in here acts on what is under the pointer: the selection if there is one,
   // otherwise the pair the line holds. It is the row menu's Follow, reached from the value.
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
@@ -117,15 +151,13 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         <button
           className={`${tree && blocks.size ? "" : "ml-auto "}flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] hover:bg-[var(--bg-hover)]`}
           style={{ color: "var(--text-dim)" }}
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(text);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1400);
-            } catch {
-              /* clipboard unavailable; the text is selectable */
-            }
+          data-tip="Right-click for a code block"
+          onContextMenu={(e) => {
+            e.preventDefault();
+            const r = e.currentTarget.getBoundingClientRect();
+            setCopyAs({ x: r.left - 120, y: r.bottom + 4 });
           }}
+          onClick={() => void copy(text)}
         >
           {copied ? <Check size={11} /> : <Copy size={11} />}
           {copied ? "copied" : "copy"}
@@ -180,6 +212,21 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         )}
       </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {copyAs && (
+        <ContextMenu
+          x={copyAs.x}
+          y={copyAs.y}
+          items={[
+            { label: "Copy", icon: <ClipboardCopy size={12} />, onClick: () => void copy(text) },
+            ...FLAVOURS.map(({ flavour, label, Glyph }) => ({
+              label,
+              icon: <Glyph size={12} />,
+              onClick: () => void copy(codeBlock(text, flavour)),
+            })),
+          ]}
+          onClose={() => setCopyAs(null)}
+        />
+      )}
     </div>
   );
 }

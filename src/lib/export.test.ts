@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, exportName, toCsv, toJson } from "./export";
+import { codeBlock, csvCell, exportName, toCsv, toJson } from "./export";
 
 const page = {
   columns: ["timestamp", "message", "level"],
@@ -33,5 +33,23 @@ describe("results as a file", () => {
 
   it("names the file after the tab and the moment", () => {
     expect(exportName("GET /v1/wallet", "csv", new Date("2026-09-18T11:22:33Z"))).toBe("GET-v1-wallet-2026-09-18-11-22-33.csv");
+  });
+});
+
+describe("a value on its way into a conversation", () => {
+  it("gives Slack bare fences, which is all it reads", () => {
+    expect(codeBlock('{\n  "a": 1\n}', "slack")).toBe('```\n{\n  "a": 1\n}\n```');
+  });
+
+  it("tells Markdown what the language is", () => {
+    expect(codeBlock("{}", "markdown")).toBe("```json\n{}\n```");
+  });
+
+  it("uses Jira's own fences", () => {
+    expect(codeBlock("{}", "jira")).toBe("{code:json}\n{}\n{code}");
+  });
+
+  it("does not leave a blank line inside the fence", () => {
+    expect(codeBlock("{}\n\n", "slack")).toBe("```\n{}\n```");
   });
 });
