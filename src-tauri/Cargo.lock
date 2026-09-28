@@ -1260,7 +1260,7 @@ dependencies = [
 
 [[package]]
 name = "flux"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "http-body-util",
  "hyper",
