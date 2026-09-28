@@ -4,7 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { correlationOf } from "@/lib/correlation";
 import { ClaudeIcon } from "./icons";
-import { pasteIntoTerminal } from "./TerminalPanel";
+import { sendToClaude } from "./TerminalPanel";
 import { useApp, type Tab } from "@/store";
 import { moveBefore } from "@/lib/reorder";
 
@@ -325,12 +325,7 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
     {
       label: "Paste to Claude",
       icon: <ClaudeIcon size={13} />,
-      onClick: () =>
-        void pasteIntoTerminal(JSON.stringify(row)).then((pasted) => {
-          // it is pasted, not entered: what to ask about the row is still the agent's to type
-          if (pasted) useApp.setState({ showTerminal: true });
-          else useApp.getState().notify("info", "Paste to Claude", "Open a terminal first, with ⌥F12.");
-        }),
+      onClick: () => void sendToClaude(JSON.stringify(row)),
     },
   ];
 }

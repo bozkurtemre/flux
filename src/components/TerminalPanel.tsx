@@ -36,6 +36,16 @@ export async function pasteIntoTerminal(text: string): Promise<boolean> {
   return true;
 }
 
+/**
+ * Hand something to the agent in the terminal: pasted, never entered, with the panel brought
+ * up so it can be seen sitting there. What to ask about it is still the person's to type.
+ */
+export async function sendToClaude(text: string): Promise<void> {
+  const pasted = await pasteIntoTerminal(text).catch(() => false);
+  if (pasted) useApp.setState({ showTerminal: true });
+  else useApp.getState().notify("info", "Paste to Claude", "Open a terminal first, with ⌥F12.");
+}
+
 export function TerminalPanel() {
   const { terminals, activeTerminal, settings, setActiveTerminal, closeTerminal, openTerminal, setShowSettings } = useApp();
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);

@@ -16,6 +16,8 @@ import { QUICK_RANGES } from "@/lib/graylog";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
 import { RangePicker, openingRange } from "./RangePicker";
+import { ClaudeIcon } from "./icons";
+import { sendToClaude } from "./TerminalPanel";
 import { failureReason } from "@/lib/progress";
 import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
@@ -66,6 +68,13 @@ function CustomRange({ tab }: { tab: Tab }) {
       )}
     </span>
   );
+}
+
+/** The rows on screen, in the columns on screen: what the agent is handed, and what a file
+ *  would have held. */
+function resultJson(tab: Tab): string {
+  const columns = tab.layout?.length ? tab.layout : (tab.page?.columns ?? []);
+  return tab.page ? toJson(tab.page, columns) : "[]";
 }
 
 /** The results as they are on screen, written where the save dialog says. */
@@ -216,6 +225,14 @@ export function QueryConsole({ tab }: { tab: Tab }) {
           <Download size={13} style={{ color: "var(--text-dim)" }} />
         </button>
         {exporting && <ContextMenu x={exporting.x} y={exporting.y} items={exportItems(tab)} onClose={() => setExporting(null)} />}
+        <button
+          onClick={() => void sendToClaude(resultJson(tab))}
+          disabled={!tab.page?.rows.length}
+          data-tip={tab.page?.rows.length ? `Paste these ${tab.page.rows.length.toLocaleString()} rows to Claude` : "Paste the results to Claude"}
+          className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+        >
+          <ClaudeIcon size={13} />
+        </button>
         <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
         <select
           value={tab.rangeSeconds}
