@@ -3,6 +3,22 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.16.0
+
+### Added
+
+- **A notification centre**, at the top of the right stripe: everything Flux says is kept
+  after its balloon has gone, newest first, with whatever each notice offered still on it —
+  dismissed one at a time or all at once. The button carries a dot in the colour of the worst
+  thing waiting.
+- **The whole result, handed to Claude.** The mark beside Export pastes the rows as they are
+  on screen into the terminal in front, as a paste rather than a command.
+
+### Changed
+
+- The right dock holds one tool window at a time — notifications or saved queries — which is
+  what its stripe was already implying.
+
 ## 0.15.0
 
 ### Added
