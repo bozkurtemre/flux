@@ -117,7 +117,8 @@ interface State {
   history: RanQuery[];
   /** Whether each connection answered when it was last asked, by connection id. */
   health: Record<string, { up: boolean; at: number; error?: string }>;
-  showQueries: boolean;
+  /** Which tool window the right dock is showing, if any. */
+  rightTool: "queries" | "notifications" | null;
   /** Width of the saved queries panel, kept across openings. */
   queriesSize: number;
   /** The timeline folded away for now, as opposed to turned off in Settings. */
@@ -175,7 +176,7 @@ interface State {
   toggleTerminal: () => void;
   /** Ask every connection whether it is there. Quiet: nothing is notified, the tree shows it. */
   checkConnections: () => Promise<void>;
-  toggleQueries: () => void;
+  toggleRightTool: (tool: "queries" | "notifications") => void;
   setQueriesSize: (n: number) => void;
   toggleTimeline: () => void;
   toggleFields: () => void;
@@ -218,6 +219,10 @@ interface State {
   setTaskProgress: (id: string, progress: number) => void;
   endTask: (id: string) => void;
   notify: (kind: NoticeKind, title: string, message: string, actions?: Notice["actions"]) => void;
+  /** Everything notified this session, newest first, balloons included once they are gone. */
+  noticeLog: Notice[];
+  clearNotices: () => void;
+  dropNotice: (id: string) => void;
   dismissNotice: (id: string) => void;
   checkForUpdates: (manual: boolean) => Promise<void>;
   installUpdate: () => Promise<void>;
@@ -264,7 +269,7 @@ export const useApp = create<State>((set, get) => ({
   savedQueries: [],
   history: [],
   health: {},
-  showQueries: false,
+  rightTool: null,
   timelineOpen: true,
   showFields: true,
   fieldsSize: 34,
@@ -275,6 +280,7 @@ export const useApp = create<State>((set, get) => ({
   tmuxMissing: false,
   tasks: [],
   notices: [],
+  noticeLog: [],
   showUpdateNotes: false,
   showAbout: false,
   recentWorkspaces: [],
@@ -407,7 +413,10 @@ export const useApp = create<State>((set, get) => ({
     set({ health: Object.fromEntries(answers) });
   },
 
-  toggleQueries: () => set({ showQueries: !get().showQueries }),
+  toggleRightTool: (tool) => {
+    set({ rightTool: get().rightTool === tool ? null : tool });
+    persist(get);
+  },
 
   setQueriesSize: (queriesSize) => {
     set({ queriesSize });
@@ -706,7 +715,14 @@ export const useApp = create<State>((set, get) => ({
   setTaskProgress: (id, progress) => set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, progress } : t)) }),
   endTask: (id) => set({ tasks: get().tasks.filter((t) => t.id !== id) }),
 
-  notify: (kind, title, message, actions) => set({ notices: withNotice(get().notices, { id: crypto.randomUUID(), kind, title, message, actions }) }),
+  notify: (kind, title, message, actions) => {
+    const notice = { id: crypto.randomUUID(), kind, title, message, actions, at: Date.now() };
+    // the balloon goes; the centre keeps it, because a balloon missed is a balloon lost
+    set({ notices: withNotice(get().notices, notice), noticeLog: [notice, ...get().noticeLog].slice(0, 200) });
+  },
+
+  clearNotices: () => set({ noticeLog: [] }),
+  dropNotice: (id) => set({ noticeLog: get().noticeLog.filter((n) => n.id !== id) }),
   dismissNotice: (id) => set({ notices: get().notices.filter((n) => n.id !== id) }),
 
   setProjectFolders: (projectFolders) => {
@@ -1319,7 +1335,7 @@ function runSomewhere(
 
 /** Keep an entry, point the tab at it, and show the panel it landed in. */
 function keepQuery(set: Setter, get: Getter, tab: Tab, entry: SavedQuery): void {
-  set({ savedQueries: upsert(get().savedQueries, entry), showQueries: true });
+  set({ savedQueries: upsert(get().savedQueries, entry), rightTool: "queries" });
   get().patchTab(tab.id, { savedQueryId: entry.id });
   void saveQueries(get().savedQueries, get().workspaceFolder);
 }
@@ -1385,6 +1401,7 @@ function persist(get: Getter) {
     terminalSize,
     inspectorSize,
     queriesSize,
+    rightTool,
     showFields,
     fieldsSize,
     projectFolders,
@@ -1402,6 +1419,7 @@ function persist(get: Getter) {
       terminalSize,
       inspectorSize,
       queriesSize,
+      rightTool,
       showFields,
       fieldsSize,
       projectFolders,
@@ -1432,6 +1450,8 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     terminalSize: w.terminalSize ?? 32,
     inspectorSize: w.inspectorSize ?? 30,
     queriesSize: w.queriesSize ?? 18,
+    // sessions written before the dock held more than one tool said so with a boolean
+    rightTool: w.rightTool ?? (w.showQueries ? "queries" : null),
     showFields: w.showFields ?? true,
     fieldsSize: w.fieldsSize ?? 34,
     history: w.history ?? [],

@@ -19,6 +19,8 @@ export interface Notice {
   kind: NoticeKind;
   title: string;
   message: string;
+  /** When it was raised, for the centre that keeps it after the balloon has gone. */
+  at?: number;
   /** Offered alongside the message, as an update does. */
   actions?: { label: string; run: () => void }[];
 }
@@ -37,6 +39,13 @@ export function taskLabel(tasks: Task[]): string {
  * The same failure from the same source is one balloon, not a stack of them: a connection
  * that times out while three branches are open would otherwise say so three times.
  */
+/** The worst of what is waiting, which is what the stripe's dot takes its colour from. */
+export function worstOf(notices: Notice[]): NoticeKind | null {
+  if (notices.some((n) => n.kind === "error")) return "error";
+  if (notices.some((n) => n.kind === "warning")) return "warning";
+  return notices.length ? "info" : null;
+}
+
 export function withNotice(list: Notice[], notice: Notice): Notice[] {
   if (list.some((n) => n.kind === notice.kind && n.title === notice.title && n.message === notice.message)) return list;
   return [...list, notice];

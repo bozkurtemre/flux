@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorText, failureReason, taskLabel, visibleTask, withNotice, type Notice, type Task } from "./progress";
+import { errorText, failureReason, taskLabel, type Notice, type Task, visibleTask, withNotice, worstOf } from "./progress";
 
 const task = (id: string, title: string): Task => ({ id, title });
 const notice = (title: string, message: string): Notice => ({ id: title + message, kind: "error", title, message });
@@ -52,5 +52,19 @@ describe("what a failure says", () => {
 
   it("passes an unfamiliar failure through untouched", () => {
     expect(failureReason("the stream was deleted while we read it")).toBe("the stream was deleted while we read it");
+  });
+});
+
+describe("what the stripe's dot says", () => {
+  const n = (kind: "error" | "warning" | "info") => ({ id: kind, kind, title: "t", message: "m" });
+
+  it("takes the worst of what is waiting", () => {
+    expect(worstOf([n("info"), n("warning")])).toBe("warning");
+    expect(worstOf([n("warning"), n("error")])).toBe("error");
+    expect(worstOf([n("info")])).toBe("info");
+  });
+
+  it("says nothing when nothing is waiting", () => {
+    expect(worstOf([])).toBeNull();
   });
 });

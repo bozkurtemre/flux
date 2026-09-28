@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  Bell,
   Bookmark,
   Bug,
   ChevronDown,
@@ -25,7 +26,7 @@ import { Logo } from "./Logo";
 import { McpIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
-import { taskLabel, visibleTask } from "@/lib/progress";
+import { taskLabel, visibleTask, worstOf } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
@@ -165,11 +166,20 @@ export function LeftStripe() {
 }
 
 export function RightStripe() {
-  const { tabs, activeTab, patchTab, showQueries, toggleQueries } = useApp();
+  const { tabs, activeTab, patchTab, rightTool, toggleRightTool, noticeLog } = useApp();
   const tab = tabs.find((t) => t.id === activeTab);
   const rows = !!tab?.page?.rows.length;
+  const waiting = worstOf(noticeLog);
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
+      <StripeButton
+        tip={waiting ? `Notifications — ${noticeLog.length} kept` : "Notifications"}
+        active={rightTool === "notifications"}
+        dot={waiting ? (waiting === "error" ? "var(--red)" : waiting === "warning" ? "var(--amber)" : "var(--cyan)") : undefined}
+        onClick={() => toggleRightTool("notifications")}
+      >
+        <Bell size={16} />
+      </StripeButton>
       <StripeButton
         // there is nothing to inspect until a query has returned a row
         tip={rows ? "Value inspector" : "Value inspector — run a query first"}
@@ -179,7 +189,7 @@ export function RightStripe() {
       >
         <PanelRight size={16} />
       </StripeButton>
-      <StripeButton tip="Saved Queries" active={showQueries} onClick={toggleQueries}>
+      <StripeButton tip="Saved Queries" active={rightTool === "queries"} onClick={() => toggleRightTool("queries")}>
         <Bookmark size={16} />
       </StripeButton>
     </div>
@@ -192,6 +202,7 @@ function StripeButton({
   tip,
   tipKey,
   disabled,
+  dot,
   onClick,
 }: {
   children: ReactNode;
@@ -200,6 +211,8 @@ function StripeButton({
   tipKey?: string;
   /** A tool window with nothing to show says so by not being pressable. */
   disabled?: boolean;
+  /** A tool window with something waiting says so with a mark in this colour. */
+  dot?: string;
   onClick?: () => void;
 }) {
   return (
@@ -208,7 +221,7 @@ function StripeButton({
       data-tip-key={tipKey}
       disabled={disabled}
       onClick={onClick}
-      className="flex size-7 items-center justify-center rounded-md disabled:opacity-35"
+      className="relative flex size-7 items-center justify-center rounded-md disabled:opacity-35"
       style={{ background: active ? "var(--stripe-active)" : undefined, color: "var(--text-dim)" }}
       onMouseEnter={(e) => {
         if (!active && !disabled) e.currentTarget.style.background = "var(--bg-hover)";
@@ -218,6 +231,12 @@ function StripeButton({
       }}
     >
       {children}
+      {dot && (
+        <span
+          className="absolute translate-x-[9px] translate-y-[-9px] rounded-full"
+          style={{ width: 6, height: 6, background: dot, border: "1px solid var(--bg-window)" }}
+        />
+      )}
     </button>
   );
 }

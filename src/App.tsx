@@ -9,6 +9,7 @@ import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
 import { FieldsPanel } from "./components/FieldsPanel";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
@@ -36,7 +37,7 @@ export default function App() {
     showTerminal,
     terminalSize,
     setTerminalSize,
-    showQueries,
+    rightTool,
     setQueriesSize,
     showFields,
     setFieldsSize,
@@ -139,13 +140,13 @@ export default function App() {
   useEffect(() => {
     const panel = queriesPanel.current;
     if (!panel) return;
-    if (showQueries) {
+    if (rightTool) {
       panel.expand();
       panel.resize(`${Math.min(40, Math.max(12, useApp.getState().queriesSize))}%`);
     } else {
       panel.collapse();
     }
-  }, [showQueries]);
+  }, [rightTool]);
 
   // the fields panel answers its stripe button, at the height it was left at
   useEffect(() => {
@@ -334,7 +335,7 @@ export default function App() {
                   <EditorArea />
                 </div>
               </Panel>
-              <Separator className="w-1.5" style={{ display: showQueries ? undefined : "none" }} />
+              <Separator className="w-1.5" style={{ display: rightTool ? undefined : "none" }} />
               <Panel
                 panelRef={queriesPanel}
                 collapsible
@@ -342,9 +343,10 @@ export default function App() {
                 defaultSize={0}
                 minSize="12"
                 maxSize="40"
-                onResize={(size) => useApp.getState().showQueries && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
+                onResize={(size) => useApp.getState().rightTool && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
               >
-                <SavedQueries />
+                {/* one dock, whichever tool window the stripe asked for */}
+                {rightTool === "notifications" ? <NotificationCenter /> : <SavedQueries />}
               </Panel>
             </Group>
           </Panel>

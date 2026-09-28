@@ -62,6 +62,9 @@ export interface Session {
   inspectorSize?: number;
   /** Width of the saved queries panel, as a percentage of the window. */
   queriesSize?: number;
+  /** Which tool window the right dock was showing. `showQueries` is what it was called. */
+  rightTool?: "queries" | "notifications" | null;
+  showQueries?: boolean;
   /** Whether the fields panel is open under the tree, and how tall it was left. */
   showFields?: boolean;
   fieldsSize?: number;
