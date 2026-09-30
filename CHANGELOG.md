@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.18.0
+
+### Added
+
+- **Compare two rows, field by field.** Tick Compare in the value inspector on one row and then
+  on another — from the same tab or any other — and a window shows the two side by side, the
+  JSON message opened into its fields: red for what only the first has, green for what only the
+  second has, and what they agree on folded away.
+- **What was merged, on the timeline.** For a project with a GitHub repository, the pull
+  requests merged across the range are drawn where they landed, each opening on a click. They
+  come through the `gh` CLI signed in on this machine; Flux keeps no GitHub token.
+- **⌘1–⌘8 go to a tab, and ⌘9 to the last one.**
+
 ## 0.17.0
 
 ### Added
