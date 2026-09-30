@@ -8,6 +8,7 @@ import { EditorArea } from "@/components/EditorArea";
 import { SearchEverywhere } from "@/components/SearchEverywhere";
 import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
+import { CompareWindow } from "./components/CompareWindow";
 import { FieldsPanel } from "./components/FieldsPanel";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
@@ -408,6 +409,7 @@ export default function App() {
       <Notifications />
       <Tooltips />
       <NameQuery />
+      <CompareWindow />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}
       {askQuit && <QuitPrompt remember={remember} setRemember={setRemember} onDone={() => setAskQuit(false)} />}

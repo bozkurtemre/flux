@@ -19,9 +19,10 @@ import { findAll, lines, withMatches, type Span } from "@/lib/find";
 import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
 import { identifying, pairOnLine } from "@/lib/correlation";
 import { codeBlock, type Flavour } from "@/lib/export";
+import { expand } from "@/lib/diff";
 import { ideName, sourceRefs } from "@/lib/source";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { useApp } from "@/store";
+import { pickKey, useApp } from "@/store";
 import type { Tab } from "@/store";
 
 const EMPTY: Set<number> = new Set();
@@ -43,12 +44,15 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   const input = useRef<HTMLInputElement>(null);
   const tree = useApp((s) => s.settings.results.jsonTree);
   const ide = useApp((s) => s.settings.editor.ide);
+  const picks = useApp((s) => s.picks);
   // the folds belong to the document they were made in: another row is another document, and
   // carrying line numbers over to it would fold whatever happens to be there
   const [kept, setKept] = useState<{ of: string; lines: Set<number> }>({ of: "", lines: new Set() });
   const row = tab.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
   const text = row ? JSON.stringify(expand(row), null, 2) : "";
   const blocks = useMemo(() => (tree ? blocksOf(text) : new Map<number, number>()), [tree, text]);
+  // by the message, not the object: a re-run brings the same row back as a new one
+  const picked = !!row && picks.some((p) => p.key === pickKey(tab, row));
   // the files and lines the row names: a stack trace, usually, with the frames that are ours first
   const refs = useMemo(() => sourceRefs(text), [text]);
   const folded = kept.of === text ? kept.lines : EMPTY;
@@ -148,6 +152,22 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
           row {(tab.selectedRow ?? 0) + 1}
         </span>
+        {/* two rows ticked, from wherever they are, open side by side */}
+        {row && (
+          <label
+            className="flex cursor-pointer items-center gap-1 text-[11px]"
+            style={{ color: picked ? "var(--accent)" : "var(--text-dim)" }}
+            data-tip={picked ? "Picked for comparing" : picks.length ? "Tick to compare with the row you picked" : "Tick two rows to compare them"}
+          >
+            <input type="checkbox" checked={picked} onChange={() => useApp.getState().togglePick(tab.id)} />
+            Compare{picks.length ? ` ${picks.length}/2` : ""}
+          </label>
+        )}
+        {picks.length === 2 && (
+          <button onClick={() => useApp.setState({ showCompare: true })} className="text-[11px] hover:underline" style={{ color: "var(--accent)" }}>
+            open
+          </button>
+        )}
         {tree && !!blocks.size && (
           <button
             onClick={foldAll}
@@ -340,23 +360,4 @@ function tokens(line: string): Span[] {
   }
   if (last < line.length) out.push({ text: line.slice(last) });
   return out;
-}
-
-/** Log fields routinely hold a JSON blob inside a string; show it as structure. */
-function expand(v: unknown, depth = 0): unknown {
-  if (depth > 8) return v;
-  if (typeof v === "string") {
-    const t = v.trim();
-    if (t.length > 1 && ((t[0] === "{" && t.endsWith("}")) || (t[0] === "[" && t.endsWith("]")))) {
-      try {
-        return expand(JSON.parse(t), depth + 1);
-      } catch {
-        return v;
-      }
-    }
-    return v;
-  }
-  if (Array.isArray(v)) return v.map((x) => expand(x, depth + 1));
-  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, expand(x, depth + 1)]));
-  return v;
 }

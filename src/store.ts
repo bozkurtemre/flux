@@ -231,6 +231,12 @@ interface State {
   setTaskProgress: (id: string, progress: number) => void;
   endTask: (id: string) => void;
   notify: (kind: NoticeKind, title: string, message: string, actions?: Notice["actions"]) => void;
+  /** Up to two rows picked for comparing, from whichever tabs they were in. */
+  picks: Pick[];
+  showCompare: boolean;
+  /** Pick the row the inspector is showing, or put it back; the second pick opens the window. */
+  togglePick: (tabId: string) => void;
+  clearPicks: () => void;
   /** Everything notified this session, newest first, balloons included once they are gone. */
   noticeLog: Notice[];
   clearNotices: () => void;
@@ -293,6 +299,21 @@ export const useApp = create<State>((set, get) => ({
   tasks: [],
   notices: [],
   noticeLog: [],
+  picks: [],
+  showCompare: false,
+
+  togglePick: (tabId) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    const row = tab?.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
+    if (!tab || !row) return;
+    const key = pickKey(tab, row);
+    const picks = get().picks;
+    if (picks.some((p) => p.key === key)) return set({ picks: picks.filter((p) => p.key !== key) });
+    // a third pick replaces the older of the two: the newest pair is the one being asked about
+    const next = [...picks, { key, row, title: tab.title, at: String(row.timestamp ?? "") }].slice(-2);
+    set({ picks: next, showCompare: next.length === 2 });
+  },
+  clearPicks: () => set({ picks: [], showCompare: false }),
   showUpdateNotes: false,
   showAbout: false,
   recentWorkspaces: [],
@@ -1302,6 +1323,17 @@ type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void
 type Getter = () => State;
 
 const now = () => Math.floor(Date.now() / 1000);
+
+/** A row picked for comparing, with enough to say where it came from. */
+export interface Pick {
+  key: string;
+  row: Record<string, unknown>;
+  title: string;
+  at: string;
+}
+
+/** What makes a picked row that one: its tab, and the message's own identity. */
+export const pickKey = (tab: Tab, row: Record<string, unknown>) => `${tab.id}|${rowKey(row)}`;
 
 /** The project a tab is looking at: whichever one its streams belong to. */
 function projectOf(projects: Settings["projects"], tab: Tab) {
