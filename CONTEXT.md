@@ -26,6 +26,12 @@ A route a service answers on, derived from the logs of a stream rather than decl
 anywhere.
 _Avoid_: route, path, URL
 
+**Set-up file**:
+The projects, and the connections under them, written as one file to hand to someone setting
+Flux up — Settings › Projects › Export, and Add from export on the other end. Connections travel
+as a name and a URL and never with a token; a Graylog already set up is recognised by its URL.
+_Avoid_: backup, profile, config export
+
 **Saved query**:
 A query kept by name in the workspace it was written in, together with the stream it was
 written against. Opening one opens that stream's console and runs it there.

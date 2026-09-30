@@ -11,7 +11,9 @@ import { clientConfig } from "@/lib/mcp";
 import { SOUNDS } from "@/lib/queries";
 import { announce } from "@/lib/notify";
 import { invoke } from "@tauri-apps/api/core";
-import { open as openFolder } from "@tauri-apps/plugin-dialog";
+import { open as openFolder, save as saveDialog } from "@tauri-apps/plugin-dialog";
+import { bundleName, makeBundle, mergeBundle, readBundle } from "@/lib/bundle";
+import { ConfirmDialog } from "../ContextMenu";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
 
@@ -520,16 +522,23 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
 
   const claimedElsewhere = (streamId: string) => projects.some((p) => p.id !== project?.id && p.streams.includes(streamId));
 
+  // handing a set-up over works from an empty install too: that is who it is for
+  const share = <ShareSetup s={s} patch={patch} />;
+
   if (!s.connections.length) {
     return (
-      <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
-        Add a connection first; projects group the streams it exposes.
-      </p>
+      <>
+        {share}
+        <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>
+          Add a connection first; projects group the streams it exposes.
+        </p>
+      </>
     );
   }
 
   return (
     <>
+      {share}
       <Section title="Projects">
         <Row label="Connection">
           <Select
@@ -655,6 +664,141 @@ function ProjectFolderRow({ projectId }: { projectId: string }) {
         </Button>
       </div>
     </Row>
+  );
+}
+
+/**
+ * The projects, and the connections under them, as one file to send — and the way in for the
+ * one who receives it. Tokens never travel: a connection arrives as a name and a URL, and the
+ * page says which ones still need one.
+ */
+function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
+  const [choosing, setChoosing] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [said, setSaid] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+
+  const open = () => {
+    setPicked(new Set(s.projects.map((p) => p.id)));
+    setChoosing(true);
+  };
+
+  const write = async () => {
+    setChoosing(false);
+    const path = await saveDialog({ defaultPath: bundleName(), filters: [{ name: "Flux set-up", extensions: ["json"] }] });
+    if (!path) return;
+    const bundle = makeBundle(s, [...picked]);
+    try {
+      await invoke("save_file", { path, contents: JSON.stringify(bundle, null, 2) });
+      setSaid({ tone: "ok", text: `${bundle.projects.length} projects on ${bundle.connections.length} connections written, without their tokens.` });
+    } catch (e) {
+      setSaid({ tone: "bad", text: failureReason(e) });
+    }
+  };
+
+  const take = async (file: File) => {
+    const bundle = readBundle(await file.text());
+    if (!bundle) return setSaid({ tone: "bad", text: `${file.name} is not a Flux set-up.` });
+    const m = mergeBundle(s, bundle);
+    patch(() => m.settings);
+    const parts = [
+      m.projectsAdded && `${m.projectsAdded} projects added`,
+      m.projectsGrown && `${m.projectsGrown} grown`,
+      m.connectionsAdded && `${m.connectionsAdded} connections added`,
+    ].filter(Boolean);
+    const tokens = m.needToken.length ? ` Add a token to ${m.needToken.map((c) => c.name || c.graylogUrl).join(", ")} on the Connections page.` : "";
+    setSaid({ tone: "ok", text: `${parts.length ? parts.join(", ") : "Nothing new"}.${tokens} Apply to keep it.` });
+  };
+
+  const byConnection = s.connections
+    .map((c) => ({ c, projects: s.projects.filter((p) => p.connectionId === c.id) }))
+    .filter((g) => g.projects.length);
+
+  return (
+    <Section title="Share">
+      <Row hint="Projects and the connections under them as one file, for someone setting Flux up. Tokens are never in it.">
+        <span className="flex items-center gap-2">
+          <Button disabled={!s.projects.length} onClick={open}>
+            Export…
+          </Button>
+          <label
+            className="flex h-[24px] cursor-pointer items-center rounded-[4px] px-2.5 text-[12px]"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
+          >
+            Add from export…
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                if (f) void take(f);
+              }}
+            />
+          </label>
+        </span>
+      </Row>
+      {said && (
+        <Row>
+          <p className="text-[12px]" style={{ color: said.tone === "ok" ? "var(--text-dim)" : "var(--red)" }}>
+            {said.text}
+          </p>
+        </Row>
+      )}
+
+      {choosing && (
+        <ConfirmDialog
+          title="Export projects"
+          message="Choose what goes in the file. Connections go with the projects that need them, without their tokens."
+          confirmLabel={`Export ${picked.size}`}
+          danger={false}
+          extra={
+            <div className="max-h-[280px] overflow-auto rounded-[4px] p-1.5" style={{ border: "1px solid var(--border)" }}>
+              {byConnection.map(({ c, projects }) => {
+                const all = projects.every((p) => picked.has(p.id));
+                return (
+                  <div key={c.id} className="mb-1.5">
+                    <Checkbox
+                      checked={all}
+                      onChange={(v) =>
+                        setPicked((cur) => {
+                          const next = new Set(cur);
+                          for (const p of projects) {
+                            if (v) next.add(p.id);
+                            else next.delete(p.id);
+                          }
+                          return next;
+                        })
+                      }
+                      label={c.name || c.graylogUrl}
+                    />
+                    <div className="ml-5">
+                      {projects.map((p) => (
+                        <Checkbox
+                          key={p.id}
+                          checked={picked.has(p.id)}
+                          onChange={(v) =>
+                            setPicked((cur) => {
+                              const next = new Set(cur);
+                              if (v) next.add(p.id);
+                              else next.delete(p.id);
+                              return next;
+                            })
+                          }
+                          label={`${p.name || "Untitled project"} · ${p.streams.length} streams`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          }
+          onConfirm={() => picked.size && void write()}
+          onCancel={() => setChoosing(false)}
+        />
+      )}
+    </Section>
   );
 }
 
