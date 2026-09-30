@@ -107,6 +107,10 @@ publish: ## Push the branch and this version's tag, which triggers the release w
 	# republishes that old version, manifest and all
 	@v=$$(node scripts/version.mjs) && git push origin "v$$v"
 
+.PHONY: release-local
+release-local: ## Build and publish this version from this machine, for when Actions cannot (KEYS=folder)
+	@scripts/release-local.sh
+
 .PHONY: clean
 clean: ## Remove build output
 	rm -rf dist

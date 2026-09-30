@@ -185,6 +185,21 @@ Pushing a `v*` tag runs the release workflow, which re-runs the quality gate, bu
 The workflow refuses a tag that disagrees with the version in the tree, so the tag and
 the binary can never describe different builds.
 
+When the workflow cannot run — GitHub refusing to start it, as it does when an account's
+Actions billing lapses — the same release can be made from this machine:
+
+```sh
+make bump-minor     # as before: commit and tag
+make release-local  # push, check, build, publish to R2, prune, and make the GitHub release
+```
+
+It does what the workflow does, in the same order, with the keys the workflow holds as
+secrets read from a folder outside the repository — `~/Desktop/flux-updater-keys` unless
+`KEYS=` says otherwise — holding `flux.key`, `password.txt` and an `r2.env` that sets
+`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `BUCKET`. It refuses to
+release anything but the commit the version was tagged at, and running it twice for the same
+version publishes the same files again.
+
 Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
