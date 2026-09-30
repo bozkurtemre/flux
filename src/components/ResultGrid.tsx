@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Route, Rows3, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ClipboardCopy, Clock, Columns3, Filter, FilterX, Route, Rows3, RotateCcw, SquareCode } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { correlationOf } from "@/lib/correlation";
+import { curlOf } from "@/lib/curl";
 import { ClaudeIcon } from "./icons";
 import { sendToClaude } from "./TerminalPanel";
 import { useApp, type Tab } from "@/store";
@@ -277,6 +278,7 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
   const app = useApp.getState();
   const at = String(row.timestamp ?? "");
   const follow = correlationOf(row, col);
+  const curl = curlOf(row);
   return [
     {
       label: follow ? `Follow this ${follow.field}` : "Follow this request",
@@ -315,6 +317,14 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
       onClick: () => app.openAround(tab.id, at, AROUND_SECONDS),
     },
     { separator: true },
+    {
+      // the request the row describes, made again: authentication left out, as it would be
+      // wherever the command is going to be pasted
+      label: "Copy as cURL",
+      icon: <SquareCode size={12} />,
+      disabled: !curl,
+      onClick: () => curl && void navigator.clipboard.writeText(curl),
+    },
     {
       label: col ? `Copy field: ${col}` : "Copy field",
       icon: copy,
