@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatTs } from "./ResultGrid";
 import { withBetween } from "@/lib/query";
+import { along } from "@/lib/deploys";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useApp, type Tab } from "@/store";
 
 const HEIGHT = 56;
@@ -100,6 +102,27 @@ export function Timeline({ tab }: { tab: Tab }) {
       </div>
       {timelineOpen && (
         <div ref={host} onMouseDown={onDown} className="relative flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
+          {/* what was merged meanwhile: a line down the chart, a handle at its top to open it */}
+          {(tab.markers ?? []).map((m) => {
+            const end = new Date(new Date(buckets[buckets.length - 1].at).getTime() + spanOf(buckets)).toISOString();
+            const x = along(m.at, buckets[0].at, end);
+            if (x == null) return null;
+            return (
+              <div
+                key={m.url}
+                className="pointer-events-none absolute top-0 bottom-0"
+                style={{ left: `${x}%`, width: 0, borderLeft: "1px dashed var(--purple)" }}
+              >
+                <button
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => void openUrl(m.url)}
+                  data-tip={`${m.label} · merged ${formatTs(new Date(m.at), settings.results.timezone, "time")}`}
+                  className="pointer-events-auto absolute -top-[3px] -left-[4px] size-[7px] rotate-45"
+                  style={{ background: "var(--purple)" }}
+                />
+              </div>
+            );
+          })}
           {timed && (
             <svg
               className="pointer-events-none absolute inset-0"

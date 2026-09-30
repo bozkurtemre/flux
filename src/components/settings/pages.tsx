@@ -176,6 +176,14 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
         </Row>
         <Row>
           <Checkbox
+            checked={r.deployMarkers}
+            onChange={(v) => set("deployMarkers", v)}
+            label="Mark merged pull requests on the timeline"
+            hint="For a project with a GitHub repository, through the gh CLI signed in on this machine. Flux keeps no GitHub token."
+          />
+        </Row>
+        <Row>
+          <Checkbox
             checked={r.jsonTree}
             onChange={(v) => set("jsonTree", v)}
             label="Fold nested JSON in the value inspector"

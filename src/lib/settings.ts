@@ -72,6 +72,8 @@ export interface ResultSettings {
   timeline: boolean;
   /** Nested JSON in the value inspector folds away behind a chevron. */
   jsonTree: boolean;
+  /** The pull requests merged into a project's repository, drawn on its timeline. */
+  deployMarkers: boolean;
 }
 
 export interface AdvancedSettings {
@@ -153,6 +155,7 @@ export const DEFAULTS: Settings = {
     autoRefreshSeconds: 0,
     timeline: true,
     jsonTree: true,
+    deployMarkers: true,
   },
   terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },

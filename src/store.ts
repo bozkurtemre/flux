@@ -18,6 +18,7 @@ import { killTabCommand } from "@/lib/terminal";
 import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
+import { mergesCommand, readMerges, type Marker } from "@/lib/deploys";
 import { connectionFor, readLink } from "@/lib/link";
 import { ideName, ideUrl, localPath, type SourceRef } from "@/lib/source";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -75,6 +76,8 @@ export interface Tab {
   sortOrder?: "asc" | "desc";
   /** The timeline over the results: counts per bucket for what this tab last asked. */
   histogram?: Bucket[];
+  /** The pull requests merged across the timeline, drawn on it. */
+  markers?: Marker[];
   /** Newest messages are fetched and put on top while this is on. Off when a tab opens. */
   follow?: boolean;
   /** What the last tail brought in: the keys to tint, and a tick the grid can act on once. */
@@ -521,9 +524,8 @@ export const useApp = create<State>((set, get) => ({
     const { tabs, settings, projectFolders } = get();
     const tab = tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    // the project is whichever one the tab's streams belong to, and its folder is this
-    // machine's checkout of it
-    const project = settings.projects.find((p) => p.connectionId === tab.connId && p.streams.some((s) => tab.streamIds.includes(s)));
+    // its folder is this machine's checkout of it
+    const project = projectOf(settings.projects, tab);
     const folder = project ? projectFolders[project.id] : undefined;
     if (!project || !folder) {
       return get().notify(
@@ -1241,6 +1243,8 @@ export const useApp = create<State>((set, get) => ({
           rows: total || page.rows.length,
         }),
       });
+      // what was merged meanwhile arrives when it arrives; the rows do not wait for it
+      if (histogram.length) void mergesFor(settings, tab, histogram).then((markers) => patchTab(id, { markers }));
       patchTab(id, {
         page,
         histogram: histogram.length ? histogram.map((b) => (b.p95 != null && map?.durationIsSeconds ? { ...b, p95: b.p95 * 1000 } : b)) : undefined,
@@ -1298,6 +1302,28 @@ type Setter = (partial: Partial<State> | ((s: State) => Partial<State>)) => void
 type Getter = () => State;
 
 const now = () => Math.floor(Date.now() / 1000);
+
+/** The project a tab is looking at: whichever one its streams belong to. */
+function projectOf(projects: Settings["projects"], tab: Tab) {
+  return projects.find((p) => p.connectionId === tab.connId && p.streams.some((s) => tab.streamIds.includes(s)));
+}
+
+/**
+ * The pull requests merged into the tab's repository across the timeline, through `gh` in the
+ * login shell. Anything that goes wrong — no repository, no `gh`, not signed in — is no markers.
+ */
+async function mergesFor(settings: Settings, tab: Tab, buckets: Bucket[]): Promise<Marker[]> {
+  const repo = projectOf(settings.projects, tab)?.github;
+  if (!repo || !settings.results.deployMarkers || buckets.length < 2) return [];
+  const from = new Date(buckets[0].at);
+  const step = new Date(buckets[1].at).getTime() - from.getTime();
+  const to = new Date(new Date(buckets[buckets.length - 1].at).getTime() + step);
+  const out = await invoke<string>("terminal_run", {
+    program: settings.terminal.shell.trim(),
+    args: ["-l", "-c", mergesCommand(repo, from, to)],
+  }).catch(() => "[]");
+  return readMerges(out);
+}
 
 /** When each watched query was last asked, so the next round starts where this one ended. */
 const watching = new Map<string, number>();
