@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/settings/controls";
 import { quitAction } from "@/lib/terminal";
 import { runTool, TOOLS, type View } from "@/lib/mcp";
 import { parseQuery } from "@/lib/query";
+import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { failureReason } from "@/lib/progress";
 import { watchEvery } from "@/lib/queries";
 import { clientFor } from "@/store";
@@ -202,6 +203,18 @@ export default function App() {
     const beat = setInterval(() => void useApp.getState().checkWatches(), 5_000);
     return () => clearInterval(beat);
   }, [watching]);
+
+  // `flux://open?…` links: the one Flux was started by, and any clicked while it is running.
+  // The plugin hands both over as URLs; what they mean is decided in the store.
+  useEffect(() => {
+    if (!ready) return;
+    const open = (urls: string[] | null) => urls?.forEach((u) => useApp.getState().openLink(u));
+    void getCurrent()
+      .then(open)
+      .catch(() => {});
+    const stop = onOpenUrl(open);
+    return () => void stop.then((unlisten) => unlisten()).catch(() => {});
+  }, [ready]);
 
   // Once an hour, without saying anything unless it finds something. A log explorer left
   // open for a day should not have to be restarted to learn there is a new version.

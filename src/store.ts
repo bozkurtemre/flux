@@ -18,6 +18,7 @@ import { killTabCommand } from "@/lib/terminal";
 import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
+import { connectionFor, readLink } from "@/lib/link";
 import { ideName, ideUrl, localPath, type SourceRef } from "@/lib/source";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
@@ -202,6 +203,8 @@ interface State {
   openSavedQuery: (id: string) => void;
   /** Run something out of the history again, in the console it belongs to. */
   openHistory: (id: string) => void;
+  /** A `flux://open?…` link, opened on whichever connection here answers for its Graylog. */
+  openLink: (link: string) => void;
   /** A console for a stream, opened and run: what an agent asks for with open_query. */
   openQuery: (o: { connId: string; streamId: string; query: string; minutes?: number }) => void;
   clearHistory: () => void;
@@ -473,6 +476,28 @@ export const useApp = create<State>((set, get) => ({
   openHistory: (id) => {
     const ran = get().history.find((h) => h.id === id);
     if (ran) runSomewhere(set, get, { ...ran, name: ran.query || "*" });
+  },
+
+  openLink: (link) => {
+    const shared = readLink(link);
+    if (!shared) return get().notify("warning", "Not a Flux link", link.slice(0, 120));
+    const conn = connectionFor(get().settings.connections, shared.graylog);
+    if (!conn) {
+      return get().notify(
+        "info",
+        "A link to another Graylog",
+        `${shared.graylog} is not set up here. Add it as a connection and open the link again.`,
+        [{ label: "Open Settings", run: () => get().setShowSettings(true, "connections") }],
+      );
+    }
+    runSomewhere(set, get, {
+      name: shared.query || "*",
+      query: shared.query,
+      connId: conn.id,
+      streamIds: [shared.stream],
+      streamLabel: get().nodes[`s:${conn.id}:${shared.stream}`]?.label ?? shared.label ?? shared.stream,
+      rangeSeconds: shared.seconds ?? get().settings.results.defaultRangeSeconds,
+    });
   },
 
   openQuery: ({ connId, streamId, query, minutes }) => {

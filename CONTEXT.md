@@ -26,6 +26,12 @@ A route a service answers on, derived from the logs of a stream rather than decl
 anywhere.
 _Avoid_: route, path, URL
 
+**View link**:
+A `flux://open?…` link to one stream, one console line and one range, for pasting into a
+conversation. It names the Graylog by its URL, so it opens on whichever connection the
+receiver has for it, and never carries a token.
+_Avoid_: share URL, permalink, deep link
+
 **Set-up file**:
 The projects, and the connections under them, written as one file to hand to someone setting
 Flux up — Settings › Projects › Export, and Add from export on the other end. Connections travel

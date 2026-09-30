@@ -11,10 +11,11 @@ import { solr } from "@codemirror/legacy-modes/mode/solr";
 import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
-import { CalendarClock, Download, Play, Radio, RotateCw, Save } from "lucide-react";
+import { CalendarClock, Download, Link2, Play, Radio, RotateCw, Save } from "lucide-react";
 import { QUICK_RANGES } from "@/lib/graylog";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
+import { linkFor } from "@/lib/link";
 import { RangePicker, openingRange } from "./RangePicker";
 import { ClaudeIcon } from "./icons";
 import { sendToClaude } from "./TerminalPanel";
@@ -68,6 +69,19 @@ function CustomRange({ tab }: { tab: Tab }) {
       )}
     </span>
   );
+}
+
+/** This view as a `flux://` link, or null when there is no single stream to name. */
+function linkOf(tab: Tab): string | null {
+  const conn = useApp.getState().settings.connections.find((c) => c.id === tab.connId);
+  if (!conn || tab.streamIds.length !== 1) return null;
+  return linkFor({
+    graylog: conn.graylogUrl,
+    stream: tab.streamIds[0],
+    label: tab.streamLabel,
+    query: tab.query,
+    ...(parseQuery(tab.query).between ? {} : { seconds: tab.rangeSeconds }),
+  });
 }
 
 /** The rows on screen, in the columns on screen: what the agent is handed, and what a file
@@ -232,6 +246,20 @@ export function QueryConsole({ tab }: { tab: Tab }) {
           className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
         >
           <ClaudeIcon size={13} />
+        </button>
+        <button
+          onClick={() => {
+            const link = linkOf(tab);
+            if (!link) return;
+            void navigator.clipboard
+              .writeText(link)
+              .then(() => useApp.getState().notify("info", "Link copied", "Anyone with the same Graylog set up can open this view from it."));
+          }}
+          disabled={!linkOf(tab)}
+          data-tip={tab.streamIds.length === 1 ? "Copy a link to this view" : "A link names one stream; this tab searches several"}
+          className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+        >
+          <Link2 size={13} style={{ color: "var(--text-dim)" }} />
         </button>
         <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
         <select

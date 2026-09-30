@@ -34,6 +34,11 @@
     "updater": {
       "endpoints": ["https://updates.emreb.dev/updates/latest.json"],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM1NTgwOTlCQTk1NTBBQjUKUldTMUNsV3Btd2xZTlVPR0VadXVWcWxLMTVYZmU5dkNPU0pwbzg1dWNia0s0ampkaXpyN1FPdy8K"
+    },
+    "deep-link": {
+      "desktop": {
+        "schemes": ["flux"]
+      }
     }
   }
 }
