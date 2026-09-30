@@ -3,6 +3,26 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.17.0
+
+### Added
+
+- **Hand a set-up to someone in one file.** Settings › Projects exports the projects you choose,
+  with the connections they stand on, and the other end takes it with Add from export. A
+  connection travels as a name and a URL and never with its token; one already set up is
+  recognised by its URL, and the page says which connections still need a token.
+- **From a log line to the line of code.** The value inspector lists the files and lines a row
+  names — a stack trace, usually — and each opens in your IDE at that line, in the project's
+  checkout; so does a right-click on the line that holds one. The IDE and the path the code has
+  on the servers are set in Settings › Projects.
+- **The agent can see the window.** Two MCP tools reach into it: `current_view` answers with the
+  tab in front and its selected row, and `open_query` opens a console there for you to look at.
+- **Copy a logged request as cURL**, from the row menu, with authorization and cookies left out.
+- **A link to a view.** The console copies a `flux://open` link to its stream, line and range,
+  which opens in the receiver's Flux on their own connection to that Graylog.
+- `make release-local` builds and publishes a release from this machine when the workflow
+  cannot run.
+
 ## 0.16.0
 
 ### Added
