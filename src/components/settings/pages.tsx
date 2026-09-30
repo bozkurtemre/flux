@@ -13,6 +13,7 @@ import { announce } from "@/lib/notify";
 import { invoke } from "@tauri-apps/api/core";
 import { open as openFolder, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { bundleName, makeBundle, mergeBundle, readBundle } from "@/lib/bundle";
+import { IDES } from "@/lib/source";
 import { ConfirmDialog } from "../ContextMenu";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
@@ -523,7 +524,16 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
   const claimedElsewhere = (streamId: string) => projects.some((p) => p.id !== project?.id && p.streams.includes(streamId));
 
   // handing a set-up over works from an empty install too: that is who it is for
-  const share = <ShareSetup s={s} patch={patch} />;
+  const share = (
+    <>
+      <ShareSetup s={s} patch={patch} />
+      <Section title="Code">
+        <Row label="Open files in" hint="A file and line named in a log — a stack trace, an error — opens here, in the project's folder.">
+          <Select value={s.editor.ide} onChange={(v) => patch((x) => ({ ...x, editor: { ...x.editor, ide: v } }))} options={IDES} />
+        </Row>
+      </Section>
+    </>
+  );
 
   if (!s.connections.length) {
     return (
@@ -598,6 +608,18 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
                 <Text value={project.github ?? ""} onChange={(v) => field({ github: v || undefined })} placeholder="owner/repo" mono />
               </Row>
               <ProjectFolderRow projectId={project.id} />
+              <Row
+                label="Path on the servers"
+                hint="Taken off a file named in a log to find it in the folder above. Leave empty for the usual roots, /var/www/html and the like."
+              >
+                <Text
+                  value={project.sourcePrefix ?? ""}
+                  onChange={(v) => field({ sourcePrefix: v || undefined })}
+                  width={260}
+                  placeholder="/var/www/html"
+                  mono
+                />
+              </Row>
               <Row label="Streams" hint={loading ? "Loading the stream list…" : "A stream can belong to one project."}>
                 <div className="max-h-[220px] overflow-auto rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
                   {streams.map((st) => {

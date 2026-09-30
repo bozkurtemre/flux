@@ -18,6 +18,8 @@ import { killTabCommand } from "@/lib/terminal";
 import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
+import { ideName, ideUrl, localPath, type SourceRef } from "@/lib/source";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
 import { alarm, due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
@@ -194,6 +196,8 @@ interface State {
   /** Everything a request touched, across every stream of its connection. */
   followRequest: (tabId: string, row: Record<string, unknown>, field?: string) => Promise<void>;
   followValue: (tabId: string, value: string, field?: string) => Promise<void>;
+  /** A file and line a log named, opened in the IDE, in the checkout of the tab's project. */
+  openSource: (tabId: string, ref: SourceRef) => void;
   openAround: (tabId: string, at: string, seconds: number) => void;
   openSavedQuery: (id: string) => void;
   /** Run something out of the history again, in the console it belongs to. */
@@ -472,6 +476,30 @@ export const useApp = create<State>((set, get) => ({
   clearHistory: () => {
     set({ history: [] });
     persist(get);
+  },
+
+  openSource: (tabId, ref) => {
+    const { tabs, settings, projectFolders } = get();
+    const tab = tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    // the project is whichever one the tab's streams belong to, and its folder is this
+    // machine's checkout of it
+    const project = settings.projects.find((p) => p.connectionId === tab.connId && p.streams.some((s) => tab.streamIds.includes(s)));
+    const folder = project ? projectFolders[project.id] : undefined;
+    if (!project || !folder) {
+      return get().notify(
+        "info",
+        `${ref.path.split("/").pop()}:${ref.line}`,
+        project
+          ? `Where is ${project.name} checked out? Its folder is not set.`
+          : "This stream is in no project, so there is no checkout to open it in.",
+        [{ label: "Open Settings", run: () => get().setShowSettings(true, "projects") }],
+      );
+    }
+    const file = localPath(ref.path, folder, project.sourcePrefix);
+    void openUrl(ideUrl(settings.editor.ide, file, ref.line)).catch((e: unknown) =>
+      get().notify("error", `Could not open ${ideName(settings.editor.ide)}`, failureReason(e)),
+    );
   },
 
   toggleFollow: (tabId) => {

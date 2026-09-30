@@ -14,7 +14,7 @@ export interface Bundle {
   flux: typeof BUNDLE_FORMAT;
   exportedAt: string;
   connections: { id: string; name: string; url: string }[];
-  projects: { name: string; connectionId: string; streams: string[]; github?: string }[];
+  projects: { name: string; connectionId: string; streams: string[]; github?: string; sourcePrefix?: string }[];
 }
 
 /** The chosen projects, and the connections they stand on — and nothing that authenticates. */
@@ -98,7 +98,14 @@ export function mergeBundle(settings: Settings, bundle: Bundle, id: () => string
       }
       continue;
     }
-    projects.push({ id: id(), connectionId, name: p.name, streams: [...p.streams], ...(p.github ? { github: p.github } : {}) });
+    projects.push({
+      id: id(),
+      connectionId,
+      name: p.name,
+      streams: [...p.streams],
+      ...(p.github ? { github: p.github } : {}),
+      ...(p.sourcePrefix ? { sourcePrefix: p.sourcePrefix } : {}),
+    });
     projectsAdded += 1;
   }
 

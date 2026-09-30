@@ -1,6 +1,7 @@
 // Persisted app settings. Tokens live in the Tauri store on this machine only.
 import { load, type Store } from "@tauri-apps/plugin-store";
 import { deleteSecret, getSecret } from "./secrets";
+import type { Ide } from "./source";
 
 export interface Connection {
   id: string;
@@ -23,6 +24,8 @@ export interface Project {
   name: string;
   github?: string; // owner/repo, shown beside the project in the tree
   streams: string[]; // stream ids
+  /** Where the code sits on the servers, taken off a traced path to find it in the checkout. */
+  sourcePrefix?: string;
 }
 
 export interface Appearance {
@@ -44,6 +47,8 @@ export interface TreeSettings {
 }
 
 export interface EditorSettings {
+  /** Which IDE a file named in a log opens in. */
+  ide: Ide;
   fontSize: number;
   lineNumbers: boolean;
   wrap: boolean;
@@ -134,7 +139,7 @@ export const DEFAULTS: Settings = {
     endpointLimit: 500,
     lookbackHours: 1,
   },
-  editor: { fontSize: 13, lineNumbers: true, wrap: true, autocomplete: true, highlightActiveLine: true, runOnOpen: true },
+  editor: { ide: "phpstorm", fontSize: 13, lineNumbers: true, wrap: true, autocomplete: true, highlightActiveLine: true, runOnOpen: true },
   results: {
     pageSize: 500,
     defaultRangeSeconds: 3600,

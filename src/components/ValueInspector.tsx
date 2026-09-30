@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Copy,
   Check,
   ChevronDown,
   ChevronRight,
   ChevronUp,
   ClipboardCopy,
   Code,
+  Copy,
+  FileCode2,
   Filter,
   FilterX,
   FoldVertical,
@@ -18,6 +19,7 @@ import { findAll, lines, withMatches, type Span } from "@/lib/find";
 import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
 import { identifying, pairOnLine } from "@/lib/correlation";
 import { codeBlock, type Flavour } from "@/lib/export";
+import { ideName, sourceRefs } from "@/lib/source";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
 import type { Tab } from "@/store";
@@ -40,12 +42,15 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   const [current, setCurrent] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   const tree = useApp((s) => s.settings.results.jsonTree);
+  const ide = useApp((s) => s.settings.editor.ide);
   // the folds belong to the document they were made in: another row is another document, and
   // carrying line numbers over to it would fold whatever happens to be there
   const [kept, setKept] = useState<{ of: string; lines: Set<number> }>({ of: "", lines: new Set() });
   const row = tab.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
   const text = row ? JSON.stringify(expand(row), null, 2) : "";
   const blocks = useMemo(() => (tree ? blocksOf(text) : new Map<number, number>()), [tree, text]);
+  // the files and lines the row names: a stack trace, usually, with the frames that are ours first
+  const refs = useMemo(() => sourceRefs(text), [text]);
   const folded = kept.of === text ? kept.lines : EMPTY;
 
   const fold = (line: number) =>
@@ -120,6 +125,11 @@ export function ValueInspector({ tab }: { tab: Tab }) {
               { label: `Exclude ${known}`, icon: <FilterX size={12} />, onClick: () => app.filterByField(tab.id, known, value, true) },
             ]
           : []),
+        ...sourceRefs(el ? (text.split("\n")[Number(el.dataset.line)] ?? "") : selected).map((ref) => ({
+          label: `Open ${ref.path.split("/").pop()}:${ref.line} in ${ideName(ide)}`,
+          icon: <FileCode2 size={12} />,
+          onClick: () => app.openSource(tab.id, ref),
+        })),
         { separator: true },
         { label: "Copy value", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(value) },
       ],
@@ -163,6 +173,28 @@ export function ValueInspector({ tab }: { tab: Tab }) {
           {copied ? "copied" : "copy"}
         </button>
       </div>
+
+      {refs.length > 0 && (
+        <div className="flex shrink-0 flex-wrap items-center gap-1 px-2 py-1" style={{ borderBottom: "1px solid var(--border)" }}>
+          <FileCode2 size={11} style={{ color: "var(--text-muted)" }} />
+          {refs.slice(0, 6).map((ref) => (
+            <button
+              key={`${ref.path}:${ref.line}`}
+              onClick={() => useApp.getState().openSource(tab.id, ref)}
+              data-tip={`Open in ${ideName(ide)}: ${ref.path}:${ref.line}`}
+              className="max-w-[220px] truncate rounded px-1.5 py-[1px] font-[var(--font-mono)] text-[10.5px] hover:underline"
+              style={{ background: "var(--bg-raised)", color: ref.path.includes("vendor/") ? "var(--text-muted)" : "var(--accent)" }}
+            >
+              {ref.path.split("/").slice(-2).join("/")}:{ref.line}
+            </button>
+          ))}
+          {refs.length > 6 && (
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              +{refs.length - 6}
+            </span>
+          )}
+        </div>
+      )}
 
       {finding && (
         <div

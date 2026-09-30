@@ -8,6 +8,26 @@
     "core:window:allow-start-dragging",
     "core:window:allow-destroy",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "phpstorm://*"
+        },
+        {
+          "url": "idea://*"
+        },
+        {
+          "url": "webstorm://*"
+        },
+        {
+          "url": "vscode://*"
+        },
+        {
+          "url": "cursor://*"
+        }
+      ]
+    },
     "store:default",
     "dialog:default",
     "updater:default",
