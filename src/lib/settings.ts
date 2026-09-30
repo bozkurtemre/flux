@@ -359,4 +359,6 @@ export const SHORTCUTS: { group: string; keys: string; action: string }[] = [
   { group: "Terminal", keys: "⌘K", action: "Clear the terminal" },
   { group: "Window", keys: "⌘,", action: "Open Settings" },
   { group: "Window", keys: "⌘W", action: "Close active tab" },
+  { group: "Window", keys: "⌘1 … ⌘8", action: "Go to that tab" },
+  { group: "Window", keys: "⌘9", action: "Go to the last tab" },
 ];

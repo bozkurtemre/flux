@@ -92,6 +92,16 @@ export default function App() {
       }
       // Cmd+R re-runs the query rather than reloading the window, which is what the webview
       // would otherwise do with it.
+      // ⌘1–⌘8 are the tabs in order and ⌘9 the last, as a browser's are
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+        const { tabs, setActive } = useApp.getState();
+        const n = Number(e.key);
+        const tab = n === 9 ? tabs[tabs.length - 1] : tabs[n - 1];
+        if (tab) {
+          e.preventDefault();
+          setActive(tab.id);
+        }
+      }
       // ⌘S keeps the query, as it saves a file everywhere else
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && activeTab) {
         e.preventDefault();
