@@ -19,7 +19,15 @@ const context = (client: Partial<Graylog> = {}): ToolContext => ({
 
 describe("the tools an agent is offered", () => {
   it("names every tool and says what each one needs", () => {
-    expect(TOOLS.map((t) => t.name)).toEqual(["list_connections", "list_streams", "search_logs", "count_logs", "list_endpoints"]);
+    expect(TOOLS.map((t) => t.name)).toEqual([
+      "list_connections",
+      "list_streams",
+      "search_logs",
+      "count_logs",
+      "list_endpoints",
+      "current_view",
+      "open_query",
+    ]);
     for (const tool of TOOLS) {
       expect(tool.description.length).toBeGreaterThan(20);
       expect(tool.inputSchema.type).toBe("object");
@@ -100,5 +108,45 @@ describe("what a client is told", () => {
     });
     expect(cli).toContain("--transport http");
     expect(cli).toContain("Bearer t0ken");
+  });
+});
+
+describe("the window, from the agent's side", () => {
+  it("says what the person is looking at, selected row and all", async () => {
+    const view = {
+      connection: "prod",
+      streams: [{ id: "s1", title: "payments" }],
+      query: "level:ERROR",
+      minutes: 60,
+      columns: ["timestamp", "message"],
+      rowsOnScreen: 12,
+      selected: { message: "boom" },
+    };
+    const result = await runTool("current_view", {}, { ...context(), view: () => view });
+    expect(JSON.parse(result.content[0].text)).toEqual(view);
+  });
+
+  it("says so when there is nothing open, rather than making something up", async () => {
+    const result = await runTool("current_view", {}, { ...context(), view: () => null });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("open_query");
+  });
+
+  it("opens a console in the window on the connection it names", async () => {
+    let opened: unknown;
+    const result = await runTool(
+      "open_query",
+      { connection: "prod", stream: "s1", query: "level:ERROR | patterns", minutes: 30 },
+      { ...context(), open: (o) => (opened = o) },
+    );
+    expect(result.isError).toBeUndefined();
+    expect(opened).toEqual({ connId: "11111111-1111-1111-1111-111111111111", streamId: "s1", query: "level:ERROR | patterns", minutes: 30 });
+  });
+
+  it("will not open one on a connection it does not have", async () => {
+    let opened = false;
+    const result = await runTool("open_query", { connection: "nope", stream: "s1", query: "*" }, { ...context(), open: () => (opened = true) });
+    expect(result.isError).toBe(true);
+    expect(opened).toBe(false);
   });
 });

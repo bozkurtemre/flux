@@ -202,6 +202,8 @@ interface State {
   openSavedQuery: (id: string) => void;
   /** Run something out of the history again, in the console it belongs to. */
   openHistory: (id: string) => void;
+  /** A console for a stream, opened and run: what an agent asks for with open_query. */
+  openQuery: (o: { connId: string; streamId: string; query: string; minutes?: number }) => void;
   clearHistory: () => void;
   renameSavedQuery: (id: string, name: string) => void;
   /** Watch a saved query: new matches are reported while the window is open. */
@@ -471,6 +473,18 @@ export const useApp = create<State>((set, get) => ({
   openHistory: (id) => {
     const ran = get().history.find((h) => h.id === id);
     if (ran) runSomewhere(set, get, { ...ran, name: ran.query || "*" });
+  },
+
+  openQuery: ({ connId, streamId, query, minutes }) => {
+    const label = get().nodes[`s:${connId}:${streamId}`]?.label ?? streamId;
+    runSomewhere(set, get, {
+      name: query || "*",
+      query,
+      connId,
+      streamIds: [streamId],
+      streamLabel: label,
+      rangeSeconds: minutes ? minutes * 60 : get().settings.results.defaultRangeSeconds,
+    });
   },
 
   clearHistory: () => {

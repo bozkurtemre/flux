@@ -19,11 +19,29 @@ import { Tooltips } from "@/components/Tooltip";
 import { ConfirmDialog } from "@/components/ContextMenu";
 import { Checkbox } from "@/components/settings/controls";
 import { quitAction } from "@/lib/terminal";
-import { runTool, TOOLS } from "@/lib/mcp";
+import { runTool, TOOLS, type View } from "@/lib/mcp";
+import { parseQuery } from "@/lib/query";
 import { failureReason } from "@/lib/progress";
 import { watchEvery } from "@/lib/queries";
 import { clientFor } from "@/store";
 import { useApp } from "@/store";
+
+/** The tab in front, as the agent sees it through current_view: what it asks, and what is picked. */
+function currentView(): View | null {
+  const { tabs, activeTab, settings, nodes } = useApp.getState();
+  const tab = tabs.find((t) => t.id === activeTab);
+  if (!tab) return null;
+  const parsed = parseQuery(tab.query);
+  return {
+    connection: settings.connections.find((c) => c.id === tab.connId)?.name ?? tab.connId,
+    streams: tab.streamIds.map((id) => ({ id, title: nodes[`s:${tab.connId}:${id}`]?.label ?? tab.streamLabel })),
+    query: tab.query,
+    ...(parsed.between ? { between: parsed.between } : { minutes: Math.round(tab.rangeSeconds / 60) }),
+    columns: tab.layout?.length ? tab.layout : (tab.page?.columns ?? []),
+    rowsOnScreen: tab.page?.rows.length ?? 0,
+    ...(tab.selectedRow != null && tab.page?.rows[tab.selectedRow] ? { selected: tab.page.rows[tab.selectedRow] } : {}),
+  };
+}
 
 export default function App() {
   const {
@@ -204,6 +222,8 @@ export default function App() {
         connections: current.connections,
         clientFor,
         defaults: { minutes: 60, limit: current.results.pageSize },
+        view: currentView,
+        open: (o) => useApp.getState().openQuery(o),
       }).catch((e: unknown) => ({
         content: [{ type: "text" as const, text: e instanceof Error ? e.message : String(e) }],
         isError: true,

@@ -1070,13 +1070,15 @@ export function McpPage({ s, patch }: { s: Settings; patch: Patch }) {
       </Section>
 
       <Section title="What it offers">
-        <Row hint="Read-only. Flux never writes to Graylog, and the tokens themselves are never part of an answer.">
+        <Row hint="Flux never writes to Graylog, and the tokens themselves are never part of an answer. The last two reach into this window: what you are looking at, and a console opened for you to look at.">
           <ul className="flex flex-col gap-0.5 text-[12px]" style={{ color: "var(--text-dim)" }}>
             <li>list_connections — the connections Flux is set up with</li>
             <li>list_streams — the streams a connection exposes</li>
             <li>search_logs — a Lucene search, newest first</li>
             <li>count_logs — how many match, without returning them</li>
             <li>list_endpoints — endpoints a stream serves, with traffic and error rates</li>
+            <li>current_view — the query, range and selected row of the tab in front</li>
+            <li>open_query — a console opened and run in this window, for you to see</li>
           </ul>
         </Row>
       </Section>
