@@ -705,6 +705,8 @@ function ProjectFolderRow({ projectId }: { projectId: string }) {
 function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
   const [choosing, setChoosing] = useState(false);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [withQueries, setWithQueries] = useState(true);
+  const saved = useApp((z) => z.savedQueries);
   const [said, setSaid] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   const open = () => {
@@ -716,10 +718,14 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
     setChoosing(false);
     const path = await saveDialog({ defaultPath: bundleName(), filters: [{ name: "Flux set-up", extensions: ["json"] }] });
     if (!path) return;
-    const bundle = makeBundle(s, [...picked]);
+    const bundle = makeBundle(s, [...picked], new Date(), withQueries ? saved : []);
     try {
       await invoke("save_file", { path, contents: JSON.stringify(bundle, null, 2) });
-      setSaid({ tone: "ok", text: `${bundle.projects.length} projects on ${bundle.connections.length} connections written, without their tokens.` });
+      const queries = bundle.queries?.length ? `, ${bundle.queries.length} saved queries` : "";
+      setSaid({
+        tone: "ok",
+        text: `${bundle.projects.length} projects on ${bundle.connections.length} connections${queries} written, without their tokens.`,
+      });
     } catch (e) {
       setSaid({ tone: "bad", text: failureReason(e) });
     }
@@ -728,12 +734,15 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
   const take = async (file: File) => {
     const bundle = readBundle(await file.text());
     if (!bundle) return setSaid({ tone: "bad", text: `${file.name} is not a Flux set-up.` });
-    const m = mergeBundle(s, bundle);
+    const m = mergeBundle(s, bundle, undefined, saved);
     patch(() => m.settings);
+    // the queries go to the panel straight away: they are the workspace's, not the draft's
+    useApp.getState().addSavedQueries(m.queries);
     const parts = [
       m.projectsAdded && `${m.projectsAdded} projects added`,
       m.projectsGrown && `${m.projectsGrown} grown`,
       m.connectionsAdded && `${m.connectionsAdded} connections added`,
+      m.queries.length && `${m.queries.length} saved queries added`,
     ].filter(Boolean);
     const tokens = m.needToken.length ? ` Add a token to ${m.needToken.map((c) => c.name || c.graylogUrl).join(", ")} on the Connections page.` : "";
     setSaid({ tone: "ok", text: `${parts.length ? parts.join(", ") : "Nothing new"}.${tokens} Apply to keep it.` });
@@ -822,6 +831,14 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
                   </div>
                 );
               })}
+              <div className="mt-2 pt-1.5" style={{ borderTop: "1px solid var(--border-soft)" }}>
+                <Checkbox
+                  checked={withQueries}
+                  onChange={setWithQueries}
+                  label="Include the saved queries on these projects' streams"
+                  hint="Without whether they are watched, which is yours to decide."
+                />
+              </div>
             </div>
           }
           onConfirm={() => picked.size && void write()}

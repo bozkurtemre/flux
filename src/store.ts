@@ -217,6 +217,8 @@ interface State {
   openQuery: (o: { connId: string; streamId: string; query: string; minutes?: number }) => void;
   clearHistory: () => void;
   renameSavedQuery: (id: string, name: string) => void;
+  /** Queries arriving from a set-up file, kept with this workspace like any other. */
+  addSavedQueries: (queries: SavedQuery[]) => void;
   /** Watch a saved query: new matches are reported while the window is open. */
   toggleWatch: (id: string) => void;
   /** How often this one looks, in seconds; undefined hands it back to the setting. */
@@ -722,6 +724,12 @@ export const useApp = create<State>((set, get) => ({
     }
     void get().runQuery(id);
     persist(get);
+  },
+
+  addSavedQueries: (queries) => {
+    if (!queries.length) return;
+    set({ savedQueries: [...queries, ...get().savedQueries] });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 
   renameSavedQuery: (id, name) => {

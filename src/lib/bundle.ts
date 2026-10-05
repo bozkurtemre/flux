@@ -6,6 +6,7 @@
 // file made to be sent is the last place one belongs: a connection arrives as a name and a URL,
 // and whoever receives it pastes their own token into it.
 import type { Connection, Project, Settings } from "./settings";
+import type { SavedQuery } from "./queries";
 
 export const BUNDLE_FORMAT = 1;
 
@@ -15,13 +16,31 @@ export interface Bundle {
   exportedAt: string;
   connections: { id: string; name: string; url: string }[];
   projects: { name: string; connectionId: string; streams: string[]; github?: string; sourcePrefix?: string }[];
+  /** The team's saved queries on those projects' streams. Absent in files from before they travelled. */
+  queries?: { name: string; query: string; connectionId: string; streamIds: string[]; streamLabel: string; rangeSeconds: number }[];
 }
 
-/** The chosen projects, and the connections they stand on — and nothing that authenticates. */
-export function makeBundle(settings: Settings, projectIds: string[], at = new Date()): Bundle {
+/**
+ * The chosen projects, the connections they stand on, and — when asked — the saved queries that
+ * search only those projects' streams. Nothing that authenticates.
+ */
+export function makeBundle(settings: Settings, projectIds: string[], at = new Date(), saved: SavedQuery[] = []): Bundle {
   const projects = settings.projects.filter((p) => projectIds.includes(p.id));
   const used = new Set(projects.map((p) => p.connectionId));
+  // a query is the team's when every stream it searches is one being handed over
+  const streams = new Set(projects.flatMap((p) => p.streams.map((s) => `${p.connectionId}|${s}`)));
+  const queries = saved
+    .filter((q) => used.has(q.connId) && q.streamIds.length && q.streamIds.every((s) => streams.has(`${q.connId}|${s}`)))
+    .map((q) => ({
+      name: q.name,
+      query: q.query,
+      connectionId: q.connId,
+      streamIds: [...q.streamIds],
+      streamLabel: q.streamLabel,
+      rangeSeconds: q.rangeSeconds,
+    }));
   return {
+    ...(queries.length ? { queries } : {}),
     flux: BUNDLE_FORMAT,
     exportedAt: at.toISOString(),
     connections: settings.connections.filter((c) => used.has(c.id)).map((c) => ({ id: c.id, name: c.name, url: c.graylogUrl })),
@@ -41,7 +60,10 @@ export function readBundle(text: string): Bundle | null {
     if (b.flux !== BUNDLE_FORMAT || !Array.isArray(b.connections) || !Array.isArray(b.projects)) return null;
     const ok =
       b.connections.every((c) => typeof c?.id === "string" && typeof c.url === "string") &&
-      b.projects.every((p) => typeof p?.name === "string" && typeof p.connectionId === "string" && Array.isArray(p.streams));
+      b.projects.every((p) => typeof p?.name === "string" && typeof p.connectionId === "string" && Array.isArray(p.streams)) &&
+      (b.queries === undefined ||
+        (Array.isArray(b.queries) &&
+          b.queries.every((q) => typeof q?.query === "string" && typeof q.connectionId === "string" && Array.isArray(q.streamIds))));
     return ok ? (b as Bundle) : null;
   } catch {
     return null;
@@ -58,6 +80,8 @@ export interface Merged {
   projectsGrown: number;
   /** Connections that came without a token, which is all of the new ones. */
   needToken: Connection[];
+  /** Saved queries the file brought that were not here yet. */
+  queries: SavedQuery[];
 }
 
 /**
@@ -66,7 +90,13 @@ export interface Merged {
  * a new one otherwise, with an empty token. A project already here by name on that connection
  * gains the streams it did not have, rather than arriving twice.
  */
-export function mergeBundle(settings: Settings, bundle: Bundle, id: () => string = () => crypto.randomUUID()): Merged {
+export function mergeBundle(
+  settings: Settings,
+  bundle: Bundle,
+  id: () => string = () => crypto.randomUUID(),
+  saved: SavedQuery[] = [],
+  at = Math.floor(Date.now() / 1000),
+): Merged {
   const connections = [...settings.connections];
   const needToken: Connection[] = [];
   const localId = new Map<string, string>();
@@ -109,7 +139,27 @@ export function mergeBundle(settings: Settings, bundle: Bundle, id: () => string
     projectsAdded += 1;
   }
 
-  return { settings: { ...settings, connections, projects }, connectionsAdded: needToken.length, projectsAdded, projectsGrown, needToken };
+  // a query already here — the same line, under the same name, on the same connection — is not
+  // added again; neither is one on a connection the file does not name
+  const queries: SavedQuery[] = [];
+  for (const q of bundle.queries ?? []) {
+    const connId = localId.get(q.connectionId);
+    if (!connId) continue;
+    const twin = (x: { connId: string; name: string; query: string }) => x.connId === connId && x.name === q.name && x.query === q.query;
+    if (saved.some(twin) || queries.some(twin)) continue;
+    queries.push({
+      id: id(),
+      name: q.name,
+      query: q.query,
+      connId,
+      streamIds: [...q.streamIds],
+      streamLabel: q.streamLabel,
+      rangeSeconds: q.rangeSeconds,
+      savedAt: at,
+    });
+  }
+
+  return { settings: { ...settings, connections, projects }, connectionsAdded: needToken.length, projectsAdded, projectsGrown, needToken, queries };
 }
 
 /** A name that says what the file is, and whose. */

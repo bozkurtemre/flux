@@ -84,3 +84,54 @@ describe("taking a set-up in", () => {
     expect(m.settings.connections).toHaveLength(2);
   });
 });
+
+describe("the team's saved queries, in the same file", () => {
+  const saved = [
+    {
+      id: "q1",
+      name: "Wallet errors",
+      query: "level:ERROR",
+      connId: "c-prod",
+      streamIds: ["s1"],
+      streamLabel: "wallet",
+      rangeSeconds: 3600,
+      savedAt: 1,
+      watch: true,
+    },
+    // searches a stream that is not being handed over
+    { id: "q2", name: "Elsewhere", query: "*", connId: "c-prod", streamIds: ["s1", "s99"], streamLabel: "x", rangeSeconds: 60, savedAt: 1 },
+    { id: "q3", name: "Orders", query: "*", connId: "c-stage", streamIds: ["s9"], streamLabel: "orders", rangeSeconds: 60, savedAt: 1 },
+  ];
+
+  it("carries the ones that search only the projects handed over", () => {
+    expect(makeBundle(mine, ["p1"], new Date(), saved).queries?.map((q) => q.name)).toEqual(["Wallet errors"]);
+  });
+
+  it("leaves out what is about one person's machine, like whether it is watched", () => {
+    expect(JSON.stringify(makeBundle(mine, ["p1"], new Date(), saved))).not.toContain("watch");
+  });
+
+  it("says nothing about queries when there are none to carry", () => {
+    expect(makeBundle(mine, ["p1"]).queries).toBeUndefined();
+  });
+
+  it("arrives on the connection made here, once", () => {
+    const fresh: Settings = { ...DEFAULTS, connections: [], projects: [] };
+    let n = 0;
+    const m = mergeBundle(fresh, makeBundle(mine, ["p1", "p2"], new Date(), saved), () => `new-${++n}`, [], 7);
+    expect(m.queries.map((q) => q.name)).toEqual(["Wallet errors", "Orders"]);
+    expect(m.queries[0].connId).toBe(m.settings.connections.find((c) => c.name === "prod")?.id);
+    expect(m.queries[0].savedAt).toBe(7);
+  });
+
+  it("does not add one that is already here", () => {
+    const here = [{ ...saved[0], id: "mine" }];
+    const m = mergeBundle(mine, makeBundle(mine, ["p1"], new Date(), saved), () => "x", here);
+    expect(m.queries).toEqual([]);
+  });
+
+  it("refuses a file whose queries are not queries", () => {
+    const bad = { ...makeBundle(mine, ["p1"]), queries: [{ name: 1 }] };
+    expect(readBundle(JSON.stringify(bad))).toBeNull();
+  });
+});
