@@ -31,6 +31,8 @@ export interface Project {
 
 export interface Appearance {
   theme: "dark" | "light" | "system";
+  /** The island over the title bar, saying what is running and what is being watched. */
+  island: boolean;
   uiFontSize: number; // px, chrome
   density: "compact" | "default" | "comfortable";
   accent: string; // hex
@@ -133,7 +135,7 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   connections: [],
   projects: [],
-  appearance: { theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
+  appearance: { island: true, theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
   tree: {
     rowHeight: 24,
     indent: 14,

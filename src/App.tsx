@@ -11,6 +11,7 @@ import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell
 import { CompareWindow } from "./components/CompareWindow";
 import { FieldsPanel } from "./components/FieldsPanel";
 import { HelpWindow } from "./components/HelpWindow";
+import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { TerminalPanel } from "@/components/TerminalPanel";
@@ -410,6 +411,7 @@ export default function App() {
       <Notifications />
       <Tooltips />
       <NameQuery />
+      <Island />
       <HelpWindow />
       <CompareWindow />
       {showSearch && <SearchEverywhere />}

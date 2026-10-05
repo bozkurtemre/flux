@@ -39,6 +39,16 @@ export function AppearancePage({ s, patch }: { s: Settings; patch: Patch }) {
           <Swatches value={a.accent} onChange={(v) => set("accent", v)} />
         </Row>
       </Section>
+      <Section title="Island">
+        <Row>
+          <Checkbox
+            checked={a.island}
+            onChange={(v) => set("island", v)}
+            label="Show the island over the title bar"
+            hint="What is running, being followed or being watched, in one place. It stays out of the way when nothing is."
+          />
+        </Row>
+      </Section>
       <Section title="Interface">
         <Row label="UI font size" hint="Applies to the chrome: tree, tabs, dialogs. Editors and grids have their own size.">
           <Num value={a.uiFontSize} onChange={(v) => set("uiFontSize", v)} min={10} max={20} suffix="px" />

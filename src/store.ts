@@ -74,6 +74,8 @@ export interface Tab {
   columns: string[];
   /** The columns on screen, in order. Absent means the grid arranges what came back. */
   layout?: string[];
+  /** When the query now running was started, for the island to count up from. */
+  startedAt?: number;
   /** Oldest first, for a tab that is telling a story rather than showing the latest. */
   sortOrder?: "asc" | "desc";
   /** The timeline over the results: counts per bucket for what this tab last asked. */
@@ -238,6 +240,8 @@ interface State {
   setTaskProgress: (id: string, progress: number) => void;
   endTask: (id: string) => void;
   notify: (kind: NoticeKind, title: string, message: string, actions?: Notice["actions"]) => void;
+  /** Each watched query's last round: when it looked, and what it found. */
+  watchLog: Record<string, { at: number; found: number }>;
   /** Up to two rows picked for comparing, from whichever tabs they were in. */
   picks: Pick[];
   showCompare: boolean;
@@ -308,6 +312,7 @@ export const useApp = create<State>((set, get) => ({
   noticeLog: [],
   picks: [],
   showCompare: false,
+  watchLog: {},
 
   togglePick: (tabId) => {
     const tab = get().tabs.find((t) => t.id === tabId);
@@ -780,6 +785,7 @@ export const useApp = create<State>((set, get) => ({
         const found = await clientFor(conn)
           .count({ query: parsed.search || "*", streams: q.streamIds, timerange: absolute(new Date(since), to), signal: AbortSignal.timeout(20_000) })
           .catch(() => 0);
+        set({ watchLog: { ...get().watchLog, [q.id]: { at: to.getTime(), found } } });
         if (!found) return;
         const message = `${found.toLocaleString()} new ${found === 1 ? "match" : "matches"} on ${q.streamLabel}`;
         const { mark, sound } = alarm(q.level, get().settings.advanced.watchSound);
@@ -1190,7 +1196,7 @@ export const useApp = create<State>((set, get) => ({
     const tab = tabs.find((t) => t.id === id);
     const conn = settings.connections.find((c) => c.id === tab?.connId);
     if (!tab || !conn) return;
-    patchTab(id, { running: true, error: undefined });
+    patchTab(id, { running: true, error: undefined, startedAt: Date.now() });
     const stop = new AbortController();
     const task = get().startTask(`Running the query on ${tab.streamLabel}`, () => stop.abort());
     const started = performance.now();
