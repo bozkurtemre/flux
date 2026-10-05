@@ -60,7 +60,7 @@ export function UpdateNotes() {
 }
 
 /** The notes as they are meant to read, rather than as they are written. */
-function Notes({ source }: { source: string }) {
+export function Notes({ source }: { source: string }) {
   return (
     <>
       {markdown(source).map((block, i) =>

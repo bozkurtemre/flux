@@ -10,6 +10,7 @@ import { SettingsDialog } from "@/components/settings/SettingsDialog";
 import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell";
 import { CompareWindow } from "./components/CompareWindow";
 import { FieldsPanel } from "./components/FieldsPanel";
+import { HelpWindow } from "./components/HelpWindow";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { TerminalPanel } from "@/components/TerminalPanel";
@@ -409,6 +410,7 @@ export default function App() {
       <Notifications />
       <Tooltips />
       <NameQuery />
+      <HelpWindow />
       <CompareWindow />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}

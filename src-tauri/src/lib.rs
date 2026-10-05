@@ -4,7 +4,7 @@ mod secrets;
 mod terminal;
 mod workspace;
 
-use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem};
+use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -68,20 +68,71 @@ pub fn run() {
                 let divider = PredefinedMenuItem::separator(app.handle())?;
                 app_menu.insert_items(&[&about, &updates, &divider, &settings], 0)?;
             }
+            // The Help menu the IDE has, with the parts that mean something here. macOS puts
+            // its own search field at the top of whichever menu is marked as Help, which is
+            // how actions and settings can be found by typing.
+            let help = menu.items()?.into_iter().find_map(|item| match item {
+                MenuItemKind::Submenu(s) if s.text().ok().as_deref() == Some("Help") => Some(s),
+                _ => None,
+            });
+            let help = match help {
+                Some(h) => h,
+                None => {
+                    let h = Submenu::new(app.handle(), "Help", true)?;
+                    menu.append(&h)?;
+                    h
+                }
+            };
+            let item = |id: &str, label: &str, key: Option<&str>| {
+                MenuItem::with_id(app.handle(), id, label, true, key)
+            };
+            let line = || PredefinedMenuItem::separator(app.handle());
+            help.append_items(&[
+                &item(
+                    "help:find-action",
+                    "Find Action…",
+                    Some("CmdOrCtrl+Shift+A"),
+                )?,
+                &line()?,
+                &item("help:start", "Getting Started", None)?,
+                &item("help:query", "Query Language", None)?,
+                &item("help:shortcuts", "Keyboard Shortcuts", None)?,
+                &item("help:whats-new", "What's New in Flux", None)?,
+                &line()?,
+                &item("help:report", "Report a Problem…", None)?,
+                &item("help:diagnostics", "Copy Diagnostic Info", None)?,
+                &line()?,
+                &item(
+                    "help:settings-folder",
+                    "Show Settings Folder in Finder",
+                    None,
+                )?,
+                &item("help:cache-folder", "Show Cache Folder in Finder", None)?,
+            ])?;
+            #[cfg(target_os = "macos")]
+            help.set_as_help_menu_for_nsapp()?;
+
             app.set_menu(menu)?;
             Ok(())
         })
         .on_menu_event(|app, event| {
             // both items are answered in the webview, which is where the windows are drawn
-            let name = match event.id().0.as_str() {
+            let id = event.id().0.as_str();
+            let Some(window) = app.get_webview_window("main") else {
+                return;
+            };
+            // the Help items go out as one event, named by what was chosen
+            if let Some(what) = id.strip_prefix("help:") {
+                let _ = window.emit("help", what);
+                return;
+            }
+            let name = match id {
                 "about" => "about",
                 "check-updates" => "check-updates",
                 "settings" => "settings",
                 _ => return,
             };
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.emit(name, ());
-            }
+            let _ = window.emit(name, ());
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
