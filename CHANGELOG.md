@@ -3,6 +3,15 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.20.0
+
+### Added
+
+- **An island over the title bar** for what is going on: queries still running, consoles
+  following new messages, and watched queries with what their last round found. A pill that
+  opens into a card, a row taking you to each; it is not there when nothing is going on, and
+  Settings › Appearance turns it off.
+
 ## 0.19.0
 
 ### Added
