@@ -3,6 +3,21 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.19.0
+
+### Added
+
+- **A Help menu**, with macOS's search field at its top: Find Action, a Getting Started tour,
+  the Query Language with every clause, Keyboard Shortcuts, and What's New from the changelog
+  of the running version. Report a Problem and Copy Diagnostic Info carry the version and
+  platform — never names or tokens — and the settings and cache folders open in Finder.
+- **Start a Jira issue from a row or a pattern.** The create screen opens with the summary and
+  a description already written: the stream, the time, the count, our frames of the trace, the
+  entry and a link back to the view. Your browser is the one signed in; Flux keeps no Jira
+  token. The site and project are set in Settings › Jira.
+- **The team's saved queries travel in the set-up file**, for the projects being handed over,
+  and arrive in the receiver's panel. Whether a query is watched stays behind.
+
 ## 0.18.0
 
 ### Added
