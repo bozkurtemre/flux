@@ -3,6 +3,15 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.21.0
+
+### Changed
+
+- **The island lives in the notch now**, outside Flux's window: over the menu bar, on every
+  space and over full-screen apps, so what is running or watched shows wherever you are. It
+  grows as the cursor comes near and opens into the card on a click; a click elsewhere folds
+  it back, and a row brings Flux back from the Dock with that query open.
+
 ## 0.20.0
 
 ### Added
