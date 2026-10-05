@@ -6,6 +6,7 @@ import {
   AppearancePage,
   ConnectionsPage,
   EditorPage,
+  JiraPage,
   KeymapPage,
   ProjectsPage,
   ResultsPage,
@@ -91,6 +92,12 @@ const PAGES: PageDef[] = [
     label: "Connections",
     keywords: "connection graylog token url env import credential keychain",
     render: ({ s, patch, connId }) => <ConnectionsPage s={s} patch={patch} selectId={connId} />,
+  },
+  {
+    id: "jira",
+    label: "Jira",
+    keywords: "jira issue ticket atlassian bug create project",
+    render: ({ s, patch }) => <JiraPage s={s} patch={patch} />,
   },
   {
     id: "advanced",

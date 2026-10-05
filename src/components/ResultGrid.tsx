@@ -8,10 +8,11 @@ import {
   FileCode2,
   Filter,
   FilterX,
+  RotateCcw,
   Route,
   Rows3,
-  RotateCcw,
   SquareCode,
+  SquarePen,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
@@ -338,6 +339,11 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
       icon: <FileCode2 size={12} />,
       disabled: !source,
       onClick: () => source && app.openSource(tab.id, source),
+    },
+    {
+      label: "Create Jira issue",
+      icon: <SquarePen size={12} />,
+      onClick: () => app.issueFromRow(tab.id, row),
     },
     {
       // the request the row describes, made again: authentication left out, as it would be

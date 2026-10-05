@@ -7,7 +7,8 @@
 // change: the clause that was asked, and the count that came back. What it is not is the
 // same component: no virtualiser, no sorting, no columns to drag, no footer.
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardCopy, SquarePen } from "lucide-react";
+import { ContextMenu } from "./ContextMenu";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
 import { messageField, patternsOf } from "@/lib/patterns";
 import { parseQuery } from "@/lib/query";
@@ -24,13 +25,13 @@ export function GroupTables({ tab }: { tab: Tab }) {
     if (asked === undefined || !tab.page?.rows.length) return null;
     const field = asked || messageField(tab.page.columns);
     const found = patternsOf(tab.page.rows, field);
-    return { field: `patterns in ${field}`, rows: found.map((p) => ({ value: p.template, count: p.count })) };
+    return { field: `patterns in ${field}`, rows: found.map((p) => ({ value: p.template, count: p.count, sample: p.sample })) };
   }, [asked, tab.page]);
 
   if (!groups.length && !patterns) return null;
   return (
     <div className="flex shrink-0 flex-col overflow-auto" style={{ maxHeight: "50%", borderBottom: "1px solid var(--border)" }}>
-      {patterns && <GroupTable key="patterns" group={patterns} counted={tab.page?.rows.length} />}
+      {patterns && <GroupTable key="patterns" group={patterns} counted={tab.page?.rows.length} tabId={tab.id} />}
       {groups.map((g) => (
         <GroupTable key={g.field} group={g} />
       ))}
@@ -38,7 +39,9 @@ export function GroupTables({ tab }: { tab: Tab }) {
   );
 }
 
-function GroupTable({ group, counted }: { group: GroupResult; counted?: number }) {
+function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: number; tabId?: string }) {
+  // a pattern is a problem with a name, which is most of what an issue is
+  const [menu, setMenu] = useState<{ x: number; y: number; template: string; count: number; sample: string } | null>(null);
   const r = useApp((s) => s.settings.results);
   // Graylog answers with the largest count first, which is the order worth keeping until a
   // header is clicked
@@ -105,7 +108,16 @@ function GroupTable({ group, counted }: { group: GroupResult; counted?: number }
           </p>
         ) : (
           rows.map((row, i) => (
-            <div key={row.value} className="flex" style={{ height: r.rowHeight, background: r.stripedRows && i % 2 ? "var(--row-alt)" : undefined }}>
+            <div
+              key={row.value}
+              className="flex"
+              style={{ height: r.rowHeight, background: r.stripedRows && i % 2 ? "var(--row-alt)" : undefined }}
+              onContextMenu={(e) => {
+                if (!tabId || row.sample === undefined) return;
+                e.preventDefault();
+                setMenu({ x: e.clientX, y: e.clientY, template: row.value, count: row.count, sample: row.sample });
+              }}
+            >
               <div
                 className="shrink-0 px-2 text-right font-[var(--font-mono)] text-[11px] tabular-nums"
                 style={{
@@ -141,6 +153,18 @@ function GroupTable({ group, counted }: { group: GroupResult; counted?: number }
           ))
         )}
       </div>
+      {menu && tabId && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={[
+            { label: "Create Jira issue", icon: <SquarePen size={12} />, onClick: () => useApp.getState().issueFromPattern(tabId, menu) },
+            { label: "Copy pattern", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.template) },
+            { label: "Copy a sample", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.sample) },
+          ]}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 }

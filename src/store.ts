@@ -19,8 +19,9 @@ import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
 import { correlationOf, identifying } from "@/lib/correlation";
 import { mergesCommand, readMerges, type Marker } from "@/lib/deploys";
-import { connectionFor, readLink } from "@/lib/link";
-import { ideName, ideUrl, localPath, type SourceRef } from "@/lib/source";
+import { connectionFor, linkFor, readLink } from "@/lib/link";
+import { draftForPattern, draftForRow, issueUrl, type Draft } from "@/lib/jira";
+import { ideName, ideUrl, localPath, sourceRefs, type SourceRef } from "@/lib/source";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
 import { alarm, due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
@@ -48,7 +49,8 @@ export interface TreeNode {
 /** What one `| group by <field>` clause came back with. */
 export interface GroupResult {
   field: string;
-  rows: { value: string; count: number }[];
+  /** `sample` is a real line behind a pattern, which a template on its own is not. */
+  rows: { value: string; count: number; sample?: string }[];
   /** A field Graylog cannot group by fails on its own, without taking the query with it. */
   error?: string;
 }
@@ -206,6 +208,9 @@ interface State {
   openSavedQuery: (id: string) => void;
   /** Run something out of the history again, in the console it belongs to. */
   openHistory: (id: string) => void;
+  /** A Jira issue started from a row or a pattern, in the browser that is signed in to Jira. */
+  issueFromRow: (tabId: string, row: Record<string, unknown>) => void;
+  issueFromPattern: (tabId: string, pattern: { template: string; count: number; sample: string }) => void;
   /** A `flux://open?…` link, opened on whichever connection here answers for its Graylog. */
   openLink: (link: string) => void;
   /** A console for a stream, opened and run: what an agent asks for with open_query. */
@@ -500,6 +505,19 @@ export const useApp = create<State>((set, get) => ({
   openHistory: (id) => {
     const ran = get().history.find((h) => h.id === id);
     if (ran) runSomewhere(set, get, { ...ran, name: ran.query || "*" });
+  },
+
+  issueFromRow: (tabId, row) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    const frames = sourceRefs(JSON.stringify(row)).filter((r) => !r.path.includes("vendor/"));
+    openIssue(get, draftForRow({ row, stream: tab.streamLabel, frames, link: viewLink(get, tab), count: tab.total }));
+  },
+
+  issueFromPattern: (tabId, pattern) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    openIssue(get, draftForPattern({ ...pattern, stream: tab.streamLabel, link: viewLink(get, tab) }));
   },
 
   openLink: (link) => {
@@ -1334,6 +1352,31 @@ export interface Pick {
 
 /** What makes a picked row that one: its tab, and the message's own identity. */
 export const pickKey = (tab: Tab, row: Record<string, unknown>) => `${tab.id}|${rowKey(row)}`;
+
+/** The tab as a `flux://` link, when it names one stream. */
+function viewLink(get: Getter, tab: Tab): string | undefined {
+  const conn = get().settings.connections.find((c) => c.id === tab.connId);
+  if (!conn || tab.streamIds.length !== 1) return undefined;
+  return linkFor({ graylog: conn.graylogUrl, stream: tab.streamIds[0], label: tab.streamLabel, query: tab.query, seconds: tab.rangeSeconds });
+}
+
+/**
+ * Jira's create screen with the draft in it. Without a project id it can only open the empty
+ * screen, so the draft goes to the clipboard to be pasted there, and says so.
+ */
+function openIssue(get: Getter, draft: Draft): void {
+  const made = issueUrl(get().settings.jira, draft);
+  if (!made) {
+    return get().notify("info", "Jira is not set up", "Give Flux your Jira site, and the project to file into.", [
+      { label: "Open Settings", run: () => get().setShowSettings(true, "jira") },
+    ]);
+  }
+  if (!made.filled) {
+    void navigator.clipboard.writeText(`${draft.summary}\n\n${draft.description}`);
+    get().notify("info", "The issue is on the clipboard", "No project is set in Settings › Jira, so paste it into the screen that opened.");
+  }
+  void openUrl(made.url).catch((e: unknown) => get().notify("error", "Could not open Jira", failureReason(e)));
+}
 
 /** The project a tab is looking at: whichever one its streams belong to. */
 function projectOf(projects: Settings["projects"], tab: Tab) {

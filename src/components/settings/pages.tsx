@@ -832,6 +832,28 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
   );
 }
 
+/** Where an issue started from a log line is filed. */
+export function JiraPage({ s, patch }: { s: Settings; patch: Patch }) {
+  const j = s.jira;
+  const set = <K extends keyof typeof j>(k: K, v: (typeof j)[K]) => patch((x) => ({ ...x, jira: { ...x.jira, [k]: v } }));
+  return (
+    <Section title="Jira">
+      <Row label="Site" hint="Issues open in your browser, which is already signed in. Flux keeps no Jira token.">
+        <Text value={j.site} onChange={(v) => set("site", v.trim())} width={300} placeholder="https://acme.atlassian.net" mono />
+      </Row>
+      <Row
+        label="Project id"
+        hint="The project's number, not its key: Jira's create link takes the number. It is in the URL of the project's settings page, or ask an admin."
+      >
+        <Text value={j.projectId} onChange={(v) => set("projectId", v.replace(/\D/g, ""))} width={140} placeholder="10042" mono />
+      </Row>
+      <Row label="Issue type id" hint="Leave empty for the project's default; 10004 is a Bug on most sites.">
+        <Text value={j.issueTypeId} onChange={(v) => set("issueTypeId", v.replace(/\D/g, ""))} width={140} placeholder="10004" mono />
+      </Row>
+    </Section>
+  );
+}
+
 /** The terminal's own settings: the engine behind it, and what quitting does to it. */
 export function TerminalPage({ s, patch }: { s: Settings; patch: Patch }) {
   const t = s.terminal;

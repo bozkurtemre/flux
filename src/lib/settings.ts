@@ -2,6 +2,7 @@
 import { load, type Store } from "@tauri-apps/plugin-store";
 import { deleteSecret, getSecret } from "./secrets";
 import type { Ide } from "./source";
+import type { JiraSettings } from "./jira";
 
 export interface Connection {
   id: string;
@@ -124,6 +125,8 @@ export interface Settings {
   terminal: TerminalSettings;
   updates: UpdateSettings;
   mcp: McpSettings;
+  /** Where an issue made from a log line is opened. */
+  jira: JiraSettings;
   advanced: AdvancedSettings;
 }
 
@@ -160,6 +163,7 @@ export const DEFAULTS: Settings = {
   terminal: { engine: "shell", tmuxPath: "", shell: "", onQuit: "ask" },
   updates: { checkOnStartup: true },
   mcp: { enabled: false, port: 4319, token: "" },
+  jira: { site: "", projectId: "", issueTypeId: "" },
   advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, watchSound: "Ping", fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
@@ -189,6 +193,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
     terminal: { ...DEFAULTS.terminal, ...(s.terminal ?? {}), ...engineOf(s.terminal) },
     updates: { ...DEFAULTS.updates, ...(s.updates ?? {}) },
     mcp: { ...DEFAULTS.mcp, ...(s.mcp ?? {}) },
+    jira: { ...DEFAULTS.jira, ...(s.jira ?? {}) },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },
   };
 }
