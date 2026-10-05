@@ -1,4 +1,5 @@
 mod cache;
+mod island;
 mod mcp;
 mod secrets;
 mod terminal;
@@ -16,7 +17,11 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&[island::LABEL])
+                .build(),
+        )
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_deep_link::init())
         .manage(terminal::Terminals::default())
@@ -42,6 +47,8 @@ pub fn run() {
             mcp::mcp_status,
             mcp::mcp_set_tools,
             mcp::mcp_respond,
+            island::island_present,
+            island::island_open,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does
@@ -113,6 +120,7 @@ pub fn run() {
             help.set_as_help_menu_for_nsapp()?;
 
             app.set_menu(menu)?;
+            island::create(app.handle())?;
             Ok(())
         })
         .on_menu_event(|app, event| {

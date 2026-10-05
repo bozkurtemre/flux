@@ -1301,6 +1301,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "keyring",
+ "objc2-app-kit",
  "portable-pty",
  "serde",
  "serde_json",
