@@ -3,6 +3,21 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.22.0
+
+### Added
+
+- **Elasticsearch, through Kibana, as a second source.** A connection now names its source:
+  Graylog as before, or a Kibana URL with an API key. Kibana's data views are the streams, and
+  the console, its clauses, the timeline, endpoints and the MCP tools work the same on both,
+  in the same Lucene. Settings › Connections adds either kind, each with its mark.
+
+### Changed
+
+- **`connections.json` names each connection's source**, and its URL and token as `url` and
+  `token`. Existing files are read as Graylog connections; going back to an older version
+  means entering the connections again.
+
 ## 0.21.0
 
 ### Changed
