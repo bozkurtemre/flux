@@ -86,6 +86,11 @@ function rebuild(parsed: ParsedQuery, search: string): string {
     .join(" | ");
 }
 
+/** The line with its query replaced, leaving the clauses after it where they are. */
+export function withSearch(line: string, search: string): string {
+  return rebuild(parseQuery(line), search === "*" ? "" : search);
+}
+
 /** The line with one more clause on its query, leaving the clauses after it where they are. */
 export function withClause(line: string, clause: string): string {
   const parsed = parseQuery(line);

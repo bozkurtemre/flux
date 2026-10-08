@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw } from "lucide-react";
+import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw, Fingerprint } from "lucide-react";
 import { ConnectionIcon, EndpointIcon, ProjectIcon, StreamIcon } from "./icons";
 import { useApp, type TreeNode } from "@/store";
 
@@ -61,6 +61,16 @@ export function SearchEverywhere() {
             .setSettings({ ...settings, appearance: { ...settings.appearance, theme: settings.appearance.theme === "light" ? "dark" : "light" } }),
       },
       {
+        key: "a:trace",
+        group: "Actions",
+        // what was typed is most likely the id itself
+        title: query.trim() ? `Trace “${query.trim()}” across every stream` : "Trace an ID across every stream",
+        trailing: "⇧⌘I",
+        score: 0,
+        icon: <Fingerprint size={14} style={{ color: "var(--text-dim)" }} />,
+        run: () => useApp.getState().setTraceDraft(query.trim()),
+      },
+      {
         key: "a:collapse",
         group: "Actions",
         title: "Collapse all in Connection Explorer",
@@ -77,7 +87,7 @@ export function SearchEverywhere() {
         run: () => void useApp.getState().refreshAll(),
       },
     ],
-    [settings, setShowSettings],
+    [settings, setShowSettings, query],
   );
 
   const hits = useMemo(() => {

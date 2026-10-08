@@ -36,3 +36,12 @@ describe("where it sits", () => {
     expect(at.inset).toBe(25);
   });
 });
+
+describe("a watch gone quiet", () => {
+  it("is named in the pill, and leads with the alarm colour after new matches", () => {
+    const items = [item("watching"), item("quiet")];
+    expect(headline(items)).toBe("1 gone quiet · 1 watching");
+    expect(lead(items)).toBe("quiet");
+    expect(lead([item("quiet"), item("alert")])).toBe("alert");
+  });
+});

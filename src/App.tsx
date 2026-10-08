@@ -11,6 +11,9 @@ import { LeftStripe, RightStripe, StatusBar, TitleBar } from "@/components/Shell
 import { CompareWindow } from "./components/CompareWindow";
 import { FieldsPanel } from "./components/FieldsPanel";
 import { HelpWindow } from "./components/HelpWindow";
+import { TraceDialog } from "./components/TraceDialog";
+import { ReplayWindow } from "./components/ReplayWindow";
+import { LocatedWindow } from "./components/LocatedWindow";
 import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
@@ -142,6 +145,10 @@ export default function App() {
       if (e.altKey && e.key === "F12") {
         e.preventDefault();
         useApp.getState().toggleTerminal();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "i") {
+        e.preventDefault();
+        useApp.getState().setTraceDraft("");
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
         e.preventDefault();
@@ -413,6 +420,9 @@ export default function App() {
       <NameQuery />
       <Island />
       <HelpWindow />
+      <TraceDialog />
+      <ReplayWindow />
+      <LocatedWindow />
       <CompareWindow />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}

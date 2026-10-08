@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   Bell,
   BellOff,
+  BellRing,
   Check,
   CircleX,
   ClipboardCopy,
@@ -28,6 +29,14 @@ const LEVELS: { level: NoticeKind; Glyph: typeof Info; color: string }[] = [
   { level: "info", Glyph: Info, color: "var(--cyan)" },
   { level: "warning", Glyph: TriangleAlert, color: "var(--amber)" },
   { level: "error", Glyph: CircleX, color: "var(--red)" },
+];
+
+/** What a watch listens for: new matches, or fewer than so many in a round. */
+const QUIET = [
+  { below: undefined, label: "New matches arrive" },
+  { below: 1, label: "Nothing arrives in a round" },
+  { below: 10, label: "Fewer than 10 arrive in a round" },
+  { below: 100, label: "Fewer than 100 arrive in a round" },
 ];
 
 const INTERVALS = [
@@ -135,6 +144,7 @@ function SavedList() {
     toggleWatch,
     setWatchInterval,
     setWatchLevel,
+    setWatchQuiet,
     settings,
     tabs,
     activeTab,
@@ -151,6 +161,7 @@ function SavedList() {
     every?: number;
     own?: number;
     level?: NoticeKind;
+    quietBelow?: number;
   } | null>(null);
   const [filter, setFilter] = useState("");
   const current = tabs.find((t) => t.id === activeTab)?.savedQueryId;
@@ -205,6 +216,7 @@ function SavedList() {
                   every: watchEvery(q, settings.advanced.watchSeconds),
                   own: q.watchSeconds,
                   level: q.level,
+                  quietBelow: q.quietBelow,
                 });
               }}
               className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
@@ -262,13 +274,23 @@ function SavedList() {
               { label: "Copy query", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.query) },
               { label: "Rename…", icon: <Pencil size={12} />, onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
               {
-                label: menu.watch ? "Stop watching" : "Watch for new matches",
+                label: menu.watch ? "Stop watching" : menu.quietBelow ? "Watch for silence" : "Watch for new matches",
                 icon: menu.watch ? <BellOff size={12} /> : <Bell size={12} />,
                 onClick: () => toggleWatch(menu.id),
               },
               // the two knobs a watch has, each behind the row that names it
               ...(menu.watch
                 ? [
+                    {
+                      // a watch hears either what arrives or what stops arriving
+                      label: "Alert when",
+                      icon: <BellRing size={12} />,
+                      items: QUIET.map((o) => ({
+                        label: o.label,
+                        icon: menu.quietBelow === o.below ? <Check size={12} /> : undefined,
+                        onClick: () => setWatchQuiet(menu.id, o.below),
+                      })),
+                    },
                     {
                       label: "Check every",
                       icon: <Clock size={12} />,

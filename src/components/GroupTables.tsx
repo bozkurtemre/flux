@@ -7,7 +7,7 @@
 // change: the clause that was asked, and the count that came back. What it is not is the
 // same component: no virtualiser, no sorting, no columns to drag, no footer.
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardCopy, SquarePen } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardCopy, FileSearch, SquarePen } from "lucide-react";
 import { ContextMenu } from "./ContextMenu";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
 import { messageField, patternsOf } from "@/lib/patterns";
@@ -159,6 +159,11 @@ function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: n
           y={menu.y}
           items={[
             { label: "Create Jira issue", icon: <SquarePen size={12} />, onClick: () => useApp.getState().issueFromPattern(tabId, menu) },
+            {
+              label: "Where is this logged?",
+              icon: <FileSearch size={12} />,
+              onClick: () => void useApp.getState().whereLogged(tabId, menu.template),
+            },
             { label: "Copy pattern", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.template) },
             { label: "Copy a sample", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.sample) },
           ]}

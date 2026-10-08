@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withoutBetween } from "./query";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withoutBetween, withSearch } from "./query";
 
 describe("reading the console line", () => {
   it("takes the whole line as the query when nothing is grouped", () => {
@@ -145,5 +145,12 @@ describe("taking the window off again", () => {
 
   it("leaves nothing when the window was all there was", () => {
     expect(withoutBetween("between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z")).toBe("");
+  });
+});
+
+describe("replacing the query of a line", () => {
+  it("keeps the clauses after it, and reads everything as an empty query, which needs no leading |", () => {
+    expect(withSearch("a:1 AND b:2 | group by route", "b:2")).toBe("b:2 | group by route");
+    expect(withSearch("a:1 | patterns", "*")).toBe("patterns");
   });
 });

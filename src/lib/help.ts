@@ -19,6 +19,8 @@ export const GETTING_STARTED = `# Getting started
 
 - A console takes a Lucene query; **⌘⏎** runs it and **⌘R** runs it again.
 - The **timeline** above the results is messages per bucket: drag across it to narrow the range. Dashed lines mark pull requests merged into the project's repository.
+- **⌥-drag** across a spike to ask why it is different: Flux compares the values of a dozen fields in the stretch with the time before it and lists the ones that grew, like "90% of it is \`app_version:3.4.1\`, against 10% before". A row narrows the console to that value.
+- A search that finds nothing says why: each term is counted with the others, so the one whose absence brings rows back is shown first, and a field the stream does not have is named with the one it most likely meant. **Remove** runs the search without it.
 - **Follow** keeps new messages arriving at the top; **Export** writes what is on screen as CSV or JSON.
 - The **Fields** panel under the tree lists every field on screen and its commonest values; a value filters by it.
 
@@ -27,10 +29,16 @@ export const GETTING_STARTED = `# Getting started
 - Clicking a row opens the **value inspector**: the row as JSON, foldable, searchable with **⌘F**. The files a stack trace names open in your IDE.
 - Right-click a row to **filter** by a field, **exclude** it, **follow the request** across every stream, see **five minutes around** it, **copy it as cURL**, start a **Jira issue**, or **paste it to Claude**.
 - Tick **Compare** on two rows to see them side by side, field by field.
+- **Where is this logged?** — on a row or a pattern — finds the message's literal words in the project's checkout with \`git grep\`, lists the lines that write a log first, and blames the one you pick, with the pull request it came in with. Each line opens in your IDE.
+- **Replay on stage…** sends the request a row describes again — to the stage you name, remembered per connection — and sets the answer beside the one in the log. Tokens are never copied from the log: those headers start empty.
+
+## Trace an ID
+
+- **⇧⌘I** (or Search Everywhere › Trace) takes an ICCID, an order, a user or a request id and searches every stream for it, oldest first. Lanes over the results show which service said what and where it failed; a dot selects its row, and "found in" narrows the search to the field the id lives in.
 
 ## Keep what works
 
-- **⌘S** saves a query by name, with the workspace. **Watch** one to be told when new matches arrive, while Flux is open.
+- **⌘S** saves a query by name, with the workspace. **Watch** one to be told when new matches arrive, while Flux is open — or, with **Alert when › Nothing arrives**, when it goes quiet: a cron that stopped, a webhook that no longer comes. A silence is reported once when it starts and once when it ends.
 - The **History** tab keeps every query you ran.
 - **Copy a link** to a view and anyone with the same Graylog opens it in their own Flux.
 

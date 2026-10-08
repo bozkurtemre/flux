@@ -6,11 +6,13 @@ import {
   Clock,
   Columns3,
   FileCode2,
+  FileSearch,
   Filter,
   FilterX,
   RotateCcw,
   Route,
   Rows3,
+  Send,
   SquareCode,
   SquarePen,
 } from "lucide-react";
@@ -19,6 +21,7 @@ import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { correlationOf } from "@/lib/correlation";
 import { rowKey } from "@/lib/datasource";
 import { curlOf } from "@/lib/curl";
+import { messageField, templateOf } from "@/lib/patterns";
 import { ideName, sourceRefs } from "@/lib/source";
 import { ClaudeIcon } from "./icons";
 import { sendToClaude } from "./TerminalPanel";
@@ -346,12 +349,26 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
       onClick: () => app.issueFromRow(tab.id, row),
     },
     {
+      // the message's literal words, found in the project's checkout
+      label: "Where is this logged?",
+      icon: <FileSearch size={12} />,
+      disabled: !row[messageField(Object.keys(row))],
+      onClick: () => void app.whereLogged(tab.id, templateOf(row[messageField(Object.keys(row))])),
+    },
+    {
       // the request the row describes, made again: authentication left out, as it would be
       // wherever the command is going to be pasted
       label: "Copy as cURL",
       icon: <SquareCode size={12} />,
       disabled: !curl,
       onClick: () => curl && void navigator.clipboard.writeText(curl),
+    },
+    {
+      // the same request, sent again somewhere safe, with its answer set against the logged one
+      label: "Replay on stage…",
+      icon: <Send size={12} />,
+      disabled: !curl,
+      onClick: () => useApp.setState({ replay: { connId: tab.connId, row } }),
     },
     {
       label: col ? `Copy field: ${col}` : "Copy field",

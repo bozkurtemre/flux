@@ -26,6 +26,12 @@ export interface SavedQuery {
   watchSeconds?: number;
   /** How loudly it says so: a warning unless it is told otherwise. */
   level?: NoticeKind;
+  /**
+   * Watched for silence instead: fewer than this many in a round is what is reported. The
+   * failures that matter most are often quiet — a cron that stopped, a webhook that no longer
+   * comes — and a watch for new matches never notices nothing arriving.
+   */
+  quietBelow?: number;
 }
 
 /** A name for a query nobody named: its first line, shortened to fit the panel. */
@@ -67,6 +73,17 @@ export function remember<T extends { query: string; streamLabel: string }>(histo
 export function watchEvery(query: { watch?: boolean; watchSeconds?: number }, fallback: number): number {
   if (!query.watch) return 0;
   return Math.max(0, query.watchSeconds ?? fallback);
+}
+
+/**
+ * What a round of a silence watch has to say: that it went quiet, that it came back, or nothing.
+ * Only the change is said, so a stream that stays quiet for an hour is one notification, not
+ * one a minute.
+ */
+export function quietVerdict(found: number, below: number, wasQuiet: boolean): "quiet" | "back" | null {
+  const quiet = found < below;
+  if (quiet === wasQuiet) return null;
+  return quiet ? "quiet" : "back";
 }
 
 /** The sounds macOS ships with, which is what the notification can name. */

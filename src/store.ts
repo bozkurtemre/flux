@@ -12,8 +12,12 @@ import {
   type FieldInfo,
   type MessagePage,
   type Stream,
+  type TimeRange,
 } from "@/lib/datasource";
 import { Graylog } from "@/lib/graylog";
+import { baselineOf, candidateFields, explain, type Counted, type Explanation } from "@/lib/explain";
+import { andTerms, checkField, fieldOf, TERMS, without } from "@/lib/zero";
+import { blameCommand, grepCommand, literalsOf, prCommand, rank, readBlame, readGrep, readPr, type Blame, type Hit } from "@/lib/located";
 import { Kibana } from "@/lib/kibana";
 import { endpointsFrom, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
@@ -37,8 +41,19 @@ import { connectionFor, linkFor, readLink } from "@/lib/link";
 import { draftForPattern, draftForRow, issueUrl, type Draft } from "@/lib/jira";
 import { ideName, ideUrl, localPath, sourceRefs, type SourceRef } from "@/lib/source";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns } from "@/lib/query";
-import { alarm, due, loadQueries, nameFor, remember as rememberQuery, saveQueries, upsert, watchEvery, type SavedQuery } from "@/lib/queries";
+import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withPatterns, withSearch } from "@/lib/query";
+import {
+  alarm,
+  due,
+  loadQueries,
+  nameFor,
+  remember as rememberQuery,
+  saveQueries,
+  upsert,
+  watchEvery,
+  quietVerdict,
+  type SavedQuery,
+} from "@/lib/queries";
 import { offerable, type Manifest } from "@/lib/updates";
 import { moveBefore } from "@/lib/reorder";
 import { applyAppearance, DEFAULTS, forgetSecrets, loadSettings, saveSettings, type Connection, type Settings } from "@/lib/settings";
@@ -108,6 +123,12 @@ export interface Tab {
   offset?: number;
   /** Everything the query matches, not just the page on screen. */
   total?: number;
+  /** The id this tab traces across every stream, when it was opened to tell one id's story. */
+  trace?: string;
+  /** Why the search found nothing: the window counted whole, and with each term left out. */
+  zero?: Zero;
+  /** Why a stretch of the timeline differs from what came before it, while it is asked. */
+  explain?: { from: string; to: string; running?: boolean; rows: Explanation[]; asked: string[]; error?: string };
 }
 
 /** One view onto a project's terminal session. The shell itself lives in tmux. */
@@ -217,6 +238,20 @@ interface State {
   showPatterns: (tabId: string, field: string) => void;
   /** Everything a request touched, across every stream of its connection. */
   followRequest: (tabId: string, row: Record<string, unknown>, field?: string) => Promise<void>;
+  /** Where a message is written in the code: the lines that hold it, and who last changed one. */
+  located: Located | null;
+  whereLogged: (tabId: string, template: string) => Promise<void>;
+  /** Blame one of the lines found, and find the pull request it came in with. */
+  blameHit: (index: number) => Promise<void>;
+  /** The row whose request is being sent again, and the connection it was logged on. */
+  replay: { connId: string; row: Record<string, unknown> } | null;
+  /** The Trace an ID dialog, with what to start it with when it is open. */
+  traceDraft: string | null;
+  setTraceDraft: (draft: string | null) => void;
+  /** One id's story across every stream of a connection, over the last `seconds`. */
+  traceId: (connId: string, value: string, seconds: number) => Promise<void>;
+  /** Which values set a stretch of the timeline apart from the time just before it. */
+  explainRange: (tabId: string, from: Date, to: Date) => Promise<void>;
   followValue: (tabId: string, value: string, field?: string) => Promise<void>;
   /** A file and line a log named, opened in the IDE, in the checkout of the tab's project. */
   openSource: (tabId: string, ref: SourceRef) => void;
@@ -241,6 +276,8 @@ interface State {
   setWatchInterval: (id: string, seconds?: number) => void;
   /** How loudly a watched query reports: info, warning or error. */
   setWatchLevel: (id: string, level: NoticeKind) => void;
+  /** Watch for fewer than `below` in a round instead of for new matches; undefined goes back. */
+  setWatchQuiet: (id: string, below: number | undefined) => void;
   /** One round of watching, run on a timer by the window. */
   checkWatches: () => Promise<void>;
   deleteSavedQuery: (id: string) => void;
@@ -255,7 +292,8 @@ interface State {
   endTask: (id: string) => void;
   notify: (kind: NoticeKind, title: string, message: string, actions?: Notice["actions"]) => void;
   /** Each watched query's last round: when it looked, and what it found. */
-  watchLog: Record<string, { at: number; found: number }>;
+  /** What each watched query's last round found, and, for a silence watch, whether it is quiet. */
+  watchLog: Record<string, { at: number; found: number; quiet?: boolean }>;
   /** Up to two rows picked for comparing, from whichever tabs they were in. */
   picks: Pick[];
   showCompare: boolean;
@@ -310,6 +348,9 @@ export const useApp = create<State>((set, get) => ({
   tabs: [],
   showSettings: false,
   showSearch: false,
+  traceDraft: null,
+  replay: null,
+  located: null,
   indexing: false,
   terminals: [],
   showTerminal: false,
@@ -631,9 +672,7 @@ export const useApp = create<State>((set, get) => ({
     const newest = tab.page.rows[0]?.timestamp;
     const since = newest ? new Date(String(newest)) : null;
     if (!since || Number.isNaN(since.getTime())) return;
-    const clauses = [parsed.search].filter(Boolean);
-    if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
-    const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
+    const query = searchOf(tab);
 
     try {
       const page = await clientFor(conn).messages({
@@ -694,12 +733,134 @@ export const useApp = create<State>((set, get) => ({
    * spread across all of them: this searches every stream of the connection for the id the row
    * carries, oldest first, with the stream each line came from beside it.
    */
+  setTraceDraft: (traceDraft) => set({ traceDraft }),
+
+  whereLogged: async (tabId, template) => {
+    const { tabs, settings, projectFolders } = get();
+    const tab = tabs.find((t) => t.id === tabId);
+    if (!tab) return;
+    const project = projectOf(settings.projects, tab);
+    const folder = project ? projectFolders[project.id] : undefined;
+    const base = { template, folder: folder ?? "", repo: project?.github, hits: [] as Hit[] };
+    if (!project || !folder) {
+      return set({
+        located: {
+          ...base,
+          error: project
+            ? `Where is ${project.name} checked out? Set its folder in Settings › Projects, and this searches it.`
+            : "This stream is in no project, so there is no checkout to search.",
+        },
+      });
+    }
+    const literals = literalsOf(template);
+    if (!literals.length) {
+      return set({
+        located: { ...base, error: "The message is mostly values filled in at run time: too little of it is literal text to find in the code." },
+      });
+    }
+    set({ located: { ...base, literals, running: true } });
+    const shell = (command: string) =>
+      invoke<string>("terminal_run", { program: settings.terminal.shell.trim(), args: ["-l", "-c", command] }).catch(() => "");
+    // git grep answers nothing at all when it finds nothing, which is an answer too
+    const found = (await Promise.all(literals.map((l) => shell(grepCommand(folder, l))))).flatMap(readGrep);
+    const seen = new Set<string>();
+    const hits = rank(found.filter((h) => !seen.has(`${h.file}:${h.line}`) && seen.add(`${h.file}:${h.line}`))).slice(0, 12);
+    if (get().located?.template !== template) return;
+    set({ located: { ...base, literals, hits, selected: hits.length ? 0 : undefined } });
+    if (hits.length) await get().blameHit(0);
+  },
+
+  blameHit: async (index) => {
+    const located = get().located;
+    const hit = located?.hits[index];
+    if (!located || !hit) return;
+    set({ located: { ...located, selected: index, blame: undefined, pr: undefined, blaming: true } });
+    const shell = (command: string) =>
+      invoke<string>("terminal_run", { program: get().settings.terminal.shell.trim(), args: ["-l", "-c", command] }).catch(() => "");
+    const blame = readBlame(await shell(blameCommand(located.folder, hit)));
+    const pr = blame && located.repo ? readPr(await shell(prCommand(located.repo, blame.sha))) : null;
+    const now = get().located;
+    if (now?.template !== located.template || now.selected !== index) return;
+    set({ located: { ...now, blame: blame ?? undefined, pr: pr ?? undefined, blaming: false } });
+  },
+
+  traceId: async (connId, value, seconds) => {
+    const conn = get().settings.connections.find((c) => c.id === connId);
+    const to = new Date();
+    await followAcross(set, get, conn, { value: value.trim(), window: { from: new Date(to.getTime() - seconds * 1000), to }, trace: true });
+  },
+
+  explainRange: async (tabId, from, to) => {
+    const tab = get().tabs.find((t) => t.id === tabId);
+    const conn = get().settings.connections.find((c) => c.id === tab?.connId);
+    if (!tab || !conn) return;
+    const window = { from: from.toISOString(), to: to.toISOString() };
+    get().patchTab(tabId, { explain: { ...window, running: true, rows: [], asked: [] } });
+    const task = get().startTask("Explaining the stretch");
+    const client = clientFor(conn);
+    const query = searchOf(tab);
+    const before = baselineOf(from, to);
+    const inside = absolute(from, to);
+    let fields: string[] = [];
+    const grouped = (field: string, range: TimeRange) =>
+      client
+        .aggregate({ query, streams: tab.streamIds, timerange: range, groupBy: [{ field, limit: 20 }], metrics: [{ function: "count" }] })
+        .then((r) => r.rows.map((row) => ({ value: String(row[0] ?? ""), count: Number(row[row.length - 1]) || 0 })));
+    try {
+      // the fields worth asking about come from a sample of the stretch with every field in it:
+      // the page on screen carries only its columns, which is rarely where the answer is
+      const sample = await client.messages({
+        query,
+        streams: tab.streamIds,
+        timerange: inside,
+        // before the stream's fields have loaded, the columns are what there is to ask for
+        fields: tab.fields.length ? tab.fields.map((f) => f.name) : tab.columns,
+        size: 200,
+      });
+      fields = candidateFields(sample.rows);
+      if (!fields.length) throw new Error("The stretch carries no field with a handful of values to compare.");
+      get().patchTab(tabId, { explain: { ...window, running: true, rows: [], asked: fields } });
+      const earlier = absolute(before.from, before.to);
+      const [totalIn, totalBefore] = await Promise.all([
+        client.count({ query, streams: tab.streamIds, timerange: inside }),
+        client.count({ query, streams: tab.streamIds, timerange: earlier }),
+      ]);
+      // four at a time, so a dozen fields do not arrive at the source as two dozen searches at
+      // once; a field that cannot be grouped by fails on its own and is left out of the answer
+      const settled = await inTurn(fields, 4, (field) =>
+        Promise.all([grouped(field, inside), grouped(field, earlier)])
+          .then(([now, then]): [Counted, Counted] => [
+            { field, total: totalIn, values: now },
+            { field, total: totalBefore, values: then },
+          ])
+          .catch(() => null),
+      );
+      const pairs = settled.filter((p): p is [Counted, Counted] => !!p);
+      if (get().tabs.find((t) => t.id === tabId)?.explain?.from !== window.from) return;
+      get().patchTab(tabId, {
+        explain: {
+          ...window,
+          rows: explain(
+            pairs.map((p) => p[0]),
+            pairs.map((p) => p[1]),
+          ),
+          asked: fields,
+        },
+      });
+    } catch (e) {
+      get().patchTab(tabId, { explain: { ...window, rows: [], asked: fields, error: failureReason(e) } });
+    } finally {
+      get().endTask(task);
+    }
+  },
+
   followRequest: async (tabId, row, field) => {
     const found = correlationOf(row, field);
     if (!found) {
       return get().notify("info", "Follow this request", "This row carries no id to follow: no trace, request, correlation or order id.");
     }
-    await followAcross(set, get, tabId, { ...found, at: String(row.timestamp ?? "") });
+    const conn = get().settings.connections.find((c) => c.id === get().tabs.find((t) => t.id === tabId)?.connId);
+    await followAcross(set, get, conn, { ...found, at: String(row.timestamp ?? "") });
   },
 
   /**
@@ -711,7 +872,8 @@ export const useApp = create<State>((set, get) => ({
     const tab = get().tabs.find((t) => t.id === tabId);
     const row = tab?.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
     const known = field && row && field in row ? field : undefined;
-    await followAcross(set, get, tabId, { field: known, value, at: String(row?.timestamp ?? "") });
+    const conn = get().settings.connections.find((c) => c.id === tab?.connId);
+    await followAcross(set, get, conn, { field: known, value, at: String(row?.timestamp ?? "") });
   },
 
   /**
@@ -780,6 +942,14 @@ export const useApp = create<State>((set, get) => ({
     void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 
+  setWatchQuiet: (id, below) => {
+    const { [id]: _was, ...rest } = get().watchLog;
+    void _was;
+    // a watch that changes what it listens for starts over, quiet or not
+    set({ savedQueries: get().savedQueries.map((q) => (q.id === id ? { ...q, watch: true, quietBelow: below } : q)), watchLog: rest });
+    void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
   /**
    * What has arrived since the last round, for each watched query. It is a count rather than a
    * search — the cheapest question Graylog answers about a query — and the window it counts
@@ -797,12 +967,37 @@ export const useApp = create<State>((set, get) => ({
         const parsed = parseQuery(q.query);
         // a fixed window has nothing new in it, ever
         if (!conn || parsed.between) return;
-        const since = watching.get(q.id) ?? Date.now();
         const to = new Date();
+        // new matches are counted since the last round; silence is counted over a whole round,
+        // or the first one, which starts now, would always be quiet
+        const since = q.quietBelow ? to.getTime() - watchEvery(q, fallback) * 1000 : (watching.get(q.id) ?? Date.now());
         watching.set(q.id, to.getTime());
-        const found = await clientFor(conn)
-          .count({ query: parsed.search || "*", streams: q.streamIds, timerange: absolute(new Date(since), to), signal: AbortSignal.timeout(20_000) })
-          .catch(() => 0);
+        const asked = clientFor(conn).count({
+          query: parsed.search || "*",
+          streams: q.streamIds,
+          timerange: absolute(new Date(since), to),
+          signal: AbortSignal.timeout(20_000),
+        });
+        if (q.quietBelow) {
+          // a round that could not be asked is not silence: it says nothing either way
+          const found = await asked.catch(() => null);
+          if (found == null) return;
+          const verdict = quietVerdict(found, q.quietBelow, !!get().watchLog[q.id]?.quiet);
+          const quiet = verdict ? verdict === "quiet" : !!get().watchLog[q.id]?.quiet;
+          set({ watchLog: { ...get().watchLog, [q.id]: { at: to.getTime(), found, quiet } } });
+          if (!verdict) return;
+          const window = shortSpan(watchEvery(q, fallback));
+          const message =
+            verdict === "quiet"
+              ? `Only ${found.toLocaleString()} on ${q.streamLabel} in the last ${window}, fewer than ${q.quietBelow.toLocaleString()}`
+              : `${found.toLocaleString()} on ${q.streamLabel} in the last ${window}: arriving again`;
+          const level = verdict === "quiet" ? (q.level ?? "warning") : "info";
+          const { mark, sound } = alarm(level, get().settings.advanced.watchSound);
+          get().notify(level, q.name, message, [{ label: "Open", run: () => get().openSavedQuery(q.id) }]);
+          void announce(`${mark} ${q.name}`, message, sound).catch(() => {});
+          return;
+        }
+        const found = await asked.catch(() => 0);
         set({ watchLog: { ...get().watchLog, [q.id]: { at: to.getTime(), found } } });
         if (!found) return;
         const message = `${found.toLocaleString()} new ${found === 1 ? "match" : "matches"} on ${q.streamLabel}`;
@@ -1215,16 +1410,14 @@ export const useApp = create<State>((set, get) => ({
     const tab = tabs.find((t) => t.id === id);
     const conn = settings.connections.find((c) => c.id === tab?.connId);
     if (!tab || !conn) return;
-    patchTab(id, { running: true, error: undefined, startedAt: Date.now() });
+    patchTab(id, { running: true, error: undefined, startedAt: Date.now(), zero: undefined });
     const stop = new AbortController();
     const task = get().startTask(`Running the query on ${tab.streamLabel}`, () => stop.abort());
     const started = performance.now();
     try {
       const parsed = parseQuery(tab.query);
-      const clauses = [parsed.search].filter(Boolean);
-      if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
       const to = new Date();
-      const query = clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
+      const query = searchOf(tab);
       // a line that names a window searches it; everything else searches the last minutes
       const timerange = parsed.between
         ? absolute(new Date(parsed.between.from), new Date(parsed.between.to))
@@ -1326,7 +1519,10 @@ export const useApp = create<State>((set, get) => ({
         took: Math.round(performance.now() - started),
         running: false,
         selectedRow: undefined,
+        zero: undefined,
       });
+      // nothing found is the start of a question, so the answer to it starts by itself
+      if (!page.rows.length && (tab.offset ?? 0) === 0 && parsed.search) void diagnoseEmpty(get, id, timerange);
     } catch (e) {
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {
@@ -1359,6 +1555,86 @@ function columnsForQuery(tab: Tab): string[] {
   const wanted = new Set([...tab.columns, "timestamp", "gl2_message_id"]);
   if (tab.fields.length) for (const f of tab.fields) if (wanted.has(f.name)) wanted.add(f.name);
   return [...wanted];
+}
+
+export interface Located {
+  template: string;
+  /** The project's checkout, and the repository its pull requests are in. */
+  folder: string;
+  repo?: string;
+  literals?: string[];
+  hits: Hit[];
+  selected?: number;
+  running?: boolean;
+  blaming?: boolean;
+  blame?: Blame;
+  pr?: { number: number; title: string; url: string };
+  error?: string;
+}
+
+export interface Zero {
+  running?: boolean;
+  /** How many messages the window holds with no search at all. */
+  everything?: number;
+  terms: { term: string; without?: number; field?: string; known?: boolean; suggest?: string }[];
+}
+
+/**
+ * Each term of an empty search left out in turn and the rest counted, and each field it names
+ * checked against the stream's. The term whose absence brings rows back is the wrong one; a
+ * window that is empty with no search at all is no term's fault.
+ */
+async function diagnoseEmpty(get: Getter, tabId: string, timerange: TimeRange): Promise<void> {
+  const tab = get().tabs.find((t) => t.id === tabId);
+  const conn = get().settings.connections.find((c) => c.id === tab?.connId);
+  if (!tab || !conn) return;
+  const terms = andTerms(parseQuery(tab.query).search).slice(0, TERMS);
+  const known = tab.fields.map((f) => f.name);
+  const checked = terms.map((term) => {
+    const field = fieldOf(term) ?? undefined;
+    return { term, ...(field ? { field, ...checkField(field, known) } : {}) };
+  });
+  get().patchTab(tabId, { zero: { running: true, terms: checked } });
+  const client = clientFor(conn);
+  // the rest of the console's search — the endpoint it is on — stays in every count
+  const around = (search: string) => searchOf({ ...tab, query: withSearch(tab.query, search) });
+  const count = (search: string) =>
+    client.count({ query: around(search), streams: tab.streamIds, timerange, signal: AbortSignal.timeout(20_000) }).catch(() => undefined);
+  const [everything, counted] = await Promise.all([
+    count("*"),
+    terms.length > 1 ? inTurn(terms, 4, (_, i) => count(without(terms, i))) : Promise.resolve([] as (number | undefined)[]),
+  ]);
+  // a newer run has its own answer to give
+  if (get().tabs.find((t) => t.id === tabId)?.zero?.running !== true) return;
+  get().patchTab(tabId, { zero: { everything, terms: checked.map((t, i) => ({ ...t, without: counted[i] })) } });
+}
+
+/** A round's length the way a sentence says it: `30 seconds`, `5 minutes`, `an hour`. */
+function shortSpan(seconds: number): string {
+  if (seconds < 60) return `${seconds} seconds`;
+  if (seconds < 3600) return seconds === 60 ? "minute" : `${Math.round(seconds / 60)} minutes`;
+  return seconds === 3600 ? "hour" : `${Math.round(seconds / 3600)} hours`;
+}
+
+/** `work` over each item, at most `width` at a time, the answers in the items' order. */
+async function inTurn<T, R>(items: T[], width: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array<R>(items.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await work(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(width, items.length) }, lane));
+  return out;
+}
+
+/** What a console asks the source: its search, inside the endpoint it was opened on. */
+export function searchOf(tab: Tab): string {
+  const clauses = [parseQuery(tab.query).search].filter(Boolean);
+  if (tab.endpoint) clauses.push(endpointClause(tab.endpoint));
+  return clauses.length ? clauses.map((c) => `(${c})`).join(" AND ") : "*";
 }
 
 /** Restrict a search to one endpoint. Templates carry `:id` placeholders, so match the literal prefix. */
@@ -1461,21 +1737,25 @@ function blankTab(
  * Without a field it is the value itself that is searched, which is how Graylog reads a bare
  * term against the message.
  */
-async function followAcross(set: Setter, get: Getter, tabId: string, o: { field?: string; value: string; at: string }): Promise<void> {
-  const tab = get().tabs.find((t) => t.id === tabId);
-  const conn = get().settings.connections.find((c) => c.id === tab?.connId);
-  if (!tab || !conn || !identifying(o.value)) return;
+async function followAcross(
+  set: Setter,
+  get: Getter,
+  conn: Connection | undefined,
+  o: { field?: string; value: string; at?: string; window?: { from: Date; to: Date }; trace?: boolean },
+): Promise<void> {
+  if (!conn || !identifying(o.value)) return;
 
-  const label = o.field ?? "value";
+  const label = o.field ?? (o.trace ? "trace" : "value");
   const task = get().startTask(`Following ${label} across ${conn.name || "the connection"}`);
   try {
     const streams = (await clientFor(conn).streams()).map((s) => s.id);
-    const at = new Date(o.at);
+    const at = new Date(o.at ?? "");
     const centre = Number.isNaN(at.getTime()) ? new Date() : at;
     const clause = o.field ? fieldClause(o.field, o.value) : `"${o.value.replace(/(["\\])/g, "\\$1")}"`;
     // an hour either side: long enough for a retry, short enough to stay one story
-    const query = withBetween(clause, new Date(centre.getTime() - 3600_000), new Date(centre.getTime() + 3600_000));
-    const id = `follow:${conn.id}:${label}:${o.value}`;
+    const window = o.window ?? { from: new Date(centre.getTime() - 3600_000), to: new Date(centre.getTime() + 3600_000) };
+    const query = withBetween(clause, window.from, window.to);
+    const id = `${o.trace ? "trace" : "follow"}:${conn.id}:${label}:${o.value}`;
     if (!get().tabs.some((t) => t.id === id)) {
       const next = blankTab(get().settings, conn, {
         id,
@@ -1487,7 +1767,10 @@ async function followAcross(set: Setter, get: Getter, tabId: string, o: { field?
       // which stream a line came from is the point of this tab, and oldest first is the order
       // a story is read in
       const columns = ["timestamp", "streams", "source", "level", "message"];
-      set({ tabs: [...get().tabs, { ...next, query, columns, layout: columns, sortOrder: "asc" as const }], activeTab: id });
+      set({
+        tabs: [...get().tabs, { ...next, query, columns, layout: columns, sortOrder: "asc" as const, trace: o.trace ? o.value : undefined }],
+        activeTab: id,
+      });
       void loadFields(id, set, get);
     } else {
       set({ activeTab: id });

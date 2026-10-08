@@ -132,6 +132,8 @@ export interface Settings {
   mcp: McpSettings;
   /** Where an issue made from a log line is opened. */
   jira: JiraSettings;
+  /** Where a logged request is sent again, by connection id: a stage, never a token. */
+  replay: { bases: Record<string, string> };
   advanced: AdvancedSettings;
 }
 
@@ -169,6 +171,7 @@ export const DEFAULTS: Settings = {
   updates: { checkOnStartup: true },
   mcp: { enabled: false, port: 4319, token: "" },
   jira: { site: "", projectId: "", issueTypeId: "" },
+  replay: { bases: {} },
   advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, watchSound: "Ping", fieldCacheMinutes: 10, confirmOnClose: false },
 };
 
@@ -205,6 +208,7 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
     updates: { ...DEFAULTS.updates, ...(s.updates ?? {}) },
     mcp: { ...DEFAULTS.mcp, ...(s.mcp ?? {}) },
     jira: { ...DEFAULTS.jira, ...(s.jira ?? {}) },
+    replay: { bases: { ...(s.replay?.bases ?? {}) } },
     advanced: { ...DEFAULTS.advanced, ...(s.advanced ?? {}) },
   };
 }
@@ -373,6 +377,7 @@ export const SHORTCUTS: { group: string; keys: string; action: string }[] = [
   { group: "Search", keys: "⇧⇧", action: "Search Everywhere" },
   { group: "Search", keys: "⌘⇧F", action: "Search Everywhere" },
   { group: "Search", keys: "⇧⌘O", action: "Go to Endpoint" },
+  { group: "Search", keys: "⇧⌘I", action: "Trace an ID across every stream" },
   { group: "Search", keys: "⇥", action: "Switch search tab" },
   { group: "Terminal", keys: "⌥F12", action: "Show or hide the terminal" },
   { group: "Terminal", keys: "⌘K", action: "Clear the terminal" },

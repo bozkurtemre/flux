@@ -3,6 +3,9 @@ import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resiz
 import { MoreVertical, X } from "lucide-react";
 import { QueryConsole } from "./QueryConsole";
 import { GroupTables } from "./GroupTables";
+import { ExplainPanel } from "./ExplainPanel";
+import { JourneyPanel } from "./JourneyPanel";
+import { ZeroPanel } from "./ZeroPanel";
 import { Timeline } from "./Timeline";
 import { ResultGrid } from "./ResultGrid";
 import { ValueInspector } from "./ValueInspector";
@@ -147,6 +150,9 @@ function TabBody({ tab }: { tab: Tab }) {
           <Panel minSize="30">
             <div className="flex h-full min-h-0 flex-col">
               <Timeline tab={tab} />
+              <ZeroPanel tab={tab} />
+              <JourneyPanel tab={tab} />
+              <ExplainPanel tab={tab} />
               <GroupTables tab={tab} />
               <div className="min-h-0 flex-1">
                 <ResultGrid tab={tab} />

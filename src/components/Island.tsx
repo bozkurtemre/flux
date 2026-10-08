@@ -28,14 +28,21 @@ export function Island() {
           .filter((q) => watchEvery(q, settings.advanced.watchSeconds) > 0)
           .map((q) => {
             const last = watchLog[q.id];
+            const every = `every ${ago(watchEvery(q, settings.advanced.watchSeconds) * 1000)}`;
+            // a silence watch is in trouble when it is quiet, not when something arrives
+            if (q.quietBelow) {
+              return {
+                key: `watch:${q.id}`,
+                title: q.name,
+                detail: last ? `${last.found.toLocaleString()} on the last round${last.quiet ? `, fewer than ${q.quietBelow}` : ""}` : every,
+                state: last?.quiet ? ("quiet" as const) : ("watching" as const),
+                at: last?.at,
+              };
+            }
             return {
               key: `watch:${q.id}`,
               title: q.name,
-              detail: last
-                ? last.found
-                  ? `${last.found.toLocaleString()} new on the last round`
-                  : "nothing new on the last round"
-                : `every ${ago(watchEvery(q, settings.advanced.watchSeconds) * 1000)}`,
+              detail: last ? (last.found ? `${last.found.toLocaleString()} new on the last round` : "nothing new on the last round") : every,
               state: last?.found ? ("alert" as const) : ("watching" as const),
               at: last?.at,
             };

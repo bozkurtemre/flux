@@ -94,6 +94,7 @@ Skip it and streams sit directly under the connection.
 | --------- | ------------------------------------- |
 | `⇧⇧`      | Search Everywhere                     |
 | `⇧⌘O`     | Go to Endpoint                        |
+| `⇧⌘I`     | Trace an ID across every stream       |
 | `⌘⏎`      | Execute the query                     |
 | `⌘W`      | Close the tab                         |
 | `⌘,`      | Settings                              |

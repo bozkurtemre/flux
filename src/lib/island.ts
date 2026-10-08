@@ -1,7 +1,7 @@
 // What the island shows, as plain data: it lives in a window of its own, under the notch, and
 // a window of its own has no store — the main window works the list out and hands it over.
 
-export type IslandState = "running" | "following" | "alert" | "watching";
+export type IslandState = "running" | "following" | "alert" | "quiet" | "watching";
 
 export interface IslandItem {
   /** `run:<tab>`, `follow:<tab>` or `watch:<query>`: what a click on the row goes back to. */
@@ -17,6 +17,7 @@ export const CHIP: Record<IslandState, { label: string; color: string }> = {
   running: { label: "running", color: "#e5a33a" },
   following: { label: "following", color: "#5fb865" },
   alert: { label: "new matches", color: "#e5534b" },
+  quiet: { label: "gone quiet", color: "#e5534b" },
   watching: { label: "watching", color: "#4b8ef0" },
 };
 
@@ -33,6 +34,7 @@ export function headline(items: IslandItem[]): string {
   const n = (s: IslandState) => items.filter((i) => i.state === s).length;
   return [
     n("alert") && `${n("alert")} with new matches`,
+    n("quiet") && `${n("quiet")} gone quiet`,
     n("running") && `${n("running")} running`,
     n("following") && `${n("following")} following`,
     n("watching") && `${n("watching")} watching`,
@@ -43,7 +45,7 @@ export function headline(items: IslandItem[]): string {
 
 /** The colour the island leads with: whatever most needs looking at. */
 export function lead(items: IslandItem[]): IslandState {
-  for (const s of ["alert", "running", "following", "watching"] as const) if (items.some((i) => i.state === s)) return s;
+  for (const s of ["alert", "quiet", "running", "following", "watching"] as const) if (items.some((i) => i.state === s)) return s;
   return "watching";
 }
 

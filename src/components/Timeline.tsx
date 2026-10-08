@@ -1,6 +1,7 @@
 // When the messages arrived, over the range the console asked for. Dragging across it writes
 // the `between` clause into the query, which is how a range is narrowed everywhere else too:
-// the bar chart is a way of writing the same line the console would take typed.
+// the bar chart is a way of writing the same line the console would take typed. Dragging with
+// ⌥ held asks instead why the stretch differs from the time before it.
 import { useRef, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { formatTs } from "./ResultGrid";
@@ -12,9 +13,9 @@ import { useApp, type Tab } from "@/store";
 const HEIGHT = 56;
 
 export function Timeline({ tab }: { tab: Tab }) {
-  const { patchTab, runQuery, settings, timelineOpen, toggleTimeline } = useApp();
+  const { patchTab, runQuery, explainRange, settings, timelineOpen, toggleTimeline } = useApp();
   const host = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<{ from: number; to: number } | null>(null);
+  const [drag, setDrag] = useState<{ from: number; to: number; explain: boolean } | null>(null);
   // the setting says whether there is a timeline at all: without this the bars a query
   // already fetched stayed on screen until the next one
   const buckets = settings.results.timeline ? (tab.histogram ?? []) : [];
@@ -47,12 +48,13 @@ export function Timeline({ tab }: { tab: Tab }) {
   };
 
   /** The span a drag covers, in the instants the query will name. */
-  const commit = (from: number, to: number) => {
+  const commit = (from: number, to: number, explain: boolean) => {
     const [a, b] = from <= to ? [from, to] : [to, from];
     const start = new Date(buckets[a].at);
     // the last bucket is a bucket wide, so its end is where the next one starts
     const after = buckets[b + 1]?.at;
     const end = after ? new Date(after) : new Date(new Date(buckets[b].at).getTime() + spanOf(buckets));
+    if (explain) return void explainRange(tab.id, start, end);
     patchTab(tab.id, { query: withBetween(tab.query, start, end), offset: 0 });
     void runQuery(tab.id);
   };
@@ -61,13 +63,14 @@ export function Timeline({ tab }: { tab: Tab }) {
     if (e.button !== 0) return;
     e.preventDefault();
     const from = bucketAt(e.clientX);
-    setDrag({ from, to: from });
-    const move = (ev: MouseEvent) => setDrag({ from, to: bucketAt(ev.clientX) });
+    const explain = e.altKey;
+    setDrag({ from, to: from, explain });
+    const move = (ev: MouseEvent) => setDrag({ from, to: bucketAt(ev.clientX), explain });
     const up = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
       setDrag(null);
-      commit(from, bucketAt(ev.clientX));
+      commit(from, bucketAt(ev.clientX), explain);
     };
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
@@ -98,7 +101,7 @@ export function Timeline({ tab }: { tab: Tab }) {
             <span style={{ color: "var(--red)" }}>— errors up to {worst.toFixed(1)}%</span>
           </>
         )}
-        {timelineOpen && <span className="ml-auto">drag to narrow the range</span>}
+        {timelineOpen && <span className="ml-auto">drag to narrow the range · ⌥-drag to explain a spike</span>}
       </div>
       {timelineOpen && (
         <div ref={host} onMouseDown={onDown} className="relative flex items-end gap-px" style={{ height: HEIGHT, cursor: "crosshair" }}>
@@ -155,7 +158,8 @@ export function Timeline({ tab }: { tab: Tab }) {
               style={{
                 height: `${Math.max(2, (b.count / peak) * HEIGHT)}px`,
                 minWidth: 2,
-                background: "var(--accent)",
+                // an explaining drag reads as a different act from a narrowing one
+                background: drag?.explain && selected(i) ? "var(--purple)" : "var(--accent)",
                 opacity: drag ? (selected(i) ? 1 : 0.35) : 0.75,
                 borderRadius: 1,
               }}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { due, nameFor, remember, unsaved, upsert, watchEvery, type SavedQuery } from "./queries";
+import { due, nameFor, remember, unsaved, upsert, watchEvery, type SavedQuery, quietVerdict } from "./queries";
 
 const query = (over: Partial<SavedQuery> = {}): SavedQuery => ({
   id: "q1",
@@ -106,5 +106,15 @@ describe("when a round is owed", () => {
 
   it("is never owed when the watching is off", () => {
     expect(due(undefined, 1_000_000, 0)).toBe(false);
+  });
+});
+
+describe("a watch for silence", () => {
+  it("says so once when it goes quiet, and once when it comes back", () => {
+    expect(quietVerdict(0, 1, false)).toBe("quiet");
+    expect(quietVerdict(0, 1, true)).toBeNull();
+    expect(quietVerdict(4, 10, true)).toBeNull();
+    expect(quietVerdict(12, 10, true)).toBe("back");
+    expect(quietVerdict(12, 10, false)).toBeNull();
   });
 });
