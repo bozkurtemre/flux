@@ -201,16 +201,20 @@ export function Button({
   onClick,
   primary,
   disabled,
+  tip,
 }: {
   children: ReactNode;
   onClick?: () => void;
   primary?: boolean;
   disabled?: boolean;
+  /** Said on hover, for a button that is only an icon. */
+  tip?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      data-tip={tip}
       className="h-[26px] rounded-[4px] px-3 text-[13px] disabled:opacity-40"
       style={
         primary

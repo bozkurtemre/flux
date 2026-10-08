@@ -17,6 +17,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { correlationOf } from "@/lib/correlation";
+import { rowKey } from "@/lib/datasource";
 import { curlOf } from "@/lib/curl";
 import { ideName, sourceRefs } from "@/lib/source";
 import { ClaudeIcon } from "./icons";
@@ -27,7 +28,6 @@ import { moveBefore } from "@/lib/reorder";
 export const NUM_W = 52;
 
 /** The same identity the tail uses to tell a new message from one already on screen. */
-const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
 
 /** The result grid: a row-number gutter, sortable headers, one-line cells. */
 export function ResultGrid({ tab }: { tab: Tab }) {

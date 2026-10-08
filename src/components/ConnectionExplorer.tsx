@@ -97,7 +97,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
       },
       { separator: true },
       { label: "Copy Name", icon: clip, onClick: () => copy(node.label) },
-      { label: "Copy URL", icon: clip, onClick: () => copy(conn?.graylogUrl ?? "") },
+      { label: "Copy URL", icon: clip, onClick: () => copy(conn?.url ?? "") },
       { separator: true },
       {
         label: "Delete…",
@@ -107,7 +107,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
         onClick: () =>
           ask({
             title: `Delete connection “${node.label}”?`,
-            message: "Flux forgets its URL and token. Graylog itself is not touched.",
+            message: "Flux forgets its URL and token. The server itself is not touched.",
             run: () => void app.setSettings({ ...app.settings, connections: app.settings.connections.filter((c) => c.id !== node.connId) }),
           }),
       },
@@ -139,7 +139,13 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
       { separator: true },
       { label: "Copy Stream Name", icon: clip, onClick: () => copy(node.label) },
       { label: "Copy Stream ID", icon: clip, onClick: () => copy(node.streamId ?? "") },
-      { label: "Copy Graylog URL", icon: clip, onClick: () => copy(`${conn?.graylogUrl ?? ""}/streams/${node.streamId}/search`) },
+      conn?.kind === "kibana"
+        ? {
+            label: "Copy Discover URL",
+            icon: clip,
+            onClick: () => copy(`${conn.url}/app/discover#/?_a=(dataSource:(dataViewId:'${node.streamId}',type:dataView))`),
+          }
+        : { label: "Copy Graylog URL", icon: clip, onClick: () => copy(`${conn?.url ?? ""}/streams/${node.streamId}/search`) },
     ];
   }
 
@@ -241,7 +247,7 @@ function EmptyState() {
         className="rounded px-2 py-1 text-[12px]"
         style={{ background: "var(--accent)", color: "var(--accent-text)" }}
       >
-        Add a Graylog connection
+        Add a connection
       </button>
     </div>
   );

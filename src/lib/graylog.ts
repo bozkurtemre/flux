@@ -1,47 +1,9 @@
-// Graylog 5.2 client. Requests go through Tauri's HTTP plugin, which issues them from
-// Rust, so there is no CORS preflight and no proxy server.
-import { fetch } from "@tauri-apps/plugin-http";
+// Graylog 5.2, as a data source. The scripting API answers the messages and the grouped counts;
+// the views API, which is how Graylog's own interface asks, answers the rest.
+import { request, type Bucket, type DataSource, type FieldInfo, type MessagePage, type Metric, type Stream, type TimeRange } from "./datasource";
 
-export type TimeRange = { type: "absolute"; from: string; to: string } | { type: "relative"; range: number };
-
-let requestTimeoutMs = 60_000;
-
-/** Settings › Advanced controls how long a Graylog call may take. */
-export function setRequestTimeout(seconds: number) {
-  requestTimeoutMs = Math.max(1, seconds) * 1000;
-}
-
-export function absolute(from: Date, to: Date): TimeRange {
-  return { type: "absolute", from: from.toISOString(), to: to.toISOString() };
-}
-
-export interface Stream {
-  id: string;
-  title: string;
-  description?: string;
-  disabled: boolean;
-}
-
-export interface FieldInfo {
-  name: string;
-  type: string;
-}
-
-/** One column of the timeline: when the bucket starts, and how many messages fell in it. */
-export interface Bucket {
-  at: string;
-  count: number;
-  /** For an endpoint: the 95th percentile of its duration, and how many failed. */
-  p95?: number;
-  errors?: number;
-}
-
-export interface MessagePage {
-  columns: string[];
-  rows: Record<string, unknown>[];
-}
-
-export class Graylog {
+export class Graylog implements DataSource {
+  readonly kind = "graylog" as const;
   private auth: string;
 
   constructor(
@@ -53,30 +15,12 @@ export class Graylog {
     this.auth = "Basic " + btoa(`${token}:token`);
   }
 
-  private async call<T>(path: string, init: RequestInit & { mediaType?: string } = {}): Promise<T> {
-    const mediaType = init.mediaType ?? "application/json";
-    // two ways to give up: the timeout, and whoever started this deciding they are done
-    // waiting. They are told apart afterwards, because only one of them is a failure.
-    const timeout = AbortSignal.timeout(requestTimeoutMs);
-    const res = await fetch(this.url + path, {
+  private call<T>(path: string, init: RequestInit & { mediaType?: string } = {}): Promise<T> {
+    return request<T>(this.url + path, {
       ...init,
-      headers: {
-        Authorization: this.auth,
-        Accept: mediaType,
-        "Content-Type": mediaType,
-        "X-Requested-By": "Flux",
-        ...(init.headers ?? {}),
-      },
-      signal: init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
-    }).catch((e: unknown) => {
-      if (timeout.aborted) throw new Error("Operation timed out.");
-      throw e;
+      label: path.split("?")[0],
+      headers: { Authorization: this.auth, "X-Requested-By": "Flux", ...(init.headers ?? {}) },
     });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`${res.status} ${path.split("?")[0]}: ${body.slice(0, 300)}`);
-    }
-    return (await res.json()) as T;
   }
 
   async version(signal?: AbortSignal): Promise<string> {
@@ -136,7 +80,7 @@ export class Graylog {
     streams: string[];
     timerange: TimeRange;
     groupBy: { field: string; limit?: number }[];
-    metrics: { function: string; field?: string; configuration?: Record<string, number> }[];
+    metrics: Metric[];
     signal?: AbortSignal;
   }): Promise<{ columns: string[]; rows: unknown[][] }> {
     const r = await this.call<{ schema: { name: string }[]; datarows: unknown[][] }>("/api/search/aggregate", {
@@ -307,79 +251,4 @@ export class Graylog {
     );
     return Number(results.q?.search_types.t?.rows?.[0]?.values[0]?.value ?? 0) || 0;
   }
-}
-
-/** Escape Lucene metacharacters in a value. */
-export function q(v: string): string {
-  return v.replace(/([+\-!(){}[\]^"~*?:\\/]|&&|\|\|)/g, "\\$1");
-}
-
-export const QUICK_RANGES: { label: string; seconds: number }[] = [
-  { label: "5m", seconds: 300 },
-  { label: "15m", seconds: 900 },
-  { label: "1h", seconds: 3600 },
-  { label: "4h", seconds: 14400 },
-  { label: "24h", seconds: 86400 },
-  { label: "7d", seconds: 604800 },
-  { label: "30d", seconds: 2592000 },
-];
-
-/**
- * The timeline with what has just arrived counted into it. Following puts new messages on the
- * page every couple of seconds, and asking Graylog to draw the buckets again that often would
- * cost two requests a tick — but the rows themselves say when they arrived, which is all a
- * bucket is. Buckets are appended when the newest message is past the last one, so a live
- * timeline grows rightwards instead of ending where the query did.
- */
-export function bucketed(buckets: Bucket[], arrivals: string[], limit = 200): Bucket[] {
-  if (!buckets.length || !arrivals.length) return buckets;
-  const first = new Date(buckets[0].at).getTime();
-  const span = buckets.length > 1 ? new Date(buckets[1].at).getTime() - first : 60_000;
-  if (!(span > 0)) return buckets;
-
-  const counts = new Map(buckets.map((b, i) => [i, b]));
-  let last = buckets.length - 1;
-  for (const at of arrivals) {
-    const time = new Date(at).getTime();
-    if (Number.isNaN(time) || time < first) continue;
-    const index = Math.floor((time - first) / span);
-    if (index > last) {
-      // the gap is drawn as the quiet it was, unless it is so long that this is another day
-      if (index - last > limit) continue;
-      for (let i = last + 1; i <= index; i++) counts.set(i, { at: new Date(first + i * span).toISOString(), count: 0 });
-      last = index;
-    }
-    const bucket = counts.get(index);
-    if (bucket) counts.set(index, { ...bucket, count: bucket.count + 1 });
-  }
-  return Array.from({ length: last + 1 }, (_, i) => counts.get(i) ?? { at: new Date(first + i * span).toISOString(), count: 0 });
-}
-
-/**
- * The bucket width for a span, in Graylog's own units: about fifty columns whatever the
- * range, from a minute of logs to a month of them.
- */
-export function bucketFor(seconds: number, columns = 50): string {
-  const units: [number, string][] = [
-    [1, "1s"],
-    [5, "5s"],
-    [10, "10s"],
-    [30, "30s"],
-    [60, "1m"],
-    [300, "5m"],
-    [600, "10m"],
-    [1800, "30m"],
-    [3600, "1h"],
-    [10800, "3h"],
-    [21600, "6h"],
-    [86400, "1d"],
-    [604800, "1w"],
-  ];
-  // the unit that comes closest to that many columns, rather than the first one over: an
-  // hour is fifty-odd minutes or a dozen five-minute blocks, and the first reads better
-  let best = units[0];
-  for (const unit of units) {
-    if (Math.abs(seconds / unit[0] - columns) < Math.abs(seconds / best[0] - columns)) best = unit;
-  }
-  return best[1];
 }

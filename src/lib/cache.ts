@@ -2,7 +2,7 @@
 // on Graylog. Regenerable by definition; bump FORMAT to invalidate every entry at once.
 import { invoke } from "@tauri-apps/api/core";
 import type { EndpointRow } from "./endpoints";
-import type { FieldInfo, Stream } from "./graylog";
+import type { FieldInfo, Stream } from "./datasource";
 
 const FORMAT = 1;
 

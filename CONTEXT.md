@@ -1,6 +1,6 @@
 # Flux
 
-Flux reads one company's Graylog and presents it as something you can navigate: a tree of
+Flux reads one company's logs, from Graylog or from Elasticsearch through Kibana, and presents them as something you can navigate: a tree of
 connections, projects, streams and endpoints, with a terminal beside it in the repository
 the logs came from. This file is the vocabulary; it deliberately says nothing about how any
 of it is built.
@@ -8,9 +8,15 @@ of it is built.
 ## Language
 
 **Connection**:
-One Graylog instance Flux reads, with the credentials to reach it. The window called these
-"data sources" while it borrowed the word from the IDE it is modelled on; nothing does now.
+One server Flux reads logs from, of one **source kind**, with the credentials to reach it. The
+window called these "data sources" while it borrowed the word from the IDE it is modelled on;
+nothing does now.
 _Avoid_: data source, server, instance
+
+**Source kind**:
+What a connection reads: Graylog, or Elasticsearch through Kibana. Each kind has an adapter,
+and the rest of Flux asks every kind the same questions in the same Lucene.
+_Avoid_: backend, driver, provider
 
 **Project**:
 A named group of a connection's streams that belong to one service, and therefore to one
@@ -18,7 +24,8 @@ repository. A project names its repository as `owner/repo`.
 _Avoid_: service, group, application
 
 **Stream**:
-A Graylog stream: the partition of a connection's logs that a project is assembled from.
+The partition of a connection's logs that a project is assembled from: a Graylog stream, or a
+Kibana data view.
 _Avoid_: index, channel, log group
 
 **Endpoint**:
@@ -28,14 +35,14 @@ _Avoid_: route, path, URL
 
 **View link**:
 A `flux://open?…` link to one stream, one console line and one range, for pasting into a
-conversation. It names the Graylog by its URL, so it opens on whichever connection the
+conversation. It names the source by its URL, so it opens on whichever connection the
 receiver has for it, and never carries a token.
 _Avoid_: share URL, permalink, deep link
 
 **Set-up file**:
 The projects, and the connections under them, written as one file to hand to someone setting
 Flux up — Settings › Projects › Export, and Add from export on the other end. Connections travel
-as a name and a URL and never with a token; a Graylog already set up is recognised by its URL.
+as a name and a URL and never with a token; a connection already set up is recognised by its URL.
 _Avoid_: backup, profile, config export
 
 **Saved query**:

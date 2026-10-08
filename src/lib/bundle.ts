@@ -5,6 +5,7 @@
 // What it never carries is a token. `connections.json` is a credential (docs/adr/0005) and a
 // file made to be sent is the last place one belongs: a connection arrives as a name and a URL,
 // and whoever receives it pastes their own token into it.
+import type { SourceKind } from "./datasource";
 import type { Connection, Project, Settings } from "./settings";
 import type { SavedQuery } from "./queries";
 
@@ -14,7 +15,8 @@ export interface Bundle {
   /** Marks the file as one of these, and says which shape it is. */
   flux: typeof BUNDLE_FORMAT;
   exportedAt: string;
-  connections: { id: string; name: string; url: string }[];
+  /** `kind` is absent in files from before a connection named its source: those are Graylog. */
+  connections: { id: string; name: string; kind?: SourceKind; url: string }[];
   projects: { name: string; connectionId: string; streams: string[]; github?: string; sourcePrefix?: string }[];
   /** The team's saved queries on those projects' streams. Absent in files from before they travelled. */
   queries?: { name: string; query: string; connectionId: string; streamIds: string[]; streamLabel: string; rangeSeconds: number }[];
@@ -43,7 +45,7 @@ export function makeBundle(settings: Settings, projectIds: string[], at = new Da
     ...(queries.length ? { queries } : {}),
     flux: BUNDLE_FORMAT,
     exportedAt: at.toISOString(),
-    connections: settings.connections.filter((c) => used.has(c.id)).map((c) => ({ id: c.id, name: c.name, url: c.graylogUrl })),
+    connections: settings.connections.filter((c) => used.has(c.id)).map((c) => ({ id: c.id, name: c.name, kind: c.kind, url: c.url })),
     projects: projects.map((p) => ({
       name: p.name,
       connectionId: p.connectionId,
@@ -102,12 +104,12 @@ export function mergeBundle(
   const localId = new Map<string, string>();
 
   for (const c of bundle.connections) {
-    const here = connections.find((x) => sameUrl(x.graylogUrl, c.url));
+    const here = connections.find((x) => sameUrl(x.url, c.url));
     if (here) {
       localId.set(c.id, here.id);
       continue;
     }
-    const added: Connection = { id: id(), name: c.name, graylogUrl: c.url, graylogToken: "" };
+    const added: Connection = { id: id(), name: c.name, kind: c.kind ?? "graylog", url: c.url, token: "" };
     connections.push(added);
     needToken.push(added);
     localId.set(c.id, added.id);

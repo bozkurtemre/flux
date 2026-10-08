@@ -1,7 +1,21 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import { Graylog, absolute, bucketFor, bucketed, setRequestTimeout, type Bucket, type FieldInfo, type MessagePage, type Stream } from "@/lib/graylog";
-import { endpointsFromGraylog, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
+import {
+  SOURCE_KINDS,
+  absolute,
+  bucketFor,
+  bucketed,
+  rowKey,
+  setRequestTimeout,
+  type Bucket,
+  type DataSource,
+  type FieldInfo,
+  type MessagePage,
+  type Stream,
+} from "@/lib/datasource";
+import { Graylog } from "@/lib/graylog";
+import { Kibana } from "@/lib/kibana";
+import { endpointsFrom, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type RanQuery, type SavedTab } from "@/lib/session";
 import {
@@ -268,14 +282,18 @@ interface State {
   openSelected: () => void;
 }
 
-export const DEFAULT_COLUMNS = ["timestamp", "source", "level", "message"];
+/** The columns a console starts with, in the field names its kind of source uses. */
+export function defaultColumns(conn: Connection | undefined): string[] {
+  return SOURCE_KINDS[conn?.kind ?? "graylog"].columns;
+}
 
-const clients = new Map<string, Graylog>();
-export function clientFor(conn: Connection): Graylog {
-  const key = `${conn.id}:${conn.graylogUrl}:${conn.graylogToken}`;
+const clients = new Map<string, DataSource>();
+/** The adapter for a connection's kind of source. Everything that asks a source goes through here. */
+export function clientFor(conn: Connection): DataSource {
+  const key = `${conn.id}:${conn.kind}:${conn.url}:${conn.token}`;
   let c = clients.get(key);
   if (!c) {
-    c = new Graylog(conn.graylogUrl, conn.graylogToken);
+    c = conn.kind === "kibana" ? new Kibana(conn.url, conn.token) : new Graylog(conn.url, conn.token);
     clients.set(key, c);
   }
   return c;
@@ -364,7 +382,7 @@ export const useApp = create<State>((set, get) => ({
     const rootIds: string[] = [];
     for (const c of chosenConnections(settings.connections, get().workspaceConnections)) {
       const id = `c:${c.id}`;
-      nodes[id] = { id, kind: "connection", label: c.name || c.graylogUrl, sub: c.graylogUrl, connId: c.id, depth: 0 };
+      nodes[id] = { id, kind: "connection", label: c.name || c.url, sub: c.url, connId: c.id, depth: 0 };
       rootIds.push(id);
     }
     // a project that no longer exists should not leave its folder behind in the workspace
@@ -534,7 +552,7 @@ export const useApp = create<State>((set, get) => ({
     if (!conn) {
       return get().notify(
         "info",
-        "A link to another Graylog",
+        "A link to another connection",
         `${shared.graylog} is not set up here. Add it as a connection and open the link again.`,
         [{ label: "Open Settings", run: () => get().setShowSettings(true, "connections") }],
       );
@@ -1173,7 +1191,8 @@ export const useApp = create<State>((set, get) => ({
   resetColumns: (tabId) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    get().patchTab(tabId, { layout: undefined, columns: DEFAULT_COLUMNS });
+    const conn = get().settings.connections.find((c) => c.id === tab.connId);
+    get().patchTab(tabId, { layout: undefined, columns: defaultColumns(conn) });
     const connections = get().settings.connections.map((c) => (c.id === tab.connId ? { ...c, columns: undefined } : c));
     void get().setSettings({ ...get().settings, connections });
   },
@@ -1312,7 +1331,7 @@ export const useApp = create<State>((set, get) => ({
       if (stop.signal.aborted) patchTab(id, { running: false });
       else {
         patchTab(id, { error: errorText(e), running: false, page: undefined, groups: undefined, histogram: undefined });
-        get().notify("error", conn.name || conn.graylogUrl, `Query failed: ${failureReason(e)}`);
+        get().notify("error", conn.name || conn.url, `Query failed: ${failureReason(e)}`);
       }
     } finally {
       get().endTask(task);
@@ -1371,7 +1390,7 @@ export const pickKey = (tab: Tab, row: Record<string, unknown>) => `${tab.id}|${
 function viewLink(get: Getter, tab: Tab): string | undefined {
   const conn = get().settings.connections.find((c) => c.id === tab.connId);
   if (!conn || tab.streamIds.length !== 1) return undefined;
-  return linkFor({ graylog: conn.graylogUrl, stream: tab.streamIds[0], label: tab.streamLabel, query: tab.query, seconds: tab.rangeSeconds });
+  return linkFor({ graylog: conn.url, stream: tab.streamIds[0], label: tab.streamLabel, query: tab.query, seconds: tab.rangeSeconds });
 }
 
 /**
@@ -1418,7 +1437,6 @@ async function mergesFor(settings: Settings, tab: Tab, buckets: Bucket[]): Promi
 const watching = new Map<string, number>();
 
 /** What makes a message that one: its id when Graylog gave one, its content when it did not. */
-const rowKey = (row: Record<string, unknown>) => String(row.gl2_message_id ?? `${String(row.timestamp)}|${String(row.message)}`);
 
 /** A console with nothing in it yet: what a tree node and a saved query both start from. */
 function blankTab(
@@ -1432,7 +1450,7 @@ function blankTab(
     rangeSeconds: settings.results.defaultRangeSeconds,
     running: false,
     fields: [],
-    columns: conn.columns?.length ? conn.columns : DEFAULT_COLUMNS,
+    columns: conn.columns?.length ? conn.columns : defaultColumns(conn),
     layout: conn.columns?.length ? conn.columns : undefined,
   };
 }
@@ -1642,7 +1660,12 @@ async function restoreWorkspace(set: Setter, get: Getter) {
   const live = new Set(chosenConnections(get().settings.connections, get().workspaceConnections).map((c) => c.id));
   const tabs: Tab[] = w.tabs
     .filter((t) => live.has(t.connId))
-    .map((t) => ({ ...t, running: false, fields: [], columns: t.columns?.length ? t.columns : DEFAULT_COLUMNS }));
+    .map((t) => ({
+      ...t,
+      running: false,
+      fields: [],
+      columns: t.columns?.length ? t.columns : defaultColumns(get().settings.connections.find((c) => c.id === t.connId)),
+    }));
   if (!tabs.length && !Object.keys(w.expanded).length) return;
 
   const activeTab = tabs.some((t) => t.id === w.activeTab) ? w.activeTab : tabs[tabs.length - 1]?.id;
@@ -1664,9 +1687,7 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
   if (!node || !conn) return;
   set({ loading: { ...get().loading, [id]: true } });
   const stop = new AbortController();
-  const task = get().startTask(node.kind === "connection" ? `Connecting to ${conn.name || conn.graylogUrl}` : `Loading ${node.label}`, () =>
-    stop.abort(),
-  );
+  const task = get().startTask(node.kind === "connection" ? `Connecting to ${conn.name || conn.url}` : `Loading ${node.label}`, () => stop.abort());
   try {
     const made =
       node.kind === "connection"
@@ -1685,7 +1706,7 @@ async function loadChildren(id: string, set: Setter, get: Getter, force = false)
     } else {
       set({ nodes: { ...get().nodes, [id]: { ...node, childrenIds: [], error: errorText(e) } } });
       const what = node.kind === "connection" ? "Connection failed" : `Could not load ${node.label}`;
-      get().notify("error", conn.name || conn.graylogUrl, `${what}: ${failureReason(e)}`);
+      get().notify("error", conn.name || conn.url, `${what}: ${failureReason(e)}`);
     }
   } finally {
     get().endTask(task);
@@ -1770,7 +1791,7 @@ async function streamChildren(node: TreeNode, conn: Connection, force: boolean, 
   if (force || !rows) {
     const g = clientFor(conn);
     const fields = await g.fields(streamId, undefined, signal).catch(() => []);
-    rows = await endpointsFromGraylog(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit, signal });
+    rows = await endpointsFrom(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit, signal });
     await cache.putStream(key, streamId, { endpoints: rows, fields });
   }
 

@@ -1,3 +1,4 @@
+import type { SourceKind } from "@/lib/datasource";
 // 16px flat icons shaped like the JetBrains set: a rack for a connection, which is a host
 // we query rather than a database, a box for a grouping, a grid for a stream.
 
@@ -113,6 +114,25 @@ export function ClaudeIcon({ size = 12 }: { size?: number }) {
           transform={`rotate(${angle} 12 12)`}
         />
       ))}
+    </svg>
+  );
+}
+
+/** The mark of a connection's kind of source, beside its name wherever the kind is chosen. */
+export function SourceIcon({ kind, size = 12 }: { kind: SourceKind; size?: number }) {
+  if (kind === "kibana") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Kibana" className="shrink-0">
+        <path fill="#F04E98" d="M4 0v28.789L28.935.017z" />
+        <path fill="#343741" d="M4 12v16.789l11.906-13.738A24.721 24.721 0 0 0 4 12" />
+        <path fill="#00BFB3" d="M18.479 16.664 6.268 30.754 5.215 32h24.044c-1.33-6.638-5.258-12.354-10.78-15.336" />
+      </svg>
+    );
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Graylog" className="shrink-0">
+      <circle cx="16" cy="16" r="15" fill="#FF3633" />
+      <path d="M5 17h5l3-7 4 13 3-9 2 3h5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }

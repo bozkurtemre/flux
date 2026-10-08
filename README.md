@@ -75,9 +75,14 @@ make app         # build Flux.app
 
 ## First run
 
-Open **Settings › Connections** (`⌘,`) and add a Graylog URL with an access token from
-_Graylog profile › Edit tokens_. That is the whole setup; Flux talks to Graylog and
-nothing else.
+Open **Settings › Connections** (`⌘,`), add a connection and pick its source:
+
+- **Graylog**: the Graylog URL and an access token from _Graylog profile › Edit tokens_.
+- **Elasticsearch (Kibana)**: the Kibana URL and an API key from _Kibana › Stack Management ›
+  API keys_ (the Encoded value). Data views are the streams. For a space other than the
+  default, end the URL with `/s/<space>`.
+
+That is the whole setup; Flux talks to those servers and nothing else.
 
 **Settings › Projects** is optional. Group a connection's streams into the services they
 belong to and the tree grows a third level, `Connection › Project › Stream › Endpoint`.
@@ -104,9 +109,11 @@ Mono for everything that holds data.
 
 Three details are worth knowing before changing anything:
 
-- **Graylog calls go through `@tauri-apps/plugin-http`**, so they are issued from Rust.
+- **Calls to a source go through `@tauri-apps/plugin-http`**, so they are issued from Rust.
   There is no CORS preflight and no proxy server to run.
-- **The tree is served from a cache, not from Graylog.** Expanding a stream reads the
+- **Each source kind is an adapter.** `src/lib/datasource.ts` is the contract every adapter
+  answers; `clientFor()` in the store picks one by the connection's kind. See `docs/adr/0008`.
+- **The tree is served from a cache, not from the source.** Expanding a stream reads the
   endpoint list off disk and shows it immediately; Refresh is what re-reads the source.
   The cache lives in the OS cache directory and is safe to delete at any time, which is
   what makes **Settings › Advanced › Invalidate Caches** a supported operation rather
@@ -122,7 +129,9 @@ of buckets on a busy stream and times out.
 
 ```
 src/
-  lib/graylog.ts          Graylog 5.2 client: search, aggregate, streams, fields
+  lib/datasource.ts       what every source answers, and the helpers they share
+  lib/graylog.ts          Graylog 5.2 adapter: search, aggregate, streams, fields
+  lib/kibana.ts           Elasticsearch adapter, through Kibana's data views and console proxy
   lib/endpoints.ts        endpoint rows derived from two aggregations
   lib/normalize.ts        path segments to endpoint templates
   lib/cache.ts            the introspection cache, keyed by connection
@@ -139,14 +148,14 @@ Three tiers, split by what happens if a file is lost.
 
 | What                 | Where              | Lost if deleted                                          |
 | -------------------- | ------------------ | -------------------------------------------------------- |
-| `connections.json`   | config directory   | your Graylog URLs **and their access tokens**            |
+| `connections.json`   | config directory   | your source URLs **and their tokens or API keys**        |
 | `projects.json`      | config directory   | how streams are grouped; worth sharing with a team       |
 | `preferences.json`   | config directory   | how you like the window                                  |
 | `session.json`       | config directory   | which tabs and branches were open with no workspace open |
 | `queries.json`       | config directory   | the queries you kept with no workspace open              |
 | `.window-state.json` | config directory   | the size and place of the window                         |
 | `<folder>/.flux/`    | the workspace      | that folder's stream grouping, saved queries and session |
-| Introspection cache  | OS cache directory | nothing, it is re-read from Graylog                      |
+| Introspection cache  | OS cache directory | nothing, it is re-read from the source                   |
 
 `connections.json` holds access tokens in the clear, so treat it as a credential: do not
 commit it, share it or put it anywhere that syncs. It is deliberately the one thing a
@@ -214,8 +223,8 @@ Protect that file the way you would an SSH key: it is readable by anything that 
 your home directory, and it travels with any backup or sync that includes the config
 directory. Deleting a connection removes its token from the file.
 
-Tokens are sent nowhere except the Graylog instance they belong to. Flux only ever reads:
-it issues searches and aggregations, and never writes to Graylog.
+Tokens are sent nowhere except the server they belong to. Flux only ever reads: it issues
+searches and aggregations, and never writes to Graylog, Kibana or Elasticsearch.
 
 ## Licence
 

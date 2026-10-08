@@ -6,7 +6,7 @@ export const GETTING_STARTED = `# Getting started
 
 ## Connect
 
-- **Settings › Connections** takes a Graylog URL and an access token. The token stays in \`connections.json\` on this machine.
+- **Settings › Connections** takes a Graylog URL and an access token, or a Kibana URL and an API key for logs in Elasticsearch. The token stays in \`connections.json\` on this machine.
 - **Settings › Projects › Add from export** takes a set-up file a teammate sent: their projects and saved queries, without their tokens.
 
 ## Find what you need
@@ -41,7 +41,7 @@ export const GETTING_STARTED = `# Getting started
 
 export const QUERY_LANGUAGE = `# Query language
 
-A console line is a Lucene query, as Graylog reads it, followed by any of the clauses below, each after a \`|\`. At the start of a line the \`|\` can be left out.
+A console line is a Lucene query, as Graylog and Elasticsearch both read it, followed by any of the clauses below, each after a \`|\`. At the start of a line the \`|\` can be left out.
 
 ## Searching
 

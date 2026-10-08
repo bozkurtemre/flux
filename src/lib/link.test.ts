@@ -33,8 +33,8 @@ describe("a view as a link", () => {
 
 describe("the connection that answers a link", () => {
   const connections = [
-    { id: "a", graylogUrl: "https://GRAYLOG.example/" },
-    { id: "b", graylogUrl: "https://other.example" },
+    { id: "a", url: "https://GRAYLOG.example/" },
+    { id: "b", url: "https://other.example" },
   ];
 
   it("is known by its URL, whatever it is called", () => {

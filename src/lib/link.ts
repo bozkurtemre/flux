@@ -45,7 +45,7 @@ export function readLink(link: string): Shared | null {
 }
 
 /** The connection here that answers for a Graylog, known by its URL. */
-export function connectionFor<T extends { graylogUrl: string }>(connections: T[], graylog: string): T | undefined {
+export function connectionFor<T extends { url: string }>(connections: T[], graylog: string): T | undefined {
   const plain = (u: string) => u.trim().replace(/\/+$/, "").toLowerCase();
-  return connections.find((c) => plain(c.graylogUrl) === plain(graylog));
+  return connections.find((c) => plain(c.url) === plain(graylog));
 }

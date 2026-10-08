@@ -12,7 +12,7 @@ import { autocompletion, type CompletionContext } from "@codemirror/autocomplete
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { CalendarClock, Download, Link2, Play, Radio, RotateCw, Save } from "lucide-react";
-import { QUICK_RANGES } from "@/lib/graylog";
+import { QUICK_RANGES } from "@/lib/datasource";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
 import { linkFor } from "@/lib/link";
@@ -76,7 +76,7 @@ function linkOf(tab: Tab): string | null {
   const conn = useApp.getState().settings.connections.find((c) => c.id === tab.connId);
   if (!conn || tab.streamIds.length !== 1) return null;
   return linkFor({
-    graylog: conn.graylogUrl,
+    graylog: conn.url,
     stream: tab.streamIds[0],
     label: tab.streamLabel,
     query: tab.query,
@@ -253,7 +253,7 @@ export function QueryConsole({ tab }: { tab: Tab }) {
             if (!link) return;
             void navigator.clipboard
               .writeText(link)
-              .then(() => useApp.getState().notify("info", "Link copied", "Anyone with the same Graylog set up can open this view from it."));
+              .then(() => useApp.getState().notify("info", "Link copied", "Anyone with the same connection set up can open this view from it."));
           }}
           disabled={!linkOf(tab)}
           data-tip={tab.streamIds.length === 1 ? "Copy a link to this view" : "A link names one stream; this tab searches several"}

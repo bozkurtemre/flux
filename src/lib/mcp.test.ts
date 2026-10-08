@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { clientConfig, findConnection, runTool, TOOLS, type ToolContext } from "./mcp";
-import type { Graylog } from "./graylog";
+import type { DataSource } from "./datasource";
 import type { Connection } from "./settings";
 
 const connection = (over: Partial<Connection> = {}): Connection => ({
   id: "11111111-1111-1111-1111-111111111111",
   name: "prod",
-  graylogUrl: "https://graylog.example",
-  graylogToken: "a-secret-token",
+  kind: "graylog",
+  url: "https://graylog.example",
+  token: "a-secret-token",
   ...over,
 });
 
-const context = (client: Partial<Graylog> = {}): ToolContext => ({
+const context = (client: Partial<DataSource> = {}): ToolContext => ({
   connections: [connection()],
-  clientFor: () => client as Graylog,
+  clientFor: () => client as DataSource,
   defaults: { minutes: 60, limit: 200 },
 });
 
@@ -55,7 +56,7 @@ describe("answering a call", () => {
     expect(result.isError).toBeUndefined();
     expect(result.content[0].text).not.toContain("a-secret-token");
     expect(JSON.parse(result.content[0].text)).toEqual([
-      { id: "11111111-1111-1111-1111-111111111111", name: "prod", url: "https://graylog.example" },
+      { id: "11111111-1111-1111-1111-111111111111", name: "prod", kind: "graylog", url: "https://graylog.example" },
     ]);
   });
 

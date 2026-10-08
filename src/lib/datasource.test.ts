@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { absolute, bucketed, bucketFor, q } from "./graylog";
+import { absolute, bucketed, bucketFor, q } from "./datasource";
 
 describe("the width of a timeline column", () => {
   it("keeps about fifty columns whatever the range", () => {
@@ -15,7 +15,7 @@ describe("the width of a timeline column", () => {
   });
 });
 
-describe("what goes to Graylog", () => {
+describe("what goes to a source", () => {
   it("escapes what Lucene would otherwise read as syntax", () => {
     expect(q("a:b")).toBe("a\\:b");
   });

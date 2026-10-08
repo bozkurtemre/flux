@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check, Plug, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
+import { SourceIcon } from "../icons";
 import { Button, Checkbox, Num, Row, Section, Select, Swatches, Text } from "./controls";
-import { Graylog, QUICK_RANGES } from "@/lib/graylog";
+import { QUICK_RANGES, SOURCE_KINDS, type SourceKind } from "@/lib/datasource";
 import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings, type TerminalSettings } from "@/lib/settings";
 import * as cache from "@/lib/cache";
 import { clientFor, useApp } from "@/store";
@@ -173,7 +174,7 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
             options={QUICK_RANGES.map((q) => ({ value: q.seconds, label: `Last ${q.label}` }))}
           />
         </Row>
-        <Row label="Rows per query" hint="Graylog is asked for this many messages. Above 10,000 the index refuses the request.">
+        <Row label="Rows per query" hint="The source is asked for this many messages. Above 10,000 the index refuses the request.">
           <Num value={r.pageSize} onChange={(v) => set("pageSize", v)} min={50} max={10000} step={50} width={110} />
         </Row>
         <Row>
@@ -271,7 +272,7 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
       <Section title="Caches">
         <Row
           label="Introspection cache"
-          hint="Stream and endpoint lists, so the tree opens without waiting. Everything here is re-read from Graylog on demand, so deleting it is always safe."
+          hint="Stream and endpoint lists, so the tree opens without waiting. Everything here is re-read from the source on demand, so deleting it is always safe."
         >
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -387,7 +388,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-3">
-      <div className="flex w-[170px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+      <div className="flex w-[230px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
         <div className="min-h-0 flex-1 overflow-auto py-1">
           {list.map((c, i) => (
             <div
@@ -399,8 +400,11 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
               className="mx-1 flex h-[24px] items-center gap-2 rounded px-2 text-[13px]"
               style={{ background: i === selected ? "var(--sel-focus)" : undefined, color: i === selected ? "#fff" : undefined }}
             >
-              <Plug size={12} />
+              <SourceIcon kind={c.kind} />
               <span className="truncate">{c.name || "untitled"}</span>
+              <span className="ml-auto shrink-0 text-[10px]" style={{ color: i === selected ? "#fff" : "var(--text-muted)" }}>
+                {c.kind === "kibana" ? "Kibana" : "Graylog"}
+              </span>
             </div>
           ))}
           {!list.length && (
@@ -410,16 +414,24 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
           )}
         </div>
         <div className="flex items-center gap-1 p-1.5" style={{ borderTop: "1px solid var(--border)" }}>
-          <Button
-            onClick={() => {
-              setList([...list, { ...newConnection(), name: `graylog-${list.length + 1}` }]);
-              setSelected(list.length);
-            }}
-          >
-            ＋
-          </Button>
+          {(Object.keys(SOURCE_KINDS) as SourceKind[]).map((kind) => (
+            <Button
+              key={kind}
+              tip={`Add ${kind === "kibana" ? "an" : "a"} ${SOURCE_KINDS[kind].label} connection`}
+              onClick={() => {
+                setList([...list, { ...newConnection(), kind, name: `${kind}-${list.length + 1}` }]);
+                setSelected(list.length);
+                setTest({});
+              }}
+            >
+              <span className="flex items-center gap-1">
+                ＋ <SourceIcon kind={kind} />
+              </span>
+            </Button>
+          ))}
           <Button
             disabled={!conn}
+            tip="Delete the selected connection"
             onClick={() => {
               setList(list.filter((_, i) => i !== selected));
               setSelected(0);
@@ -448,18 +460,24 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
               <Row label="Name">
                 <Text value={conn.name} onChange={(v) => field({ name: v })} width={200} placeholder="prod" />
               </Row>
-              <Row label="Graylog URL">
-                <Text value={conn.graylogUrl} onChange={(v) => field({ graylogUrl: v })} placeholder="https://graylog.example.com:9000" mono />
+              <Row label="Source" hint="Which kind of server the logs come from. Queries are Lucene on both.">
+                <span className="flex items-center gap-2">
+                  <SourceIcon kind={conn.kind} size={16} />
+                  <Select
+                    value={conn.kind}
+                    onChange={(kind: SourceKind) => field({ kind })}
+                    options={(Object.keys(SOURCE_KINDS) as SourceKind[]).map((k) => ({ value: k, label: SOURCE_KINDS[k].label }))}
+                  />
+                </span>
+              </Row>
+              <Row label={conn.kind === "kibana" ? "Kibana URL" : "Graylog URL"}>
+                <Text value={conn.url} onChange={(v) => field({ url: v })} placeholder={SOURCE_KINDS[conn.kind].url} mono />
               </Row>
               <Row
-                label="Access token"
-                hint={
-                  conn.secretStorage === "keychain"
-                    ? "Held in your OS credential store, not in Flux's settings file. Type a new one to replace it."
-                    : "Graylog profile › Edit tokens. Saved to your OS credential store."
-                }
+                label={conn.kind === "kibana" ? "API key" : "Access token"}
+                hint={`${SOURCE_KINDS[conn.kind].token} Kept in connections.json on this machine, never in an export.`}
               >
-                <Text value={conn.graylogToken} onChange={(v) => field({ graylogToken: v })} type="password" mono />
+                <Text value={conn.token} onChange={(v) => field({ token: v })} type="password" mono />
               </Row>
             </Section>
             <div className="flex flex-wrap items-center gap-2 pl-[162px]">
@@ -467,9 +485,10 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
                 onClick={async () => {
                   setTest({ busy: true });
                   try {
-                    const v = await new Graylog(conn.graylogUrl, conn.graylogToken).version();
-                    const streams = await new Graylog(conn.graylogUrl, conn.graylogToken).streams();
-                    setTest({ ok: `Graylog ${v} · ${streams.length} streams` });
+                    const source = clientFor(conn);
+                    const [v, streams] = await Promise.all([source.version(), source.streams()]);
+                    const kind = SOURCE_KINDS[conn.kind];
+                    setTest({ ok: `${kind.label} ${v} · ${streams.length} ${kind.streams}` });
                   } catch (err) {
                     setTest({ err: failureReason(err) });
                   }
@@ -491,7 +510,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
           </>
         ) : (
           <p className="pt-4 text-[13px]" style={{ color: "var(--text-muted)" }}>
-            Add a connection with ＋, or import one from a .env file.
+            Add a Graylog or a Kibana connection with ＋, or import Graylog ones from a .env file.
           </p>
         )}
       </div>
@@ -575,7 +594,7 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
               setConnId(v);
               setSelected(null);
             }}
-            options={s.connections.map((c) => ({ value: c.id, label: c.name || c.graylogUrl }))}
+            options={s.connections.map((c) => ({ value: c.id, label: c.name || c.url }))}
           />
         </Row>
       </Section>
@@ -754,7 +773,7 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
       m.connectionsAdded && `${m.connectionsAdded} connections added`,
       m.queries.length && `${m.queries.length} saved queries added`,
     ].filter(Boolean);
-    const tokens = m.needToken.length ? ` Add a token to ${m.needToken.map((c) => c.name || c.graylogUrl).join(", ")} on the Connections page.` : "";
+    const tokens = m.needToken.length ? ` Add a token to ${m.needToken.map((c) => c.name || c.url).join(", ")} on the Connections page.` : "";
     setSaid({ tone: "ok", text: `${parts.length ? parts.join(", ") : "Nothing new"}.${tokens} Apply to keep it.` });
   };
 
@@ -819,7 +838,7 @@ function ShareSetup({ s, patch }: { s: Settings; patch: Patch }) {
                           return next;
                         })
                       }
-                      label={c.name || c.graylogUrl}
+                      label={c.name || c.url}
                     />
                     <div className="ml-5">
                       {projects.map((p) => (
@@ -1046,9 +1065,9 @@ export function WorkspacePage({ s }: { s: Settings; patch: Patch }) {
                     checked={!workspaceConnections.length || workspaceConnections.includes(c.id)}
                     onChange={() => toggle(c.id)}
                   />
-                  <span className="truncate">{c.name || c.graylogUrl}</span>
+                  <span className="truncate">{c.name || c.url}</span>
                   <span className="ml-auto shrink-0 truncate text-[10px]" style={{ color: "var(--text-muted)" }}>
-                    {c.graylogUrl}
+                    {c.url}
                   </span>
                 </label>
               ))
@@ -1127,7 +1146,7 @@ export function McpPage({ s, patch }: { s: Settings; patch: Patch }) {
       </Section>
 
       <Section title="What it offers">
-        <Row hint="Flux never writes to Graylog, and the tokens themselves are never part of an answer. The last two reach into this window: what you are looking at, and a console opened for you to look at.">
+        <Row hint="Flux never writes to Graylog, Kibana or Elasticsearch, and the tokens themselves are never part of an answer. The last two reach into this window: what you are looking at, and a console opened for you to look at.">
           <ul className="flex flex-col gap-0.5 text-[12px]" style={{ color: "var(--text-dim)" }}>
             <li>list_connections — the connections Flux is set up with</li>
             <li>list_streams — the streams a connection exposes</li>

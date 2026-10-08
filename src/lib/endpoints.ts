@@ -1,6 +1,6 @@
-// Endpoint rows derived from Graylog alone. One aggregation per stream; the result is
+// Endpoint rows derived from the logs alone. One aggregation per stream; the result is
 // cached on disk so the tree opens instantly and only refreshes when asked.
-import { Graylog, type FieldInfo } from "./graylog";
+import type { DataSource, FieldInfo } from "./datasource";
 import { makeNormalizer } from "./normalize";
 
 export interface EndpointRow {
@@ -71,8 +71,8 @@ export function inferMapping(fields: FieldInfo[]): FieldMapping | null {
  * one hour takes about a second, six hours four, twenty-four hours ten. Measurements are in
  * docs/research/graylog-cost.md.
  */
-export async function endpointsFromGraylog(
-  g: Graylog,
+export async function endpointsFrom(
+  g: DataSource,
   streamId: string,
   fields: FieldInfo[],
   o: { lookbackHours: number; limit: number; rules?: [string, string][]; signal?: AbortSignal },

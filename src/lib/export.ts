@@ -4,7 +4,7 @@
 // The results, as a file. CSV for a spreadsheet, JSON for everything else; both are built
 // from the columns on screen, in the order they are on screen, because that is the table the
 // person is looking at.
-import type { MessagePage } from "./graylog";
+import type { MessagePage } from "./datasource";
 
 /** RFC 4180: quote when it would otherwise be read wrong, and double the quotes inside. */
 export function csvCell(value: unknown): string {

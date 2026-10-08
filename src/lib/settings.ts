@@ -1,18 +1,21 @@
 // Persisted app settings. Tokens live in the Tauri store on this machine only.
 import { load, type Store } from "@tauri-apps/plugin-store";
 import { deleteSecret, getSecret } from "./secrets";
+import type { SourceKind } from "./datasource";
 import type { Ide } from "./source";
 import type { JiraSettings } from "./jira";
 
 export interface Connection {
   id: string;
   name: string; // "prod", "stage"
-  graylogUrl: string;
+  /** Which adapter answers for it. */
+  kind: SourceKind;
+  url: string;
   /**
-   * Held in memory only. It is written to the OS credential store on save and read back
-   * on load; what lands in settings.json is `secretStorage`, never this.
+   * A Graylog access token or a Kibana API key, kept in `connections.json` in the clear.
+   * See docs/adr/0005.
    */
-  graylogToken: string;
+  token: string;
   secretStorage?: "keychain";
   /** The result grid's columns, in order, as this connection was last left. */
   columns?: string[];
@@ -175,11 +178,17 @@ function engineOf(saved: (Partial<TerminalSettings> & { useTmux?: boolean }) | u
   return saved.useTmux === undefined ? {} : { engine: saved.useTmux ? "tmux" : "shell" };
 }
 
+/** Before a connection named its source, Graylog was the only one, and its fields said so. */
+function connectionOf(saved: Connection & { graylogUrl?: string; graylogToken?: string }): Connection {
+  const { graylogUrl, graylogToken, ...c } = saved;
+  return { ...c, kind: c.kind ?? "graylog", url: c.url ?? graylogUrl ?? "", token: c.token ?? graylogToken ?? "" };
+}
+
 /** Old shapes lose keys as the model grows; merge each section over its defaults. */
 export function withDefaults(saved: Partial<Settings> | null | undefined): Settings {
   const s = saved ?? {};
   return {
-    connections: s.connections ?? [],
+    connections: (s.connections ?? []).map(connectionOf),
     projects: s.projects ?? [],
     appearance: { ...DEFAULTS.appearance, ...(s.appearance ?? {}) },
     tree: { ...DEFAULTS.tree, ...(s.tree ?? {}) },
@@ -274,10 +283,10 @@ export async function loadSettings(): Promise<Settings> {
   // file and removed from it, so an existing install keeps working and stops being asked
   // about the Keychain on every launch. See docs/adr/0005.
   for (const c of merged.connections) {
-    if (c.graylogToken) continue;
+    if (c.token) continue;
     const stored = await getSecret(c.id).catch(() => null);
     if (!stored) continue;
-    c.graylogToken = stored;
+    c.token = stored;
     c.secretStorage = undefined;
     await deleteSecret(c.id).catch(() => {});
     needsWrite = true;
@@ -307,7 +316,7 @@ export async function forgetSecrets(removed: Connection[]): Promise<void> {
 }
 
 export function newConnection(): Connection {
-  return { id: crypto.randomUUID(), name: "", graylogUrl: "", graylogToken: "" };
+  return { id: crypto.randomUUID(), name: "", kind: "graylog", url: "", token: "" };
 }
 
 export function newProject(connectionId: string): Project {
@@ -346,7 +355,7 @@ export function connectionsFromEnv(text: string): Connection[] {
     const url = env[`GRAYLOG_URL_${name.toUpperCase()}`] ?? (name === "stage" ? env.GRAYLOG_URL : undefined);
     const token = env[`GRAYLOG_TOKEN_${name.toUpperCase()}`] ?? (name === "stage" ? env.GRAYLOG_TOKEN : undefined);
     if (url && token) {
-      out.push({ id: crypto.randomUUID(), name, graylogUrl: url, graylogToken: token });
+      out.push({ id: crypto.randomUUID(), name, kind: "graylog", url, token });
     }
   }
   return out;

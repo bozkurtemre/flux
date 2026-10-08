@@ -5,8 +5,8 @@ import { DEFAULTS, type Settings } from "./settings";
 const mine: Settings = {
   ...DEFAULTS,
   connections: [
-    { id: "c-prod", name: "prod", graylogUrl: "https://graylog.example/", graylogToken: "secret-prod" },
-    { id: "c-stage", name: "stage", graylogUrl: "https://stage.example", graylogToken: "secret-stage" },
+    { id: "c-prod", name: "prod", kind: "graylog", url: "https://graylog.example/", token: "secret-prod" },
+    { id: "c-stage", name: "stage", kind: "graylog", url: "https://stage.example", token: "secret-stage" },
   ],
   projects: [
     { id: "p1", connectionId: "c-prod", name: "Wallet", streams: ["s1", "s2"], github: "acme/wallet" },
@@ -25,7 +25,7 @@ describe("a set-up to hand over", () => {
     const text = JSON.stringify(makeBundle(mine, ["p1", "p2"]));
     expect(text).not.toContain("secret-prod");
     expect(text).not.toContain("secret-stage");
-    expect(text).not.toContain("graylogToken");
+    expect(text).not.toContain("token");
   });
 
   it("reads back what it wrote, and nothing else", () => {
@@ -48,7 +48,7 @@ describe("taking a set-up in", () => {
     expect(m.connectionsAdded).toBe(2);
     expect(m.projectsAdded).toBe(2);
     expect(m.needToken.map((c) => c.name)).toEqual(["prod", "stage"]);
-    expect(m.settings.connections.every((c) => c.graylogToken === "")).toBe(true);
+    expect(m.settings.connections.every((c) => c.token === "")).toBe(true);
     // projects point at the connections made here, not at the ids of the machine they left
     const wallet = m.settings.projects.find((p) => p.name === "Wallet");
     expect(wallet?.connectionId).toBe(m.settings.connections.find((c) => c.name === "prod")?.id);
@@ -57,7 +57,7 @@ describe("taking a set-up in", () => {
   it("knows a Graylog it already has by its URL, whatever it was called there", () => {
     const here: Settings = {
       ...fresh,
-      connections: [{ id: "mine", name: "production", graylogUrl: "https://GRAYLOG.example", graylogToken: "t" }],
+      connections: [{ id: "mine", name: "production", kind: "graylog", url: "https://GRAYLOG.example", token: "t" }],
     };
     const m = mergeBundle(here, makeBundle(mine, ["p1"]), counter());
     expect(m.connectionsAdded).toBe(0);
@@ -68,7 +68,7 @@ describe("taking a set-up in", () => {
   it("grows a project it already has instead of adding it twice", () => {
     const here: Settings = {
       ...fresh,
-      connections: [{ id: "mine", name: "prod", graylogUrl: "https://graylog.example", graylogToken: "t" }],
+      connections: [{ id: "mine", name: "prod", kind: "graylog", url: "https://graylog.example", token: "t" }],
       projects: [{ id: "x", connectionId: "mine", name: "wallet", streams: ["s1"] }],
     };
     const m = mergeBundle(here, makeBundle(mine, ["p1"]), counter());

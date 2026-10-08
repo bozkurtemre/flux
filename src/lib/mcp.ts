@@ -1,9 +1,9 @@
 // What Flux offers an agent: the same connections, streams and searches the window works
-// with, answered as JSON. The tools are defined and run here because this is where Graylog is
-// understood — the client, the field mapping, the endpoint derivation — and the server in
+// with, answered as JSON. The tools are defined and run here because this is where the sources are
+// understood — the adapters, the field mapping, the endpoint derivation — and the server in
 // Rust only carries the question and the answer.
-import { absolute, type Graylog } from "./graylog";
-import { endpointsFromGraylog, sortEndpoints } from "./endpoints";
+import { absolute, type DataSource } from "./datasource";
+import { endpointsFrom, sortEndpoints } from "./endpoints";
 import type { Connection } from "./settings";
 
 /** What the window is showing, as an agent needs it: enough to ask the same question again. */
@@ -22,7 +22,7 @@ export interface View {
 
 export interface ToolContext {
   connections: Connection[];
-  clientFor: (conn: Connection) => Graylog;
+  clientFor: (conn: Connection) => DataSource;
   /** How far back a search looks when it is not told, and how many rows it returns. */
   defaults: { minutes: number; limit: number };
   /** The tab in front of the person, if there is one. */
@@ -46,12 +46,13 @@ const failure = (message: string): ToolResult => ({ content: [{ type: "text", te
 export const TOOLS = [
   {
     name: "list_connections",
-    description: "The Graylog connections Flux is set up with. Everything else takes one of these by name or id.",
+    description:
+      "The connections Flux is set up with, and the kind of source each one is (Graylog, or Elasticsearch through Kibana). Everything else takes one of these by name or id. Searches are Lucene query strings on either kind.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
   },
   {
     name: "list_streams",
-    description: "The streams a connection exposes, with their ids. A search takes stream ids.",
+    description: "The streams a connection exposes (Kibana data views, on an Elasticsearch connection), with their ids. A search takes stream ids.",
     inputSchema: {
       type: "object",
       properties: { connection: { type: "string", description: "Connection name or id" } },
@@ -150,7 +151,7 @@ export function findConnection(connections: Connection[], wanted: string): Conne
 export async function runTool(name: string, args: Record<string, unknown>, ctx: ToolContext): Promise<ToolResult> {
   if (name === "list_connections") {
     // the token is never part of an answer, whoever is asking
-    return text(ctx.connections.map((c) => ({ id: c.id, name: c.name, url: c.graylogUrl })));
+    return text(ctx.connections.map((c) => ({ id: c.id, name: c.name, kind: c.kind, url: c.url })));
   }
 
   if (name === "current_view") {
@@ -207,7 +208,7 @@ export async function runTool(name: string, args: Record<string, unknown>, ctx: 
       if (!stream) return failure("list_endpoints needs a stream id; ask list_streams first.");
       const fields = await client.fields(stream).catch(() => []);
       const limit = Number(args.limit) > 0 ? Number(args.limit) : 100;
-      const rows = await endpointsFromGraylog(client, stream, fields, { lookbackHours: minutes / 60, limit });
+      const rows = await endpointsFrom(client, stream, fields, { lookbackHours: minutes / 60, limit });
       return text({ connection: conn.name, stream, endpoints: sortEndpoints(rows, "traffic").slice(0, limit) });
     }
 
