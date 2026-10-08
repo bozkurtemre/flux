@@ -3,6 +3,27 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.23.0
+
+### Added
+
+- **Explain a spike.** ⌥-drag across the timeline and Flux lists the values that make up far
+  more of the stretch than of the time before it — "90% of it is `app_version:3.4.1`, against
+  10% before". A row narrows the console to that value.
+- **Trace an ID** (⇧⌘I, or Trace in Search Everywhere): an ICCID, an order, a user or a request
+  id searched in every stream at once, oldest first, with a lane per stream, the failures in
+  red, and the fields the id was found in.
+- **Replay on stage…** on a row sends the request it logged again and compares the answer with
+  the logged one. Tokens are never copied from the log; the stage address is remembered per
+  connection, and a request that changes something asks first.
+- **Why no rows?** An empty search counts itself again with each term left out, so the term to
+  blame is the one whose absence brings rows back, and a misspelt field is named with the one
+  it meant.
+- **Watch for silence.** Alert when › Nothing arrives (or fewer than 10 or 100) reports a cron
+  that stopped or a webhook that no longer comes, once when it starts and once when it ends.
+- **Where is this logged?** on a row or a pattern finds the message in the project's checkout,
+  blames the line, names the pull request it came in with, and opens it in your IDE.
+
 ## 0.22.0
 
 ### Added
