@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Check, Trash2 } from "lucide-react";
 import { SourceIcon } from "../icons";
-import { Button, Checkbox, Num, Row, Section, Select, Swatches, Text } from "./controls";
+import { Button, Checkbox, Indexing, Num, Row, Section, Select, Swatches, Text } from "./controls";
 import { QUICK_RANGES, SOURCE_KINDS, type SourceKind } from "@/lib/datasource";
 import { connectionsFromEnv, newConnection, newProject, SHORTCUTS, type Connection, type Settings, type TerminalSettings } from "@/lib/settings";
 import * as cache from "@/lib/cache";
@@ -16,8 +16,12 @@ import { open as openFolder, save as saveDialog } from "@tauri-apps/plugin-dialo
 import { bundleName, makeBundle, mergeBundle, readBundle } from "@/lib/bundle";
 import { IDES } from "@/lib/source";
 import { ConfirmDialog } from "../ContextMenu";
+import { deleteCloudData, signedInAs, signOut } from "@/lib/cloud";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
+
+/** The short name a kind goes by in the connection list. */
+const KIND_NAME: Record<SourceKind, string> = { graylog: "Graylog", kibana: "Kibana", local: "Local" };
 
 export function AppearancePage({ s, patch }: { s: Settings; patch: Patch }) {
   const a = s.appearance;
@@ -259,16 +263,52 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
   const set = <K extends keyof typeof a>(k: K, v: (typeof a)[K]) => patch((x) => ({ ...x, advanced: { ...x.advanced, [k]: v } }));
   const [cacheDir, setCacheDir] = useState("");
   const [cleared, setCleared] = useState<number | null>(null);
+  const [account, setAccount] = useState<string | null>(null);
+  const [forgetting, setForgetting] = useState(false);
 
   useEffect(() => {
     cache
       .location()
       .then(setCacheDir)
       .catch(() => {});
+    void signedInAs().then(setAccount);
   }, []);
 
   return (
     <>
+      <Section title="Account">
+        <Row
+          label="Signed in as"
+          hint="Your preferences sync to this account. Connections, their tokens, projects and saved queries stay on this Mac."
+        >
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[13px]">{account ?? "—"}</span>
+            <Button
+              onClick={async () => {
+                await signOut();
+                // the door opens again, asking who is there
+                location.reload();
+              }}
+            >
+              Sign out
+            </Button>
+            <Button onClick={() => setForgetting(true)}>Delete synced preferences…</Button>
+          </span>
+        </Row>
+      </Section>
+      {forgetting && (
+        <ConfirmDialog
+          title="Delete your synced preferences?"
+          message="The copy kept with your account is removed. This Mac keeps its own settings, and the next change you make is synced again."
+          onConfirm={() => {
+            setForgetting(false);
+            void deleteCloudData()
+              .then(() => useApp.getState().notify("info", "Synced preferences deleted", "Nothing of yours is kept in the cloud now."))
+              .catch((e: unknown) => useApp.getState().notify("error", "Could not delete them", failureReason(e)));
+          }}
+          onCancel={() => setForgetting(false)}
+        />
+      )}
       <Section title="Caches">
         <Row
           label="Introspection cache"
@@ -388,7 +428,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-3">
-      <div className="flex w-[230px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+      <div className="flex w-[260px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
         <div className="min-h-0 flex-1 overflow-auto py-1">
           {list.map((c, i) => (
             <div
@@ -403,7 +443,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
               <SourceIcon kind={c.kind} />
               <span className="truncate">{c.name || "untitled"}</span>
               <span className="ml-auto shrink-0 text-[10px]" style={{ color: i === selected ? "#fff" : "var(--text-muted)" }}>
-                {c.kind === "kibana" ? "Kibana" : "Graylog"}
+                {KIND_NAME[c.kind]}
               </span>
             </div>
           ))}
@@ -470,15 +510,36 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
                   />
                 </span>
               </Row>
-              <Row label={conn.kind === "kibana" ? "Kibana URL" : "Graylog URL"}>
-                <Text value={conn.url} onChange={(v) => field({ url: v })} placeholder={SOURCE_KINDS[conn.kind].url} mono />
-              </Row>
-              <Row
-                label={conn.kind === "kibana" ? "API key" : "Access token"}
-                hint={`${SOURCE_KINDS[conn.kind].token} Kept in connections.json on this machine, never in an export.`}
-              >
-                <Text value={conn.token} onChange={(v) => field({ token: v })} type="password" mono />
-              </Row>
+              {conn.kind === "local" ? (
+                <Row
+                  label="Folder"
+                  hint="A folder of logs — every .log, .jsonl and rotated .log.1 under it is a stream — or one file. Write docker to read the running containers instead."
+                >
+                  <span className="flex items-center gap-2">
+                    <Text value={conn.url} onChange={(v) => field({ url: v })} placeholder={SOURCE_KINDS.local.url} mono />
+                    <Button
+                      onClick={async () => {
+                        const dir = await openFolder({ directory: true, multiple: false });
+                        if (typeof dir === "string") field({ url: dir });
+                      }}
+                    >
+                      Choose…
+                    </Button>
+                  </span>
+                </Row>
+              ) : (
+                <>
+                  <Row label={conn.kind === "kibana" ? "Kibana URL" : "Graylog URL"}>
+                    <Text value={conn.url} onChange={(v) => field({ url: v })} placeholder={SOURCE_KINDS[conn.kind].url} mono />
+                  </Row>
+                  <Row
+                    label={conn.kind === "kibana" ? "API key" : "Access token"}
+                    hint={`${SOURCE_KINDS[conn.kind].token} Kept in connections.json on this machine, never in an export.`}
+                  >
+                    <Text value={conn.token} onChange={(v) => field({ token: v })} type="password" mono />
+                  </Row>
+                </>
+              )}
             </Section>
             <div className="flex flex-wrap items-center gap-2 pl-[162px]">
               <Button
@@ -535,9 +596,10 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
   const setList = (next: typeof s.projects) => patch((x) => ({ ...x, projects: next }));
   const field = (p: Partial<(typeof s.projects)[number]>) => setList(s.projects.map((x) => (x.id === project?.id ? { ...x, ...p } : x)));
 
+  const indexing = useContext(Indexing);
   // the stream list comes from the cache, and only reaches Graylog when there is none
   useEffect(() => {
-    if (!conn) return;
+    if (!conn || indexing) return;
     let alive = true;
     void (async () => {
       setLoading(true);
@@ -556,7 +618,7 @@ export function ProjectsPage({ s, patch }: { s: Settings; patch: Patch }) {
     return () => {
       alive = false;
     };
-  }, [conn]);
+  }, [conn, indexing]);
 
   const claimedElsewhere = (streamId: string) => projects.some((p) => p.id !== project?.id && p.streams.includes(streamId));
 

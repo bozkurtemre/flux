@@ -82,6 +82,10 @@ Open **Settings › Connections** (`⌘,`), add a connection and pick its source
   API keys_ (the Encoded value). Data views are the streams. For a space other than the
   default, end the URL with `/s/<space>`.
 
+- **Local files & Docker**: a folder of log files, or `docker` for the running containers. No
+  server and no token: JSON lines, Laravel, logfmt and plain `date LEVEL message` lines are
+  read as they are, and the console's Lucene runs over them in memory.
+
 That is the whole setup; Flux talks to those servers and nothing else.
 
 **Settings › Projects** is optional. Group a connection's streams into the services they
@@ -95,6 +99,8 @@ Skip it and streams sit directly under the connection.
 | `⇧⇧`      | Search Everywhere                     |
 | `⇧⌘O`     | Go to Endpoint                        |
 | `⇧⌘I`     | Trace an ID across every stream       |
+| `⇧⌘M`     | The service map                       |
+| `⌥⏎`      | Investigate the selected row          |
 | `⌘⏎`      | Execute the query                     |
 | `⌘W`      | Close the tab                         |
 | `⌘,`      | Settings                              |
@@ -133,6 +139,7 @@ src/
   lib/datasource.ts       what every source answers, and the helpers they share
   lib/graylog.ts          Graylog 5.2 adapter: search, aggregate, streams, fields
   lib/kibana.ts           Elasticsearch adapter, through Kibana's data views and console proxy
+  lib/local.ts            log files and Docker containers, searched in memory with liqe
   lib/endpoints.ts        endpoint rows derived from two aggregations
   lib/normalize.ts        path segments to endpoint templates
   lib/cache.ts            the introspection cache, keyed by connection
@@ -145,7 +152,10 @@ src-tauri/src/cache.rs    reads and writes the OS cache directory
 
 ## Where your data lives
 
-Three tiers, split by what happens if a file is lost.
+Three tiers, split by what happens if a file is lost, and one copy kept with your account.
+Flux asks you to sign in (an emailed link, through Supabase) and syncs your preferences, so
+another Mac opens the way you left this one. Connections, their tokens, projects and saved
+queries are never synced: they stay on the machine they were set up on. See `docs/adr/0009`.
 
 | What                 | Where              | Lost if deleted                                          |
 | -------------------- | ------------------ | -------------------------------------------------------- |
@@ -157,6 +167,7 @@ Three tiers, split by what happens if a file is lost.
 | `.window-state.json` | config directory   | the size and place of the window                         |
 | `<folder>/.flux/`    | the workspace      | that folder's stream grouping, saved queries and session |
 | Introspection cache  | OS cache directory | nothing, it is re-read from the source                   |
+| Your preferences     | your Flux account  | nothing, this Mac keeps its own copy too                 |
 
 `connections.json` holds access tokens in the clear, so treat it as a credential: do not
 commit it, share it or put it anywhere that syncs. It is deliberately the one thing a

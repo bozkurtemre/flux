@@ -14,11 +14,13 @@ import {
   type Stream,
   type TimeRange,
 } from "@/lib/datasource";
+import { schedulePush } from "@/lib/cloud";
 import { Graylog } from "@/lib/graylog";
 import { baselineOf, candidateFields, explain, type Counted, type Explanation } from "@/lib/explain";
 import { andTerms, checkField, fieldOf, TERMS, without } from "@/lib/zero";
 import { blameCommand, grepCommand, literalsOf, prCommand, rank, readBlame, readGrep, readPr, type Blame, type Hit } from "@/lib/located";
 import { Kibana } from "@/lib/kibana";
+import { Local } from "@/lib/local";
 import { endpointsFrom, inferMapping, sortEndpoints, type EndpointRow } from "@/lib/endpoints";
 import * as cache from "@/lib/cache";
 import { loadSession, saveSession, type RanQuery, type SavedTab } from "@/lib/session";
@@ -35,7 +37,10 @@ import {
 import { killTabCommand } from "@/lib/terminal";
 import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { correlationOf, identifying } from "@/lib/correlation";
+import { correlationOf, identifying, leaf, NAME_LABELS, NAMES } from "@/lib/correlation";
+import { journeyOf } from "@/lib/journey";
+import { messageField, templateOf } from "@/lib/patterns";
+import type { Evidence } from "@/lib/investigate";
 import { mergesCommand, readMerges, type Marker } from "@/lib/deploys";
 import { connectionFor, linkFor, readLink } from "@/lib/link";
 import { draftForPattern, draftForRow, issueUrl, type Draft } from "@/lib/jira";
@@ -245,6 +250,12 @@ interface State {
   blameHit: (index: number) => Promise<void>;
   /** The row whose request is being sent again, and the connection it was logged on. */
   replay: { connId: string; row: Record<string, unknown> } | null;
+  /** The case being made about one error: the evidence as it arrives, and what is still coming. */
+  investigation: Investigation | null;
+  investigate: (tabId: string, row: Record<string, unknown>) => Promise<void>;
+  /** The service map of a connection: a sample of its lines that carry an id, and its streams' names. */
+  serviceMap: MapSample | null;
+  openServiceMap: (connId: string, seconds?: number) => Promise<void>;
   /** The Trace an ID dialog, with what to start it with when it is open. */
   traceDraft: string | null;
   setTraceDraft: (draft: string | null) => void;
@@ -331,7 +342,7 @@ export function clientFor(conn: Connection): DataSource {
   const key = `${conn.id}:${conn.kind}:${conn.url}:${conn.token}`;
   let c = clients.get(key);
   if (!c) {
-    c = conn.kind === "kibana" ? new Kibana(conn.url, conn.token) : new Graylog(conn.url, conn.token);
+    c = conn.kind === "kibana" ? new Kibana(conn.url, conn.token) : conn.kind === "local" ? new Local(conn.url) : new Graylog(conn.url, conn.token);
     clients.set(key, c);
   }
   return c;
@@ -349,6 +360,8 @@ export const useApp = create<State>((set, get) => ({
   showSettings: false,
   showSearch: false,
   traceDraft: null,
+  investigation: null,
+  serviceMap: null,
   replay: null,
   located: null,
   indexing: false,
@@ -437,6 +450,8 @@ export const useApp = create<State>((set, get) => ({
     try {
       if (gone.length) await forgetSecrets(gone);
       await saveSettings(settings);
+      // the account's copy of the preferences follows, a few seconds after the last change
+      schedulePush(settings);
       const folder = get().workspaceFolder;
       // the grouping belongs to the folder while one is open, and the global file is left
       // as whatever it was when no workspace was
@@ -734,6 +749,173 @@ export const useApp = create<State>((set, get) => ({
    * carries, oldest first, with the stream each line came from beside it.
    */
   setTraceDraft: (traceDraft) => set({ traceDraft }),
+
+  investigate: async (tabId, row) => {
+    const { tabs, settings, projectFolders } = get();
+    const tab = tabs.find((t) => t.id === tabId);
+    const conn = settings.connections.find((c) => c.id === tab?.connId);
+    if (!tab || !conn) return;
+    const id = crypto.randomUUID();
+    const message = String(row[messageField(Object.keys(row))] ?? row.message ?? "");
+    const at = String(row.timestamp ?? new Date().toISOString());
+    const subject = { stream: tab.streamLabel, at, level: row.level != null ? String(row.level) : undefined, message };
+    set({ investigation: { id, tabId, connId: conn.id, row, evidence: { subject }, pending: ["trace", "frequency", "spread", "code", "merges"] } });
+
+    // each part lands when it is ready, so the window fills in rather than waiting on the slowest
+    const land = (part: string, patch: Partial<Evidence>) => {
+      const now = get().investigation;
+      if (now?.id !== id) return;
+      set({ investigation: { ...now, evidence: { ...now.evidence, ...patch }, pending: now.pending.filter((p) => p !== part) } });
+    };
+    const client = clientFor(conn);
+    const shell = (command: string) =>
+      invoke<string>("terminal_run", { program: settings.terminal.shell.trim(), args: ["-l", "-c", command] }).catch(() => "");
+    const centre = Number.isNaN(Date.parse(at)) ? new Date() : new Date(at);
+    const day = absolute(new Date(Date.now() - 86_400_000), new Date());
+    // the message's own words are on its first line; what follows is usually a stack trace
+    const said = templateOf(message.split("\n")[0]);
+    const literal = literalsOf(said)[0];
+    const phrase = literal ? `"${literal.replace(/(["\\])/g, "\\$1")}"` : null;
+    const project = projectOf(settings.projects, tab);
+    const folder = project ? projectFolders[project.id] : undefined;
+
+    // the request across every service: by its id, wherever each service keeps it
+    const trace = async () => {
+      const found = correlationOf(row);
+      if (!found) return land("trace", {});
+      const name = leaf(found.field);
+      const value = found.value.replace(/(["\\])/g, "\\$1");
+      const [streams, page] = await Promise.all([
+        client.streams(),
+        client.messages({
+          query: `${name}:"${value}" OR context.${name}:"${value}" OR "${value}"`,
+          streams: [],
+          timerange: absolute(new Date(centre.getTime() - 1800_000), new Date(centre.getTime() + 1800_000)),
+          fields: ["timestamp", "streams", "source", "level", "message", "httpStatusCode", "status", found.field],
+          size: 300,
+          sortOrder: "asc",
+        }),
+      ]);
+      const titles = new Map(streams.map((st) => [st.id, st.title]));
+      const named: Record<string, unknown>[] = page.rows.map((r) => ({ ...r, streams: titleOf(r.streams, titles) }));
+      const journey = journeyOf(named, found.value);
+      const failures = journey
+        ? journey.lanes
+            .flatMap((l) =>
+              l.points
+                .filter((p) => p.error)
+                .map((p) => ({ at: new Date(p.at).toISOString(), stream: l.stream, message: String(named[p.index].message ?? "") })),
+            )
+            .sort((a, b) => a.at.localeCompare(b.at))
+        : [];
+      land("trace", {
+        trace: {
+          field: found.field,
+          value: found.value,
+          lanes: journey?.lanes.map((l) => ({ stream: l.stream, lines: l.points.length, errors: l.errors })) ?? [],
+          failures,
+        },
+      });
+    };
+
+    // how often the same message is written, and since when
+    const frequency = async () => {
+      if (!phrase) return land("frequency", {});
+      const hour = absolute(new Date(Date.now() - 3600_000), new Date());
+      const [lastHour, lastDay, oldest] = await Promise.all([
+        client.count({ query: phrase, streams: tab.streamIds, timerange: hour }),
+        client.count({ query: phrase, streams: tab.streamIds, timerange: day }),
+        client.messages({ query: phrase, streams: tab.streamIds, timerange: day, fields: ["timestamp"], size: 1, sortOrder: "asc" }),
+      ]);
+      land("frequency", {
+        frequency: { pattern: said, lastHour, lastDay, firstSeen: oldest.rows[0]?.timestamp as string | undefined },
+      });
+    };
+
+    // who else it hits, and what they have in common
+    const spread = async () => {
+      if (!phrase) return land("spread", {});
+      const sample = await client.messages({
+        query: phrase,
+        streams: tab.streamIds,
+        timerange: day,
+        fields: tab.fields.length ? tab.fields.map((f) => f.name) : tab.columns,
+        size: 500,
+      });
+      const kinds = sample.rows.map((r) => correlationOf(r)).filter((c): c is NonNullable<typeof c> => !!c);
+      const kind = kinds[0] ? NAMES.findIndex((n) => n.test(leaf(kinds[0].field))) : -1;
+      const ids = new Set(kinds.filter((c) => leaf(c.field) === leaf(kinds[0]?.field ?? "")).map((c) => c.value));
+      const shared = candidateFields(sample.rows)
+        .map((field) => {
+          const counts = new Map<string, number>();
+          for (const r of sample.rows) if (r[field] != null && r[field] !== "") counts.set(String(r[field]), (counts.get(String(r[field])) ?? 0) + 1);
+          const [value, n] = [...counts].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
+          return { field, value, share: sample.rows.length ? n / sample.rows.length : 0 };
+        })
+        .filter((s) => s.share >= 0.6 && s.share < 1)
+        .sort((a, b) => b.share - a.share)
+        .slice(0, 3);
+      land("spread", { spread: { sampled: sample.rows.length, ids: ids.size, idKind: kind >= 0 ? `${NAME_LABELS[kind]}s` : undefined, shared } });
+    };
+
+    // the line that wrote it: from the stack trace when there is one, by its words when not
+    const code = async () => {
+      if (!project || !folder) return land("code", {});
+      const ref = sourceRefs(`${message}\n${JSON.stringify(row)}`).find((r) => !r.path.includes("vendor/"));
+      let hit: Hit | undefined;
+      let from: "stack" | "search" = "stack";
+      if (ref) {
+        const file = localPath(ref.path, folder, project.sourcePrefix);
+        const relative = file.startsWith(folder) ? file.slice(folder.replace(/\/+$/, "").length + 1) : file;
+        const text = (await shell(`sed -n '${ref.line}p' ${shellWord(file)}`)).trim();
+        hit = { file: relative, line: ref.line, text };
+      } else {
+        from = "search";
+        const found = (await Promise.all(literalsOf(said).map((l) => shell(grepCommand(folder, l))))).flatMap(readGrep);
+        hit = rank(found)[0];
+      }
+      if (!hit) return land("code", {});
+      const blame = readBlame(await shell(blameCommand(folder, hit)));
+      const pr = blame && project.github ? readPr(await shell(prCommand(project.github, blame.sha))) : null;
+      land("code", { code: { ...hit, from, blame: blame ?? undefined, pr: pr ?? undefined } });
+    };
+
+    // what was merged lately: the usual suspect
+    const merges = async () => {
+      if (!project?.github) return land("merges", {});
+      const out = await shell(mergesCommand(project.github, new Date(Date.now() - 2 * 86_400_000), new Date()));
+      land("merges", { merges: readMerges(out).reverse() });
+    };
+
+    await Promise.all(Object.entries({ trace, frequency, spread, code, merges }).map(([part, run]) => run().catch(() => land(part, {}))));
+  },
+
+  openServiceMap: async (connId, seconds) => {
+    const conn = get().settings.connections.find((c) => c.id === connId);
+    if (!conn) return;
+    const window = seconds ?? get().serviceMap?.seconds ?? 3600;
+    const was = get().serviceMap?.connId === connId ? get().serviceMap : null;
+    set({ serviceMap: { connId, seconds: window, rows: was?.rows ?? [], titles: was?.titles ?? {}, running: true } });
+    const client = clientFor(conn);
+    try {
+      const streams = await client.streams();
+      const to = new Date();
+      const page = await client.messages({
+        query: MAP_FIELDS.map((f) => `_exists_:${f}`).join(" OR "),
+        streams: [],
+        timerange: absolute(new Date(to.getTime() - window * 1000), to),
+        fields: ["timestamp", "streams", "source", "level", "httpStatusCode", "status", ...MAP_FIELDS],
+        size: 5000,
+      });
+      if (get().serviceMap?.connId !== connId) return;
+      set({
+        serviceMap: { connId, seconds: window, rows: page.rows, titles: Object.fromEntries(streams.map((st) => [st.id, st.title])), at: Date.now() },
+      });
+    } catch (e) {
+      if (get().serviceMap?.connId !== connId) return;
+      set({ serviceMap: { connId, seconds: window, rows: [], titles: {}, error: failureReason(e) } });
+    }
+  },
 
   whereLogged: async (tabId, template) => {
     const { tabs, settings, projectFolders } = get();
@@ -1556,6 +1738,50 @@ function columnsForQuery(tab: Tab): string[] {
   if (tab.fields.length) for (const f of tab.fields) if (wanted.has(f.name)) wanted.add(f.name);
   return [...wanted];
 }
+
+export interface Investigation {
+  id: string;
+  tabId: string;
+  connId: string;
+  row: Record<string, unknown>;
+  evidence: Evidence;
+  /** The parts still being looked for. */
+  pending: string[];
+}
+
+/** A stream named by its title, where a source answers with ids. */
+function titleOf(streams: unknown, titles: Map<string, string>): string {
+  const list = Array.isArray(streams) ? streams.map(String) : streams ? [String(streams)] : [];
+  return list.map((s) => titles.get(s) ?? s).join(", ") || "unknown";
+}
+
+/** A path as one word of a shell command. */
+function shellWord(s: string): string {
+  return /^[\w./@-]+$/.test(s) ? s : `'${s.replace(/'/g, "'\\''")}'`;
+}
+
+export interface MapSample {
+  connId: string;
+  /** How far back the sample reaches, and when it was taken. */
+  seconds: number;
+  at?: number;
+  running?: boolean;
+  rows: Record<string, unknown>[];
+  /** A stream's name by its id, for a source whose rows name streams by id. */
+  titles: Record<string, string>;
+  error?: string;
+}
+
+/**
+ * The fields an id is kept in, asked for by name since Graylog answers only what it is asked:
+ * the usual names, and the same inside Laravel's context.
+ * ponytail: a sample of the newest 5,000 such lines in the window; on a busy connection that is
+ * the last minutes of it, which is enough to draw the map but not to count a day.
+ */
+const MAP_FIELDS = ["request_id", "requestId", "trace_id", "traceId", "correlation_id", "order_id", "orderId", "iccid"].flatMap((f) => [
+  f,
+  `context.${f}`,
+]);
 
 export interface Located {
   template: string;

@@ -13,6 +13,7 @@ import {
   SquareTerminal,
   Terminal,
   Trash2,
+  Waypoints,
 } from "lucide-react";
 import { Chevron, ConnectionIcon, EndpointIcon, ProjectIcon, Spinner, StreamIcon } from "./icons";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
@@ -84,6 +85,7 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
     return [
       { label: "New Query Console", icon: console_, disabled: true },
       { label: "Refresh", icon: refresh, shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
+      { label: "Service Map", icon: <Waypoints size={12} />, shortcut: "⇧⌘M", onClick: () => conn && void app.openServiceMap(conn.id) },
       { separator: true },
       { label: "Properties…", icon: <Settings2 size={12} />, shortcut: "F4", onClick: () => app.setShowSettings(true, "connections", node.connId) },
       {

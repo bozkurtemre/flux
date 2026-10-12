@@ -11,6 +11,7 @@ import {
   FilterX,
   RotateCcw,
   Route,
+  Microscope,
   Rows3,
   Send,
   SquareCode,
@@ -301,6 +302,14 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
   const ide = ideName(app.settings.editor.ide);
   return [
     {
+      // everything below, at once, made into a case for Claude Code to fix
+      label: "Investigate",
+      icon: <Microscope size={12} />,
+      shortcut: "⌥⏎",
+      onClick: () => void app.investigate(tab.id, row),
+    },
+    { separator: true },
+    {
       label: follow ? `Follow this ${follow.field}` : "Follow this request",
       icon: <Route size={12} />,
       disabled: !follow,
@@ -353,7 +362,8 @@ function rowMenu(tab: Tab, row: Record<string, unknown>, col?: string): MenuItem
       label: "Where is this logged?",
       icon: <FileSearch size={12} />,
       disabled: !row[messageField(Object.keys(row))],
-      onClick: () => void app.whereLogged(tab.id, templateOf(row[messageField(Object.keys(row))])),
+      // its first line: what follows is usually a stack trace, which is not what the code wrote
+      onClick: () => void app.whereLogged(tab.id, templateOf(String(row[messageField(Object.keys(row))] ?? "").split("\n")[0])),
     },
     {
       // the request the row describes, made again: authentication left out, as it would be

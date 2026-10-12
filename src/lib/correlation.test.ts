@@ -54,3 +54,9 @@ describe("the line under the pointer", () => {
     expect(pairOnLine('    "one",')).toEqual({ value: "one" });
   });
 });
+
+describe("an id kept inside something else", () => {
+  it("is found by its own name, as Laravel keeps it in the context", () => {
+    expect(correlationOf({ "context.request_id": "abc123", "context.order_id": "ord-1" })).toEqual({ field: "context.request_id", value: "abc123" });
+  });
+});

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
-import { Button } from "./controls";
+import { Button, Indexing } from "./controls";
+import { findAll } from "@/lib/find";
 import {
   AdvancedPage,
   AppearancePage,
@@ -110,6 +111,36 @@ const PAGES: PageDef[] = [
 // pages.tsx exports TreePage; alias keeps the PAGES table readable
 import { TreePage as TreePageLazy } from "./pages";
 
+/** The name the search's marks are painted under, styled in index.css. */
+const MARK = "settings-search";
+
+/** The words of a page, each text apart from the next, so two labels never run into one word. */
+function textOf(el: Element): string {
+  const parts: string[] = [];
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) parts.push(n.textContent ?? "");
+  return parts.join(" ");
+}
+
+/** A label with what was searched for marked in it, the way the page's own text is. */
+function Marked({ text, needle }: { text: string; needle: string }) {
+  const found = needle ? findAll(text, needle) : [];
+  if (!found.length) return <>{text}</>;
+  const out: React.ReactNode[] = [];
+  let at = 0;
+  for (const m of found) {
+    out.push(text.slice(at, m.start));
+    out.push(
+      <span key={m.start} className="settings-mark">
+        {text.slice(m.start, m.end)}
+      </span>,
+    );
+    at = m.end;
+  }
+  out.push(text.slice(at));
+  return <>{out}</>;
+}
+
 /** The JetBrains Settings window: search, a category tree, a page, and Cancel / Apply / OK. */
 export function SettingsDialog() {
   const { settings, setSettings, setShowSettings, settingsPage, settingsConnId } = useApp();
@@ -147,11 +178,63 @@ export function SettingsDialog() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  // what each page says, read once from the pages themselves, so a search finds a setting by
+  // the words on it and not only by the name of the page it is on
+  const [index, setIndex] = useState<Record<string, string> | null>(null);
+  const indexer = useRef<HTMLDivElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (index) return;
+    const frame = requestAnimationFrame(() => {
+      const el = indexer.current;
+      if (el) setIndex(Object.fromEntries([...el.children].map((c) => [c.getAttribute("data-page") ?? "", textOf(c).toLowerCase()])));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [index]);
+
   const needle = query.trim().toLowerCase();
   const matches = (p: PageDef) =>
-    !needle || p.label.toLowerCase().includes(needle) || p.keywords.includes(needle) || (p.parent ?? "").toLowerCase().includes(needle);
+    !needle ||
+    p.label.toLowerCase().includes(needle) ||
+    p.keywords.includes(needle) ||
+    (p.parent ?? "").toLowerCase().includes(needle) ||
+    !!index?.[p.id]?.includes(needle);
   const visible = PAGES.filter(matches);
-  const current = PAGES.find((p) => p.id === page) ?? visible[0] ?? PAGES[0];
+  const chosen = PAGES.find((p) => p.id === page) ?? PAGES[0];
+  // a search that leaves the open page out moves to the first one it found, as the IDE does
+  const current = needle && !visible.includes(chosen) ? (visible[0] ?? chosen) : chosen;
+
+  // what was searched for, marked on the page where it stands, without touching what React drew
+  useEffect(() => {
+    const el = body.current;
+    const registry = typeof CSS !== "undefined" ? CSS.highlights : undefined;
+    if (!el || !registry || typeof Highlight === "undefined") return;
+    const paint = (reveal: boolean) => {
+      registry.delete(MARK);
+      if (!needle) return;
+      const ranges: Range[] = [];
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        for (const m of findAll(n.textContent ?? "", needle)) {
+          const r = new Range();
+          r.setStart(n, m.start);
+          r.setEnd(n, m.end);
+          ranges.push(r);
+        }
+      }
+      if (!ranges.length) return;
+      registry.set(MARK, new Highlight(...ranges));
+      if (reveal) ranges[0].startContainer.parentElement?.scrollIntoView({ block: "center" });
+    };
+    paint(true);
+    // the page changes under the marks as it is used; they are put back where the text now is
+    const watch = new MutationObserver(() => paint(false));
+    watch.observe(el, { subtree: true, childList: true, characterData: true });
+    return () => {
+      watch.disconnect();
+      registry.delete(MARK);
+    };
+  }, [needle, current.id]);
 
   const groups: { parent?: string; pages: PageDef[] }[] = [];
   for (const p of visible) {
@@ -201,7 +284,7 @@ export function SettingsDialog() {
                   {g.parent && (
                     <div className="flex h-[24px] items-center gap-1 pr-2 pl-3 text-[13px]" style={{ color: "var(--text)" }}>
                       <ChevronRight size={11} style={{ color: "var(--text-dim)", transform: "rotate(90deg)" }} />
-                      {g.parent}
+                      <Marked text={g.parent} needle={needle} />
                     </div>
                   )}
                   {g.pages.map((p) => (
@@ -215,7 +298,7 @@ export function SettingsDialog() {
                         color: current.id === p.id ? "#fff" : undefined,
                       }}
                     >
-                      {p.label}
+                      <Marked text={p.label} needle={needle} />
                     </div>
                   ))}
                 </div>
@@ -241,9 +324,21 @@ export function SettingsDialog() {
               )}
               <span style={{ color: "var(--text)" }}>{current.label}</span>
             </div>
-            <div className="min-h-0 min-w-0 flex-1 overflow-auto p-4">
+            <div ref={body} className="min-h-0 min-w-0 flex-1 overflow-auto p-4">
               {current.render({ s: draft, patch, connId: settingsConnId, reset: () => setDraft({ ...DEFAULTS, connections: draft.connections }) })}
             </div>
+            {/* every page once, out of sight, to read what it says; gone as soon as it is read */}
+            {!index && (
+              <Indexing.Provider value={true}>
+                <div ref={indexer} hidden aria-hidden>
+                  {PAGES.map((p) => (
+                    <div key={p.id} data-page={p.id}>
+                      {p.render({ s: draft, patch: () => {}, connId: settingsConnId, reset: () => {} })}
+                    </div>
+                  ))}
+                </div>
+              </Indexing.Provider>
+            )}
           </div>
         </div>
 

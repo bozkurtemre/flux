@@ -1,5 +1,11 @@
-import type { ReactNode } from "react";
+import { createContext, type ReactNode } from "react";
 import { Check, ChevronDown } from "lucide-react";
+
+/**
+ * True while the pages are rendered out of sight so their text can be searched. A page that
+ * fetches something when it opens holds off: being searched is not being opened.
+ */
+export const Indexing = createContext(false);
 
 /** A settings row: a right-aligned label in a fixed column, the control beside it. */
 export function Row({ label, children, hint }: { label?: string; children: ReactNode; hint?: string }) {

@@ -378,6 +378,7 @@ export const SHORTCUTS: { group: string; keys: string; action: string }[] = [
   { group: "Search", keys: "⌘⇧F", action: "Search Everywhere" },
   { group: "Search", keys: "⇧⌘O", action: "Go to Endpoint" },
   { group: "Search", keys: "⇧⌘I", action: "Trace an ID across every stream" },
+  { group: "Search", keys: "⇧⌘M", action: "Open the service map" },
   { group: "Search", keys: "⇥", action: "Switch search tab" },
   { group: "Terminal", keys: "⌥F12", action: "Show or hide the terminal" },
   { group: "Terminal", keys: "⌘K", action: "Clear the terminal" },

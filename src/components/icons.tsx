@@ -120,6 +120,14 @@ export function ClaudeIcon({ size = 12 }: { size?: number }) {
 
 /** The mark of a connection's kind of source, beside its name wherever the kind is chosen. */
 export function SourceIcon({ kind, size = 12 }: { kind: SourceKind; size?: number }) {
+  if (kind === "local") {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Local" className="shrink-0">
+        <rect x="3" y="5" width="26" height="22" rx="4" fill="#5fb865" />
+        <path d="M9 13l4 3-4 3M16 20h7" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      </svg>
+    );
+  }
   if (kind === "kibana") {
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" aria-label="Kibana" className="shrink-0">

@@ -15,6 +15,9 @@
 # It releases the commit it is run on, which has to be the one the version was tagged at, so a
 # release can never be built from something other than what its tag names. Running it again for
 # the same version publishes the same files again and restarts that version's soak.
+#
+# FORCE=1 makes the release forced: once it has soaked, every older copy shows a full-window
+# update and cannot be used until it installs it (docs/adr/0010).
 set -euo pipefail
 
 KEYS="${KEYS:-$HOME/Desktop/flux-updater-keys}"
@@ -77,7 +80,11 @@ put() { node scripts/r2.mjs put "$BUCKET" "$1" "$2" "$3" "$4"; }
 put "updates/$version/Flux.app.tar.gz" "$out/macos/Flux.app.tar.gz" application/gzip "$immutable"
 put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
 
-RELEASE_NOTES="$(cat "$notes")" node scripts/manifest.mjs \
+# the manifest being replaced carries the minimum version and the last releases' notes forward;
+# FORCE=1 makes this release the minimum, so older copies cannot be used until they update
+previous="$(curl -fsS "https://updates.emreb.dev/updates/latest.json?x=$RANDOM" 2>/dev/null || echo '{}')"
+[ "${FORCE:-}" = 1 ] && say "this release is forced: every older copy must update to keep working"
+PREVIOUS_MANIFEST="$previous" FORCE="${FORCE:-}" RELEASE_NOTES="$(cat "$notes")" node scripts/manifest.mjs \
   "$version" "$out/macos/Flux.app.tar.gz.sig" \
   "https://updates.emreb.dev/updates/$version/Flux.app.tar.gz" 10 >"$manifest"
 put "updates/latest.json" "$manifest" application/json "public, max-age=60"

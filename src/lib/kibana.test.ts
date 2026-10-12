@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { boolQuery, esFailure, fixedInterval, flatten, groupAggs, groupRows } from "./kibana";
+import { flatten } from "./datasource";
+import { boolQuery, esFailure, fixedInterval, groupAggs, groupRows } from "./kibana";
 
 describe("a document as Flux shows it", () => {
   it("flattens nested fields to the dotted names Kibana shows", () => {

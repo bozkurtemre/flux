@@ -5,7 +5,7 @@
 // no proxy server.
 import { fetch } from "@tauri-apps/plugin-http";
 
-export type SourceKind = "graylog" | "kibana";
+export type SourceKind = "graylog" | "kibana" | "local";
 
 /** What the Connections page and the tree say about each kind. */
 export const SOURCE_KINDS: Record<SourceKind, { label: string; streams: string; url: string; token: string; columns: string[] }> = {
@@ -22,6 +22,13 @@ export const SOURCE_KINDS: Record<SourceKind, { label: string; streams: string; 
     url: "https://kibana.example.com  (add /s/<space> for a space other than the default)",
     token: "Kibana › Stack Management › API keys, the Encoded value.",
     columns: ["timestamp", "host.name", "log.level", "message"],
+  },
+  local: {
+    label: "Local files & Docker",
+    streams: "logs",
+    url: "/var/log/myapp  —  or  docker",
+    token: "Not needed.",
+    columns: ["timestamp", "source", "level", "message"],
   },
 };
 
@@ -132,6 +139,16 @@ export async function request<T>(url: string, init: RequestInit & { label: strin
     throw new Error(`${res.status} ${init.label}: ${body.slice(0, 300)}`);
   }
   return (await res.json()) as T;
+}
+
+/** A nested document as the flat, dotted fields Flux shows: `{ log: { level } }` is `log.level`. */
+export function flatten(source: Record<string, unknown>, prefix = "", out: Record<string, unknown> = {}): Record<string, unknown> {
+  for (const [key, value] of Object.entries(source)) {
+    const name = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value)) flatten(value as Record<string, unknown>, name, out);
+    else out[name] = value;
+  }
+  return out;
 }
 
 /** Which row is which, across two pages of the same search. */

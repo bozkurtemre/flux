@@ -7,6 +7,7 @@ export const GETTING_STARTED = `# Getting started
 ## Connect
 
 - **Settings › Connections** takes a Graylog URL and an access token, or a Kibana URL and an API key for logs in Elasticsearch. The token stays in \`connections.json\` on this machine.
+- No server at all? **＋ Local** takes a folder of log files — JSON lines, Laravel, logfmt or plain — or \`docker\` for the running containers, and the same console, timeline and tools work on them.
 - **Settings › Projects › Add from export** takes a set-up file a teammate sent: their projects and saved queries, without their tokens.
 
 ## Find what you need
@@ -31,6 +32,16 @@ export const GETTING_STARTED = `# Getting started
 - Tick **Compare** on two rows to see them side by side, field by field.
 - **Where is this logged?** — on a row or a pattern — finds the message's literal words in the project's checkout with \`git grep\`, lists the lines that write a log first, and blames the one you pick, with the pull request it came in with. Each line opens in your IDE.
 - **Replay on stage…** sends the request a row describes again — to the stage you name, remembered per connection — and sets the answer beside the one in the log. Tokens are never copied from the log: those headers start empty.
+
+## Investigate
+
+- **⌥⏎** on a row — or **Investigate** at the top of its menu — makes a case of it: the request across every service, how often it happens and since when, who else it hits and what they share, the line of code that wrote it with the change behind that line, and what was merged in the last two days.
+- **Ask Claude to fix** pastes the case into the terminal where Claude Code runs, asking it to find the cause, fix it on a branch with a test, and open a draft pull request. **Copy report** gives the same case as Markdown.
+
+## The service map
+
+- **⇧⌘M** (or Service Map on a connection) draws the services as the logs see them: a step between two services is a request whose id appears in one and then the other. Thicker is busier, red is failing; a service opens its console, a step traces one request that took it.
+- The bar under the map replays it: drag it, or press play, to watch an incident spread.
 
 ## Trace an ID
 
@@ -81,7 +92,10 @@ A console line is a Lucene query, as Graylog and Elasticsearch both read it, fol
 `;
 
 /** A GitHub issue, opened with what a report needs already in it. */
+/** Where Flux is kept, and where problems with it are reported. */
+export const REPO = "https://github.com/bozkurtemre/flux";
+
 export function reportUrl(diagnostics: string): string {
   const body = `**What happened**\n\n\n**What you expected**\n\n\n**How to make it happen again**\n\n\n---\n\`\`\`\n${diagnostics}\n\`\`\``;
-  return `https://github.com/bozkurtemre/flux/issues/new?${new URLSearchParams({ body }).toString()}`;
+  return `${REPO}/issues/new?${new URLSearchParams({ body }).toString()}`;
 }

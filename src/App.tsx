@@ -14,6 +14,8 @@ import { HelpWindow } from "./components/HelpWindow";
 import { TraceDialog } from "./components/TraceDialog";
 import { ReplayWindow } from "./components/ReplayWindow";
 import { LocatedWindow } from "./components/LocatedWindow";
+import { ServiceMapWindow } from "./components/ServiceMapWindow";
+import { InvestigationWindow } from "./components/InvestigationWindow";
 import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
@@ -28,6 +30,7 @@ import { quitAction } from "@/lib/terminal";
 import { runTool, TOOLS, type View } from "@/lib/mcp";
 import { parseQuery } from "@/lib/query";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
+import { AUTH_CALLBACK } from "@/lib/cloud";
 import { failureReason } from "@/lib/progress";
 import { watchEvery } from "@/lib/queries";
 import { clientFor } from "@/store";
@@ -91,6 +94,17 @@ export default function App() {
         if (e.key === "ArrowLeft") return (e.preventDefault(), void expandSelected(false));
         if (e.key === "Enter") return (e.preventDefault(), openSelected());
       }
+      // ⌥⏎ investigates the selected row, as the IDE's ⌥⏎ offers what can be done about a line
+      if (e.altKey && e.key === "Enter" && activeTab && !typing) {
+        const app = useApp.getState();
+        const tab = app.tabs.find((t) => t.id === activeTab);
+        const row = tab?.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
+        if (row) {
+          e.preventDefault();
+          void app.investigate(activeTab, row);
+          return;
+        }
+      }
       // the console has its own Mod-Enter; running it here as well would start the query twice
       if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && activeTab && !typing) {
         e.preventDefault();
@@ -145,6 +159,13 @@ export default function App() {
       if (e.altKey && e.key === "F12") {
         e.preventDefault();
         useApp.getState().toggleTerminal();
+      }
+      // the map of the connection in front, or of the first one there is
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        const app = useApp.getState();
+        const conn = app.tabs.find((t) => t.id === app.activeTab)?.connId ?? app.settings.connections[0]?.id;
+        if (conn) void app.openServiceMap(conn);
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "i") {
         e.preventDefault();
@@ -228,7 +249,8 @@ export default function App() {
   // The plugin hands both over as URLs; what they mean is decided in the store.
   useEffect(() => {
     if (!ready) return;
-    const open = (urls: string[] | null) => urls?.forEach((u) => useApp.getState().openLink(u));
+    // a sign-in link is the door's to answer, not a view to open
+    const open = (urls: string[] | null) => urls?.filter((u) => !u.startsWith(AUTH_CALLBACK)).forEach((u) => useApp.getState().openLink(u));
     void getCurrent()
       .then(open)
       .catch(() => {});
@@ -423,6 +445,8 @@ export default function App() {
       <TraceDialog />
       <ReplayWindow />
       <LocatedWindow />
+      <ServiceMapWindow />
+      <InvestigationWindow />
       <CompareWindow />
       {showSearch && <SearchEverywhere />}
       {showSettings && <SettingsDialog />}

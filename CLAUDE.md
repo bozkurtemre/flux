@@ -29,10 +29,13 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   not be committed, shared or synced, whatever the "worth sharing with a team" line in the
   README once implied about it.
 - **Each source kind is an adapter, and the sources are the only backend.** A connection names
-  its kind (Graylog, or Elasticsearch through Kibana); `src/lib/datasource.ts` is the contract
+  its kind (Graylog, Elasticsearch through Kibana, or local files and Docker); `src/lib/datasource.ts` is the contract
   every adapter answers, and `clientFor()` in the store is the only place that picks one. Code
   above it asks a `DataSource`, never `Graylog` or `Kibana` by name. See `docs/adr/0008`.
-  There is no database and no background service. If something needs to persist, decide
+  Besides them there is one managed service and no server of ours: Supabase keeps accounts and
+  synced preferences (`src/lib/cloud.ts`, `supabase/`). Sign-in is required and checked every
+  launch; only preferences sync, and connections, tokens, projects and saved queries never
+  leave the machine (`docs/adr/0009`). If something needs to persist, decide
   which tier it belongs to first: authored settings go
   to the config directory, one file per concern, derived data to the cache directory, and
   anything that belongs to one machine to `workspace.json`. "Where your data lives" in

@@ -3,7 +3,7 @@
 // carry: a trace id, a request id, an order. This picks that field out of a row.
 
 /** The names worth following, best first. A row usually carries more than one. */
-const NAMES = [
+export const NAMES = [
   /^(x[_-])?trace[_-]?id$/i,
   /^(x[_-])?request[_-]?id$/i,
   /^correlation[_-]?id$/i,
@@ -14,11 +14,22 @@ const NAMES = [
   /^user[_-]?id$/i,
 ];
 
+/** What each of those is called, in the same order, for a reader. */
+export const NAME_LABELS = ["trace id", "request id", "correlation id", "transaction id", "session id", "order id", "ICCID", "user id"];
+
 /** Graylog writes a dash where a field was empty, which is not something to follow. */
 export function identifying(value: unknown): boolean {
   const text = String(value ?? "").trim();
   if (text.length < 4 || text.length > 200) return false;
   return !["-", "n/a", "null", "none", "undefined", "0"].includes(text.toLowerCase());
+}
+
+/**
+ * A field's own name, without what holds it: Laravel keeps the request id as `context.request_id`
+ * and a gateway as `request_id`, and both are the request id.
+ */
+export function leaf(field: string): string {
+  return field.slice(field.lastIndexOf(".") + 1);
 }
 
 export interface Correlation {
@@ -33,7 +44,7 @@ export interface Correlation {
 export function correlationOf(row: Record<string, unknown>, preferred?: string): Correlation | null {
   if (preferred && identifying(row[preferred])) return { field: preferred, value: String(row[preferred]) };
   for (const name of NAMES) {
-    const found = Object.keys(row).find((k) => name.test(k) && identifying(row[k]));
+    const found = Object.keys(row).find((k) => name.test(leaf(k)) && identifying(row[k]));
     if (found) return { field: found, value: String(row[found]) };
   }
   return null;

@@ -1,5 +1,6 @@
 mod cache;
 mod island;
+mod local;
 mod mcp;
 mod secrets;
 mod terminal;
@@ -49,6 +50,8 @@ pub fn run() {
             mcp::mcp_respond,
             island::island_present,
             island::island_open,
+            local::local_list,
+            local::local_read,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does

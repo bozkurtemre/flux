@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw, Fingerprint } from "lucide-react";
+import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw, Fingerprint, Waypoints } from "lucide-react";
 import { ConnectionIcon, EndpointIcon, ProjectIcon, StreamIcon } from "./icons";
 import { useApp, type TreeNode } from "@/store";
 
@@ -69,6 +69,19 @@ export function SearchEverywhere() {
         score: 0,
         icon: <Fingerprint size={14} style={{ color: "var(--text-dim)" }} />,
         run: () => useApp.getState().setTraceDraft(query.trim()),
+      },
+      {
+        key: "a:map",
+        group: "Actions",
+        title: "Open the service map",
+        trailing: "⇧⌘M",
+        score: 0,
+        icon: <Waypoints size={14} style={{ color: "var(--text-dim)" }} />,
+        run: () => {
+          const app = useApp.getState();
+          const conn = app.tabs.find((t) => t.id === app.activeTab)?.connId ?? app.settings.connections[0]?.id;
+          if (conn) void app.openServiceMap(conn);
+        },
       },
       {
         key: "a:collapse",

@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <body
+    style="
+      margin: 0;
+      padding: 32px 16px;
+      background: #1e1f22;
+      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
+      color: #dfe1e5;
+    "
+  >
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center">
+          <table
+            role="presentation"
+            width="440"
+            cellpadding="0"
+            cellspacing="0"
+            style="background: #2b2d30; border: 1px solid #393b40; border-radius: 12px; padding: 32px"
+          >
+            <tr>
+              <td style="font-size: 20px; font-weight: 600; padding-bottom: 8px">Sign in to Flux</td>
+            </tr>
+            <tr>
+              <td style="font-size: 14px; line-height: 1.55; color: #a8adb6; padding-bottom: 24px">
+                Open this on the Mac where Flux is running. The link signs you in there, and is good for 15 minutes.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a
+                  href="{{ .ConfirmationURL }}"
+                  style="
+                    display: inline-block;
+                    background: #3574f0;
+                    color: #ffffff;
+                    text-decoration: none;
+                    font-size: 14px;
+                    font-weight: 600;
+                    padding: 11px 20px;
+                    border-radius: 7px;
+                  "
+                  >Sign in to Flux</a
+                >
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 12px; line-height: 1.5; color: #7a7e85; padding-top: 24px">
+                If you did not ask to sign in, ignore this email: nothing happens without the link.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

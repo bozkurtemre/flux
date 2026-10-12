@@ -2,7 +2,17 @@
 // the one an API key is made in; Elasticsearch itself is often not reachable from a laptop at
 // all. Kibana's data views are the streams, and every search goes to Elasticsearch through the
 // console proxy, which hands Elasticsearch's own answer back unchanged.
-import { request, type Bucket, type DataSource, type FieldInfo, type MessagePage, type Metric, type Stream, type TimeRange } from "./datasource";
+import {
+  flatten,
+  request,
+  type Bucket,
+  type DataSource,
+  type FieldInfo,
+  type MessagePage,
+  type Metric,
+  type Stream,
+  type TimeRange,
+} from "./datasource";
 
 interface View {
   pattern: string;
@@ -36,16 +46,6 @@ const TYPES: Record<string, string> = {
   date_nanos: "date",
   boolean: "boolean",
 };
-
-/** Nested `_source` as the flat, dotted fields Flux shows: `{ log: { level } }` is `log.level`. */
-export function flatten(source: Record<string, unknown>, prefix = "", out: Record<string, unknown> = {}): Record<string, unknown> {
-  for (const [key, value] of Object.entries(source)) {
-    const name = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === "object" && !Array.isArray(value)) flatten(value as Record<string, unknown>, name, out);
-    else out[name] = value;
-  }
-  return out;
-}
 
 /** The query every search shares: the Lucene string, inside the window, on the view's time field. */
 export function boolQuery(query: string, timeField: string, timerange: TimeRange) {
