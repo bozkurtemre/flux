@@ -3,6 +3,30 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.24.0
+
+### Added
+
+- **Local files and Docker, as a source.** A folder of logs — JSON lines, Laravel, logfmt or
+  plain — or `docker` for the running containers. No server and no token; the console, its
+  clauses, the timeline and every tool work on them.
+- **Investigate** (⌥⏎ on a row): the request across every service, how often it happens and who
+  else it hits, the line of code that wrote it with the change behind it, and what was merged
+  lately — then **Ask Claude to fix**, which hands the case to Claude Code for a draft pull
+  request.
+- **The service map** (⇧⌘M): your services as the logs see them, the steps between them thicker
+  for busier and red for failing, and a bar that replays an incident spreading.
+- **An account.** Flux now asks you to sign in with an emailed link, and your preferences follow
+  you to every Mac you sign in on. Connections, their tokens, projects and saved queries never
+  leave the Mac they were set up on.
+- **Forced updates.** A release that fixes something serious can now require older copies to
+  update, showing what changed since their version.
+- **Settings search finds a setting by its words**, and marks them on the page.
+
+### Changed
+
+- Following a request finds an id kept inside Laravel's context, as `context.request_id`.
+
 ## 0.23.0
 
 ### Added
