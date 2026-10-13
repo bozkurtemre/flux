@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.26.0
+
+### Added
+
+- **Settings › Account**, a page of its own: who you are signed in as and since when, when your
+  preferences last synced with **Sync now** beside it, what follows you to every Mac and what
+  never leaves this one, and signing out or deleting the synced copy.
+
+### Fixed
+
+- A long error no longer squeezes the status bar out of shape, and a failed query says why only
+  in its own console, not again at the bottom of the window.
+
 ## 0.25.1
 
 ### Changed
