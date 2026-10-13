@@ -4,6 +4,11 @@
   JetBrains Mono load where the mail client allows it (Apple Mail, iOS); elsewhere the system
   font stands in. The logo is a PNG served from updates.emreb.dev, since mail clients do not
   draw SVG; its source is flux-logo.png beside this file.
+
+  Gmail's apps in dark mode invert an email's colours, which turns this dark one light. Two
+  things keep it as drawn: every background is also a background-image, which Gmail leaves
+  alone, and every text sits in a .gs > .gd pair, whose blend modes invert Gmail's inversion
+  back. The `u + .body` selector only matches inside Gmail, so other clients never see them.
 -->
 <html lang="en">
   <head>
@@ -33,6 +38,14 @@
       .mono {
         font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
       }
+      u + .body .gs {
+        background: #000;
+        mix-blend-mode: screen;
+      }
+      u + .body .gd {
+        background: #000;
+        mix-blend-mode: difference;
+      }
       @media (max-width: 520px) {
         .card {
           width: 100% !important;
@@ -43,10 +56,17 @@
       }
     </style>
   </head>
-  <body style="margin: 0; padding: 0; background: #111214; color: #dfe1e5">
+  <body class="body" style="margin: 0; padding: 0; background: #111214; background-image: linear-gradient(#111214, #111214); color: #dfe1e5">
     <!-- the line a mail client shows beside the subject -->
     <div style="display: none; max-height: 0; overflow: hidden">Your link to sign in to Flux. It is good for 15 minutes.</div>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111214" style="background: #111214">
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      bgcolor="#111214"
+      style="background: #111214; background-image: linear-gradient(#111214, #111214)"
+    >
       <tr>
         <td align="center" style="padding: 40px 16px">
           <!-- the logo and the name, as the title bar has them -->
@@ -59,7 +79,7 @@
                       <img src="https://updates.emreb.dev/brand/flux-logo.png" width="36" height="36" alt="Flux" style="display: block; border: 0" />
                     </td>
                     <td style="vertical-align: middle; padding-left: 12px; font-size: 18px; font-weight: 600; color: #dfe1e5; letter-spacing: -0.2px">
-                      Flux
+                      <span class="gs"><span class="gd">Flux</span></span>
                     </td>
                   </tr>
                 </table>
@@ -75,7 +95,7 @@
             cellspacing="0"
             class="card"
             bgcolor="#1e1f22"
-            style="background: #1e1f22; border: 1px solid #303337; border-radius: 12px"
+            style="background: #1e1f22; background-image: linear-gradient(#1e1f22, #1e1f22); border: 1px solid #303337; border-radius: 12px"
           >
             <!-- the teal of the logo, as a thin edge -->
             <tr>
@@ -102,26 +122,36 @@
                   cellpadding="0"
                   cellspacing="0"
                   bgcolor="#26282c"
-                  style="background: #26282c; border-radius: 8px"
+                  style="background: #26282c; background-image: linear-gradient(#26282c, #26282c); border-radius: 8px"
                 >
                   <tr>
-                    <td class="mono" style="padding: 10px 14px; font-size: 12px; line-height: 1.5; color: #9da0a8; word-break: break-all">
-                      <span style="color: #6f737a">1&nbsp;&nbsp;</span><span style="color: #56a8f5">email</span><span style="color: #9da0a8">:</span
-                      ><span style="color: #6aab73">"{{ .Email }}"</span><span style="color: #c77dbb"> | sign in</span>
+                    <td class="mono" style="padding: 10px 14px; font-size: 12px; line-height: 1.5; color: #9da0a8; overflow-wrap: anywhere">
+                      <span class="gs"
+                        ><span class="gd"
+                          ><span style="color: #6f737a">1&nbsp;&nbsp;</span><span style="color: #56a8f5">email</span
+                          ><span style="color: #9da0a8">:</span
+                          ><span style="color: #6aab73">"<a style="color: #6aab73; text-decoration: none">{{ .Email }}</a>"</span
+                          ><span style="color: #c77dbb; white-space: nowrap"> | sign in</span></span
+                        ></span
+                      >
                     </td>
                   </tr>
                 </table>
 
                 <h1 style="margin: 26px 0 8px; font-size: 24px; line-height: 1.25; font-weight: 600; color: #dfe1e5; letter-spacing: -0.4px">
-                  Sign in to Flux
+                  <span class="gs"><span class="gd">Sign in to Flux</span></span>
                 </h1>
                 <p style="margin: 0 0 26px; font-size: 14px; line-height: 1.6; color: #9da0a8">
-                  Open this on the Mac where Flux is running. The link signs you in there and brings your preferences with you.
+                  <span class="gs"
+                    ><span class="gd"
+                      >Open this on the Mac where Flux is running. The link signs you in there and brings your preferences with you.</span
+                    ></span
+                  >
                 </p>
 
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td bgcolor="#3574f0" style="background: #3574f0; border-radius: 8px">
+                    <td bgcolor="#3574f0" style="background: #3574f0; background-image: linear-gradient(#3574f0, #3574f0); border-radius: 8px">
                       <a
                         href="{{ .ConfirmationURL }}"
                         style="
@@ -133,14 +163,18 @@
                           text-decoration: none;
                           border-radius: 8px;
                         "
-                        >Sign in to Flux&nbsp;&nbsp;&rarr;</a
+                        ><span class="gs"><span class="gd">Sign in to Flux&nbsp;&nbsp;&rarr;</span></span></a
                       >
                     </td>
                   </tr>
                 </table>
 
                 <p class="mono" style="margin: 22px 0 0; font-size: 11.5px; line-height: 1.6; color: #6f737a">
-                  <span style="color: #5fad65">&#9679;</span>&nbsp; good for 15 minutes &middot; only on the Mac that asked
+                  <span class="gs"
+                    ><span class="gd"
+                      ><span style="color: #5fad65">&#9679;</span>&nbsp; good for 15 minutes &middot; only on the Mac that asked</span
+                    ></span
+                  >
                 </p>
               </td>
             </tr>
@@ -149,8 +183,13 @@
           <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="card">
             <tr>
               <td style="padding: 20px 4px 0; font-size: 12px; line-height: 1.6; color: #6f737a">
-                If you did not ask to sign in, ignore this email: nothing happens without the link.<br />
-                <span style="color: #4f535a">Flux &mdash; the modern log explorer.</span>
+                <span class="gs"
+                  ><span class="gd"
+                    >If you did not ask to sign in, ignore this email: nothing happens without the link.<br /><span style="color: #4f535a"
+                      >Flux &mdash; the modern log explorer.</span
+                    ></span
+                  ></span
+                >
               </td>
             </tr>
           </table>
