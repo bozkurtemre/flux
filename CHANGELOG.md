@@ -3,6 +3,17 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.29.1
+
+### Changed
+
+- The Claude mark beside Paste to Claude and Ask Claude to fix is Claude's own.
+- The first sign-in step has an icon like the second, so the steps read as one sequence.
+
+### Fixed
+
+- The glow behind the check on "You're in" no longer leaves a square behind it.
+
 ## 0.29.0
 
 ### Added
