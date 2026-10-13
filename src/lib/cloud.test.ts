@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callbackOf, isEmail, preferencesOf, withPreferences } from "./cloud";
+import { callbackOf, inboxOf, isEmail, preferencesOf, withPreferences } from "./cloud";
 import { DEFAULTS, type Settings } from "./settings";
 
 const mine: Settings = {
@@ -52,5 +52,13 @@ describe("an email address", () => {
     expect(isEmail(" me@esim.io ")).toBe(true);
     expect(isEmail("me@localhost")).toBe(false);
     expect(isEmail("not an email")).toBe(false);
+  });
+});
+
+describe("inboxOf", () => {
+  it("knows the webmail of a known domain, and not of a work one", () => {
+    expect(inboxOf("a@gmail.com")?.name).toBe("Gmail");
+    expect(inboxOf("a@hotmail.co.uk")?.name).toBe("Outlook");
+    expect(inboxOf("a@company.com")).toBeNull();
   });
 });

@@ -28,15 +28,26 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ConfirmDialog } from "./ContextMenu";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { REPO, reportUrl } from "@/lib/help";
-import { changelogSection } from "@/lib/updates";
+import { changelogSection, headline } from "@/lib/updates";
 import changelog from "../../CHANGELOG.md?raw";
 import { Notes } from "./UpdateNotes";
 import { Logo } from "./Logo";
 import { UI } from "./darkUi";
 import { Onboarding } from "./Onboarding";
 import { Spinner } from "./icons";
-import { AUTH_CALLBACK, finishSignIn, isEmail, pullPreferences, sendLink, signedInAs, verify, type AuthState } from "@/lib/cloud";
-import { markToured, toured } from "@/lib/settings";
+import {
+  AUTH_CALLBACK,
+  finishSignIn,
+  inboxOf,
+  isEmail,
+  pullPreferences,
+  sendLink,
+  signedInAs,
+  signInWithCode,
+  verify,
+  type AuthState,
+} from "@/lib/cloud";
+import { lastEmail, markToured, rememberEmail, toured } from "@/lib/settings";
 import { failureReason } from "@/lib/progress";
 
 /** The teal of the logo: the panel that says what Flux is wears its colour, not the chosen accent. */
@@ -63,6 +74,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     void (import.meta.env.DEV ? Promise.resolve(false) : toured()).then((seen) => (seen ? setReady(true) : setTouring(true)));
   const [booted, setBooted] = useState(false);
   const [expired, setExpired] = useState<string | null>(null);
+  const [news, setNews] = useState(false);
+  const version = useVersion();
 
   // signed in is not open yet: the cloud's preferences are written first, so the window comes
   // up with them rather than switching under the person a moment later. Signing in just now is
@@ -83,7 +96,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const skip = import.meta.env.DEV
     ? () => {
         setState({ status: "signed-in", email: "dev@localhost" });
-        setReady(true);
+        // through the tour too, as make dev always is, so working on it never needs a real sign-in
+        afterWelcome();
       }
     : undefined;
 
@@ -171,7 +185,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <div className="relative flex h-full" style={{ background: "var(--bg-window)", color: "var(--text)" }}>
       {/* the title bar is drawn by the app; this strip, across both halves, is where the window is dragged by */}
       <div data-tauri-drag-region className="absolute inset-x-0 top-0 z-10 h-[38px]" />
-      <Showcase />
+      <Showcase version={version} onNews={() => setNews(true)} />
       <div className="relative flex min-w-0 flex-1 items-center justify-center px-8 py-12">
         <div className="flex w-[360px] max-w-full flex-col">
           <Door
@@ -179,19 +193,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
             onRetry={check}
             onSignedOut={(error) => setState({ status: "signed-out", error })}
             onLink={(url) => void finishSignIn(url).then((s) => s && enter(s, true))}
+            onCode={(email, code) => signInWithCode(email, code).then((s) => enter(s, true))}
             welcome={welcome}
             onIn={afterWelcome}
             onSkip={skip}
           />
         </div>
-        <Corner />
+        <Corner version={version} onNews={() => setNews(true)} />
+        {news && <WhatsNew version={version} onClose={() => setNews(false)} onAll={() => void openUrl(`${REPO}/releases`).catch(() => {})} />}
       </div>
     </div>
   );
 }
 
 /** What Flux is, in the space a sign-in screen usually leaves empty. */
-function Showcase() {
+function Showcase({ version, onNews }: { version: string; onNews: () => void }) {
   return (
     <div
       className="relative hidden w-[52%] max-w-[760px] shrink-0 flex-col justify-between overflow-hidden px-12 pt-16 pb-12 md:flex"
@@ -205,7 +221,10 @@ function Showcase() {
       </div>
 
       <div className="relative flex flex-col gap-7">
-        <Pitch />
+        <div className="flex flex-col gap-3">
+          {version && <Announcement version={version} onClick={onNews} />}
+          <Pitch />
+        </div>
 
         <AppSlice />
       </div>
@@ -276,7 +295,8 @@ function Streams() {
         className="flux-aurora absolute -bottom-1/3 left-1/5 size-[65%] rounded-full blur-[110px]"
         style={{ background: "radial-gradient(circle, #7b4fd655, transparent 62%)", animationDelay: "-17s" }}
       />
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice">
+      {/* the gradient once, for every stream to stroke with */}
+      <svg width="0" height="0" className="absolute" aria-hidden>
         <defs>
           <linearGradient id="flux-stream" x1="0" x2="1" y1="0" y2="0">
             <stop offset="0" stopColor={BRAND} stopOpacity="0" />
@@ -285,26 +305,41 @@ function Streams() {
             <stop offset="1" stopColor="#3b6cf0" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {streams.map((s, i) => (
-          <g key={i} className="flux-stream" style={{ animationDuration: `${s.duration}s`, animationDelay: `${-i * 1.7}s` }}>
-            <path d={s.d} fill="none" stroke="url(#flux-stream)" strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" />
-            {s.pulse && (
+      </svg>
+      {/* each stream its own layer, moved by the compositor: a transform inside one SVG is
+          repainted on the main thread, and stalls whenever React draws the slice beside it */}
+      {streams.map((s, i) => (
+        <svg
+          key={i}
+          className="flux-stream absolute inset-0 h-full w-full"
+          viewBox="0 0 1200 900"
+          preserveAspectRatio="xMidYMid slice"
+          style={{ animationDuration: `${s.duration}s`, animationDelay: `${-i * 1.7}s`, willChange: "transform" }}
+        >
+          <path d={s.d} fill="none" stroke="url(#flux-stream)" strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" />
+          {s.pulse &&
+            // the glow is a wider, fainter stroke under the light rather than a filter, which
+            // would be recomputed over the whole stream on every frame
+            [
+              { width: s.width + 4, opacity: 0.14 },
+              { width: s.width + 0.9, opacity: 0.6 },
+            ].map((l) => (
               <path
+                key={l.width}
                 d={s.d}
                 fill="none"
                 stroke="#8CF7E2"
-                strokeWidth={s.width + 0.9}
+                strokeWidth={l.width}
                 strokeLinecap="round"
-                strokeOpacity={0.55}
+                strokeOpacity={l.opacity}
                 pathLength={1000}
                 strokeDasharray="70 930"
                 className="flux-flow"
-                style={{ animationDuration: `${7 + (i % 4) * 1.6}s`, animationDelay: `${-i * 0.9}s`, filter: "drop-shadow(0 0 4px #22C8B2)" }}
+                style={{ animationDuration: `${7 + (i % 4) * 1.6}s`, animationDelay: `${-i * 0.9}s` }}
               />
-            )}
-          </g>
-        ))}
-      </svg>
+            ))}
+        </svg>
+      ))}
       {/* the bottom and the edge fade to the panel's own dark, so the text sits on calm */}
       <div
         className="absolute inset-0"
@@ -322,24 +357,46 @@ function Streams() {
  * off the right and the bottom, the way a crop of a screenshot does.
  */
 function AppSlice() {
+  // it runs: a line arrives every so often and the timeline moves on, still for reduced motion
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const every = setInterval(() => setTick((t) => t + 1), 1800);
+    return () => clearInterval(every);
+  }, []);
+  const turn = <T,>(values: T[]) => values.map((_, i) => values[(i + tick) % values.length]);
+
   // requests per bucket, and what the timeline draws over them
-  const counts = [22, 24, 21, 26, 25, 28, 27, 30, 29, 31, 30, 33, 46, 71, 92, 88, 64, 41, 33, 30, 29, 31, 28, 30, 27, 29, 26, 28];
-  const p95 = [
+  const allCounts = [22, 24, 21, 26, 25, 28, 27, 30, 29, 31, 30, 33, 46, 71, 92, 88, 64, 41, 33, 30, 29, 31, 28, 30, 27, 29, 26, 28];
+  const allP95 = [
     210, 220, 205, 230, 215, 240, 225, 250, 235, 260, 250, 420, 2100, 7800, 8900, 8600, 5200, 1900, 600, 320, 280, 260, 250, 240, 235, 230, 220, 215,
   ];
-  const failed = [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 4, 18, 41, 66, 58, 31, 9, 3, 1, 0, 1, 0, 0, 1, 0, 0, 0];
+  const allFailed = [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 4, 18, 41, 66, 58, 31, 9, 3, 1, 0, 1, 0, 0, 1, 0, 0, 0];
+  const [counts, p95, failed] = [turn(allCounts), turn(allP95), turn(allFailed)];
+  // the merge sits just before the spike, and moves with it
+  const merged = ((((11.5 - tick) % allCounts.length) + allCounts.length) % allCounts.length) / allCounts.length;
   const H = 54;
-  const peak = Math.max(...counts);
+  const peak = Math.max(...allCounts);
   const line = (values: number[], top: number) =>
     values.map((v, i) => `${(((i + 0.5) / values.length) * 100).toFixed(2)},${(H - Math.min(1, v / top) * H).toFixed(1)}`).join(" ");
-  const rows: [string, string, string, string][] = [
-    ["10:42:09.412", "ERROR", "payments", "Charge failed for request 7f3a9c2e: upstream timeout after 8000ms"],
-    ["10:42:09.388", "ERROR", "payments", "Charge failed for request b81d04f6: upstream timeout after 8000ms"],
-    ["10:42:08.901", "WARN", "payments", "upstream slow: took 2314 ms"],
-    ["10:42:08.517", "INFO", "orders", "Order created ord-10531"],
-    ["10:42:07.240", "ERROR", "payments", "Charge failed for request 4c6e1a90: upstream timeout after 8000ms"],
-    ["10:42:06.903", "INFO", "auth", "Session started for user 1842"],
+  const pool: [string, string, string][] = [
+    ["INFO", "auth", "Session started for user 1842"],
+    ["ERROR", "payments", "Charge failed for request 4c6e1a90: upstream timeout after 8000ms"],
+    ["INFO", "orders", "Order created ord-10531"],
+    ["WARN", "payments", "upstream slow: took 2314 ms"],
+    ["ERROR", "payments", "Charge failed for request b81d04f6: upstream timeout after 8000ms"],
+    ["ERROR", "payments", "Charge failed for request 7f3a9c2e: upstream timeout after 8000ms"],
+    ["INFO", "gateway", "GET /v1/orders 200 in 41 ms"],
+    ["INFO", "orders", "Order shipped ord-10498"],
+    ["WARN", "auth", "token refresh retried once"],
+    ["INFO", "gateway", "POST /v1/charges 201 in 88 ms"],
   ];
+  // the newest on top: line n of the stream, stamped a little after the one before it
+  const stamp = (n: number) => new Date(Date.UTC(2026, 0, 1, 10, 42, 6, 903) + n * 437).toISOString().slice(11, 23);
+  const rows = Array.from({ length: 6 }, (_, k) => {
+    const n = tick + 5 - k;
+    return { n, at: stamp(n), row: pool[n % pool.length] };
+  });
   const level: Record<string, string> = { ERROR: UI.red, WARN: UI.amber, INFO: UI.green };
   const cols = "52px 92px 52px 64px 1fr";
   return (
@@ -349,6 +406,9 @@ function AppSlice() {
         // cut off at the right and fading at the foot, as a crop of a bigger window would be
         maskImage: "linear-gradient(90deg, black 70%, transparent 98%), linear-gradient(180deg, black 72%, transparent 100%)",
         maskComposite: "intersect",
+        // a layer of its own, so a line arriving repaints the slice and nothing behind it
+        contain: "layout paint",
+        willChange: "transform",
       }}
     >
       <div
@@ -396,7 +456,7 @@ function AppSlice() {
           {/* the timeline, as the app draws it */}
           <div className="px-2.5 pt-1.5 pb-1" style={{ borderBottom: `1px solid ${UI.border}` }}>
             <div className="flex items-center gap-2 pb-1 text-[10px]" style={{ color: UI.muted }}>
-              <span>1,238 messages</span>
+              <span className="tabular-nums">{(1238 + tick * 3).toLocaleString("en-US")} messages</span>
               <span style={{ color: UI.amber }}>— p95 up to 8.9 s</span>
               <span style={{ color: UI.red }}>— errors up to 41%</span>
               <span className="ml-auto">⌥-drag to explain a spike</span>
@@ -405,8 +465,8 @@ function AppSlice() {
               {counts.map((c, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-[1px]"
-                  style={{ height: `${Math.max(3, (c / peak) * H)}px`, background: UI.accent, opacity: 0.72 }}
+                  className="flex-1 origin-bottom rounded-[1px] transition-transform duration-700 ease-out"
+                  style={{ height: H, transform: `scaleY(${Math.max(3, (c / peak) * H) / H})`, background: UI.accent, opacity: 0.72 }}
                 />
               ))}
               <svg className="pointer-events-none absolute inset-0" width="100%" height={H} viewBox={`0 0 100 ${H}`} preserveAspectRatio="none">
@@ -414,7 +474,7 @@ function AppSlice() {
                 <polyline points={line(failed, 70)} fill="none" stroke={UI.red} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
               </svg>
               {/* the pull request merged a moment before it started */}
-              <div className="absolute top-0 bottom-0" style={{ left: "41%", borderLeft: `1px dashed ${UI.purple}` }}>
+              <div className="absolute top-0 bottom-0" style={{ left: `${merged * 100}%`, borderLeft: `1px dashed ${UI.purple}` }}>
                 <span className="absolute -top-[3px] -left-[4px] size-[7px] rotate-45" style={{ background: UI.purple }} />
               </div>
             </div>
@@ -429,19 +489,26 @@ function AppSlice() {
                 </span>
               ))}
             </div>
-            {rows.map(([at, lvl, service, message], i) => (
+            {rows.map(({ n, at, row: [lvl, service, message] }, i) => (
               <div
-                key={i}
-                className="grid h-[21px] items-center"
-                style={{ gridTemplateColumns: cols, background: i === 1 ? UI.selection : i % 2 ? UI.stripe : "transparent" }}
+                key={n}
+                // a line just in slides in, and a failure lights up red as it lands
+                className={i === 0 && tick ? (lvl === "ERROR" ? "flux-in flux-flash-red" : "flux-in") : undefined}
+                style={{
+                  display: "grid",
+                  height: 21,
+                  alignItems: "center",
+                  gridTemplateColumns: cols,
+                  background: n % 2 ? UI.stripe : "transparent",
+                }}
               >
-                <span className="px-2 text-right" style={{ color: i === 1 ? UI.text : UI.muted }}>
-                  {i + 1}
+                <span className="px-2 text-right" style={{ color: UI.muted }}>
+                  {n + 1}
                 </span>
-                <span className="truncate px-2" style={{ color: i === 1 ? UI.text : UI.dim }}>
+                <span className="truncate px-2" style={{ color: UI.dim }}>
                   {at}
                 </span>
-                <span className="truncate px-2 font-semibold" style={{ color: i === 1 ? UI.text : level[lvl] }}>
+                <span className="truncate px-2 font-semibold" style={{ color: level[lvl] }}>
                   {lvl}
                 </span>
                 <span className="truncate px-2">{service}</span>
@@ -453,7 +520,10 @@ function AppSlice() {
 
         {/* the status bar */}
         <div className="flex h-[20px] items-center gap-3 px-3 text-[10px]" style={{ color: UI.muted }}>
-          <span>1,238 rows · 184 ms</span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-[6px] rounded-full motion-safe:animate-pulse" style={{ background: UI.green }} />
+            Live · {(1238 + tick * 3).toLocaleString("en-US")} rows
+          </span>
           <span className="ml-auto">prod</span>
         </div>
       </div>
@@ -475,14 +545,7 @@ function GitHubMark({ size = 15 }: { size?: number }) {
  * before you are even in, and which version this is. Native tooltips, since the app's own are
  * not drawn until it opens.
  */
-function Corner() {
-  const [version, setVersion] = useState("");
-  const [news, setNews] = useState(false);
-  useEffect(() => {
-    void getVersion()
-      .then(setVersion)
-      .catch(() => {});
-  }, []);
+function Corner({ version, onNews }: { version: string; onNews: () => void }) {
   const go = (url: string) => void openUrl(url).catch(() => {});
   const link = "flex size-7 items-center justify-center rounded-[7px] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text)]";
   return (
@@ -498,12 +561,41 @@ function Corner() {
       >
         <Bug size={15} />
       </button>
-      <button className={link} title="What's new" aria-label="What's new" onClick={() => setNews(true)}>
+      <button className={link} title="What's new" aria-label="What's new" onClick={onNews}>
         <Sparkles size={14} />
       </button>
       {version && <span className="ml-1 px-1.5 font-[var(--font-mono)] text-[11px] tabular-nums">v{version}</span>}
-      {news && <WhatsNew version={version} onClose={() => setNews(false)} onAll={() => go(`${REPO}/releases`)} />}
     </div>
+  );
+}
+
+/** The version on this Mac, once Tauri has said. */
+function useVersion(): string {
+  const [version, setVersion] = useState("");
+  useEffect(() => {
+    void getVersion()
+      .then(setVersion)
+      .catch(() => {});
+  }, []);
+  return version;
+}
+
+/** The pill over the pitch: the newest thing this version added, opening its notes. */
+function Announcement({ version, onClick }: { version: string; onClick: () => void }) {
+  const section = changelogSection(changelog, version);
+  const news = section && headline(section.notes);
+  return (
+    <button
+      onClick={onClick}
+      className="group flex max-w-full items-center gap-2 self-start rounded-full py-1 pr-3 pl-1 text-[12px] transition-colors hover:bg-[rgba(255,255,255,0.06)]"
+      style={{ ...GLASS, color: "#d3d6dc" }}
+    >
+      <span className="rounded-full px-2 py-[1px] text-[10.5px] font-semibold" style={{ background: BRAND, color: "#0b0c0f" }}>
+        New
+      </span>
+      <span className="truncate">{news ?? `What's new in v${section?.version ?? version}`}</span>
+      <ArrowRight size={12} className="shrink-0 transition-transform group-hover:translate-x-0.5" style={{ color: BRAND }} />
+    </button>
   );
 }
 
@@ -658,6 +750,25 @@ function Pitch() {
   );
 }
 
+/**
+ * A way straight to the inbox the link went to: the address's own webmail when its domain says
+ * which, Gmail and Outlook when it is a work domain that could be either.
+ */
+function Inbox({ email }: { email: string }) {
+  const known = inboxOf(email);
+  const inboxes = known ? [known] : [inboxOf("a@gmail.com")!, inboxOf("a@outlook.com")!];
+  return inboxes.map((inbox) => (
+    <button
+      key={inbox.name}
+      onClick={() => void openUrl(inbox.url).catch(() => {})}
+      className="flex h-[38px] flex-1 items-center justify-center gap-2 rounded-[8px] text-[13px] font-medium"
+      style={known ? { background: "var(--accent)", color: "var(--accent-text)" } : { background: "var(--bg-hover)", color: "var(--text)" }}
+    >
+      <Mail size={14} /> {known ? `Open ${inbox.name}` : inbox.name}
+    </button>
+  ));
+}
+
 /** The two steps, so it is plain where in signing in you are. */
 function Steps({ at }: { at: 1 | 2 | 3 }) {
   const step = (n: 1 | 2 | 3, label: string) => {
@@ -778,6 +889,7 @@ function Door({
   onRetry,
   onSignedOut,
   onLink,
+  onCode,
   welcome,
   onIn,
   onSkip,
@@ -786,6 +898,7 @@ function Door({
   onRetry: () => void;
   onSignedOut: (error?: string) => void;
   onLink: (url: string) => void;
+  onCode: (email: string, code: string) => Promise<void>;
   welcome: boolean;
   onIn: () => void;
   onSkip?: () => void;
@@ -836,26 +949,35 @@ function Door({
       </>
     );
   }
-  return <SignIn error={state.error} onError={onSignedOut} onLink={onLink} onSkip={onSkip} />;
+  return <SignIn error={state.error} onError={onSignedOut} onLink={onLink} onCode={onCode} onSkip={onSkip} />;
 }
 
 function SignIn({
   error,
   onError,
   onLink,
+  onCode,
   onSkip,
 }: {
   error?: string;
   onError: (error?: string) => void;
   onLink: (url: string) => void;
+  onCode: (email: string, code: string) => Promise<void>;
   onSkip?: () => void;
 }) {
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(0);
   const [pasting, setPasting] = useState(false);
   const [pasted, setPasted] = useState("");
+
+  // the address this Mac signed in with last time, unless something has been typed already
+  useEffect(() => {
+    void lastEmail().then((last) => last && setEmail((typed) => typed || last));
+  }, []);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -868,13 +990,25 @@ function SignIn({
     setBusy(true);
     try {
       await sendLink(to);
+      void rememberEmail(to.trim());
       setSent(to.trim());
+      setCode("");
       setWait(RESEND);
       onError(undefined);
     } catch (e) {
       onError(failureReason(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  // six digits are the whole code: it is tried the moment the last one is typed
+  const typeCode = (text: string) => {
+    const digits = text.replace(/\D/g, "").slice(0, 6);
+    setCode(digits);
+    if (digits.length === 6 && sent && !checking) {
+      setChecking(true);
+      void onCode(sent, digits).finally(() => setChecking(false));
     }
   };
 
@@ -907,23 +1041,36 @@ function SignIn({
           </span>
         </div>
 
-        <ol className="mt-6 flex flex-col gap-2.5 text-[13px]">
-          {["Open the email on this Mac", "Click “Sign in to Flux”", "You're brought back here, signed in"].map((s, i) => (
-            <li key={s} className="flex items-center gap-3">
-              <span
-                className="flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
-                style={{ background: "var(--bg-hover)", color: "var(--text-dim)" }}
-              >
-                {i + 1}
-              </span>
-              <span style={{ color: "var(--text-dim)" }}>{s}</span>
-            </li>
-          ))}
-        </ol>
+        {/* the email has a link and a code: the link for this Mac, the code for wherever else it was opened */}
+        <label className="mt-6 text-[12px] font-medium" style={{ color: "var(--text-dim)" }} htmlFor="flux-code">
+          Click the link in it, or enter the code
+        </label>
+        <div className="relative mt-2">
+          <input
+            id="flux-code"
+            autoFocus
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={code}
+            onChange={(e) => typeCode(e.target.value)}
+            placeholder="000000"
+            maxLength={6}
+            disabled={checking}
+            spellCheck={false}
+            className={`${field} px-3 text-center font-[var(--font-mono)] text-[20px] tracking-[0.5em] placeholder:text-[var(--text-muted)] placeholder:opacity-40`}
+            style={box}
+          />
+          {checking && (
+            <span className="absolute top-1/2 right-3 -translate-y-1/2">
+              <Spinner />
+            </span>
+          )}
+        </div>
 
         {error && <Problem>{error}</Problem>}
 
-        <div className="mt-7 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-2">
+          <Inbox email={sent} />
           <button
             disabled={wait > 0 || busy}
             onClick={() => void send(sent)}
@@ -944,7 +1091,7 @@ function SignIn({
           </button>
         </div>
         <p className="mt-3 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
-          The link is good for 15 minutes. Nothing there? Look in spam.
+          The link and the code are good for 15 minutes. Nothing there? Look in spam.
         </p>
 
         {/* the link can land somewhere else — another copy of Flux, a browser that will not hand
@@ -999,7 +1146,7 @@ function SignIn({
       </div>
       <h1 className="text-[24px] font-semibold tracking-tight">Sign in to Flux</h1>
       <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "var(--text-dim)" }}>
-        No password. We email you a link, and it signs you in on this Mac.
+        No password. We email you a link and a code, and either signs you in on this Mac.
       </p>
       <form
         className="mt-7 flex flex-col gap-3"

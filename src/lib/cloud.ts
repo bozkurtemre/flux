@@ -101,6 +101,25 @@ export async function sendLink(email: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Where an address's mail is read on the web, when its domain says; a work domain does not. */
+export function inboxOf(email: string): { name: string; url: string } | null {
+  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
+  const from = encodeURIComponent("from:noreply@flux.emreb.dev");
+  if (/^(gmail|googlemail)\.com$/.test(domain)) return { name: "Gmail", url: `https://mail.google.com/mail/u/0/#search/${from}` };
+  if (/^(outlook|hotmail|live|msn)\.[a-z.]+$/.test(domain)) return { name: "Outlook", url: "https://outlook.live.com/mail/" };
+  if (/^(icloud|me|mac)\.com$/.test(domain)) return { name: "iCloud Mail", url: "https://www.icloud.com/mail" };
+  if (/^yahoo\.[a-z.]+$/.test(domain)) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
+  if (/^(proton\.me|protonmail\.com|pm\.me)$/.test(domain)) return { name: "Proton Mail", url: "https://mail.proton.me" };
+  return null;
+}
+
+/** The six digits from the email, for when the link was opened somewhere else, a phone say. */
+export async function signInWithCode(email: string, code: string): Promise<AuthState> {
+  const { data, error } = await cloud().auth.verifyOtp({ email: email.trim(), token: code, type: "email" });
+  if (error || !data.user) return { status: "signed-out", error: error?.message ?? "That code did not work." };
+  return { status: "signed-in", email: data.user.email ?? "" };
+}
+
 /**
  * The link from the email, opened. The code in it is exchanged for a session together with the
  * verifier this machine kept when it asked for the link — which is why the link only works on

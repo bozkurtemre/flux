@@ -82,3 +82,14 @@ export function changelogSection(changelog: string, version: string): { version:
   const next = headings.find((h) => (h.index ?? 0) > (chosen.index ?? 0));
   return { version: chosen[1], notes: changelog.slice(start, next?.index ?? changelog.length).trim() };
 }
+
+/** A version's notes in a few words, for the pill on the sign-in screen: the first thing added,
+ *  its bold name if it has one, else its first clause. Null when the notes add nothing. */
+export function headline(notes: string): string | null {
+  const added = notes.split(/^###\s+/m).find((s) => /^Added/.test(s));
+  const item = added?.match(/^-\s+(.+)$/m)?.[1];
+  if (!item) return null;
+  const text = item.match(/\*\*(.+?)\*\*/)?.[1] ?? item.split(/[:.;—]/)[0];
+  const plain = text.replace(/[*`]/g, "").trim();
+  return plain.length > 42 ? `${plain.slice(0, 40).trimEnd()}…` : plain;
+}

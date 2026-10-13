@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changelogSection, compareVersions, forced, notesSince, offerable, type Manifest } from "./updates";
+import { changelogSection, compareVersions, forced, headline, notesSince, offerable, type Manifest } from "./updates";
 
 const at = (iso: string) => new Date(iso);
 const manifest = (over: Partial<Manifest> = {}): Manifest => ({ version: "0.3.0", pub_date: "2026-09-17T10:00:00Z", ...over });
@@ -65,5 +65,17 @@ describe("a version's changelog", () => {
   it("is the newest section for a build the changelog does not name yet", () => {
     expect(changelogSection(changelog, "0.24.0")?.version).toBe("0.23.0");
     expect(changelogSection("no versions here", "1.0.0")).toBeNull();
+  });
+});
+
+describe("the sign-in pill", () => {
+  it("names the first thing added, by its bold name", () => {
+    expect(headline("### Added\n\n- **Settings › Advanced › Correlation fields**: your own id fields\n\n### Fixed\n\n- x")).toBe(
+      "Settings › Advanced › Correlation fields",
+    );
+  });
+  it("falls back to the first clause, and to nothing", () => {
+    expect(headline("### Added\n\n- A Monitor tab. It tails.")).toBe("A Monitor tab");
+    expect(headline("### Fixed\n\n- x")).toBeNull();
   });
 });
