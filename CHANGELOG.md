@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.25.1
+
+### Changed
+
+- **Sign-in emails come from Flux**, at `noreply@flux.emreb.dev`, dressed in the app's theme,
+  logo and fonts — and anyone can now get one, not only a couple an hour.
+
 ## 0.25.0
 
 ### Added
