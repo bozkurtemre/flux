@@ -92,6 +92,8 @@ export interface AdvancedSettings {
   watchSound: string;
   fieldCacheMinutes: number;
   confirmOnClose: boolean;
+  /** A project's own id fields, besides the trace, request and order ids every service has. */
+  correlationFields: string;
 }
 
 /** What to do with terminal sessions that are still running when the app quits. */
@@ -175,7 +177,7 @@ export const DEFAULTS: Settings = {
   mcp: { enabled: false, port: 4319, token: "" },
   jira: { site: "", projectId: "", issueTypeId: "" },
   replay: { bases: {} },
-  advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, watchSound: "Ping", fieldCacheMinutes: 10, confirmOnClose: false },
+  advanced: { requestTimeoutSeconds: 60, watchSeconds: 60, watchSound: "Ping", fieldCacheMinutes: 10, confirmOnClose: false, correlationFields: "" },
 };
 
 /** Before the engine was chosen by name it was a tick box, and tmux was the only alternative. */

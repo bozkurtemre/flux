@@ -1,4 +1,4 @@
-// Why a search found nothing. `route:/v2/orders* AND status:500 AND iccid:8990…` coming back
+// Why a search found nothing. `route:/v2/orders* AND status:500 AND user_id:1842` coming back
 // empty says nothing about which part is wrong: a field misspelt, a value that never occurs, or
 // a window with no traffic in it. So the search is counted again with each of its terms left
 // out in turn, and the term whose absence brings rows back is the one to look at.
@@ -44,7 +44,7 @@ export function without(terms: string[], index: number): string {
   return terms.filter((_, i) => i !== index).join(" AND ") || "*";
 }
 
-/** The field a term searches, if it names one: `route:/x`, `NOT level:INFO`, `_exists_:iccid`. */
+/** The field a term searches, if it names one: `route:/x`, `NOT level:INFO`, `_exists_:user_id`. */
 export function fieldOf(term: string): string | null {
   const t = term.replace(/^(NOT\s+|-|\+)/, "").replace(/^\(+/, "");
   const exists = /^_exists_:([\w.@-]+)/.exec(t);

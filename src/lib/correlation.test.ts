@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { correlationOf, identifying, pairOnLine } from "./correlation";
+import { correlationOf, identifying, NAME_LABELS, pairOnLine, parseFields, setCorrelationFields } from "./correlation";
 
 describe("what is worth following", () => {
   it("takes a dash for the empty field it is", () => {
@@ -58,5 +58,21 @@ describe("the line under the pointer", () => {
 describe("an id kept inside something else", () => {
   it("is found by its own name, as Laravel keeps it in the context", () => {
     expect(correlationOf({ "context.request_id": "abc123", "context.order_id": "ord-1" })).toEqual({ field: "context.request_id", value: "abc123" });
+  });
+});
+
+describe("correlation fields", () => {
+  it("keeps only what can be a field name", () => {
+    expect(parseFields("iccid, tenant_id  booking.ref,,`x` OR")).toEqual(["iccid", "tenant_id", "booking.ref", "OR"]);
+  });
+
+  it("follows a project's own id ahead of the user id, and forgets it when it is taken out", () => {
+    const row = { user_id: "u-1842", iccid: "8931080019" };
+    expect(correlationOf(row)?.field).toBe("user_id");
+    setCorrelationFields("iccid");
+    expect(correlationOf(row)?.field).toBe("iccid");
+    expect(NAME_LABELS[NAME_LABELS.length - 2]).toBe("iccid");
+    setCorrelationFields("");
+    expect(correlationOf(row)?.field).toBe("user_id");
   });
 });

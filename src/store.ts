@@ -37,7 +37,7 @@ import {
 import { killTabCommand } from "@/lib/terminal";
 import { announce } from "@/lib/notify";
 import { errorText, failureReason, withNotice, type Notice, type NoticeKind, type Task } from "@/lib/progress";
-import { correlationOf, identifying, leaf, NAME_LABELS, NAMES } from "@/lib/correlation";
+import { correlationOf, customFields, identifying, leaf, NAME_LABELS, NAMES, setCorrelationFields } from "@/lib/correlation";
 import { journeyOf } from "@/lib/journey";
 import { messageField, templateOf } from "@/lib/patterns";
 import type { Evidence } from "@/lib/investigate";
@@ -440,6 +440,7 @@ export const useApp = create<State>((set, get) => ({
 
     applyAppearance(settings.appearance);
     setRequestTimeout(settings.advanced.requestTimeoutSeconds);
+    setCorrelationFields(settings.advanced.correlationFields ?? "");
     const nodes: Record<string, TreeNode> = {};
     const rootIds: string[] = [];
     for (const c of chosenConnections(settings.connections, get().workspaceConnections)) {
@@ -910,10 +911,12 @@ export const useApp = create<State>((set, get) => ({
       const streams = await client.streams();
       const to = new Date();
       const page = await client.messages({
-        query: MAP_FIELDS.map((f) => `_exists_:${f}`).join(" OR "),
+        query: mapFields()
+          .map((f) => `_exists_:${f}`)
+          .join(" OR "),
         streams: [],
         timerange: absolute(new Date(to.getTime() - window * 1000), to),
-        fields: ["timestamp", "streams", "source", "level", "httpStatusCode", "status", ...MAP_FIELDS],
+        fields: ["timestamp", "streams", "source", "level", "httpStatusCode", "status", ...mapFields()],
         size: 5000,
       });
       if (get().serviceMap?.connId !== connId) return;
@@ -1294,7 +1297,7 @@ export const useApp = create<State>((set, get) => ({
       }
       set({ update: manifest });
       if (get().settings.updates.dismissedVersion === manifest.version && !manual) return;
-      get().notify("info", `Flux ${manifest.version} is available`, manifest.notes?.split("\n")[0] ?? "A new version is ready to install.", [
+      get().notify("info", `Flux ${manifest.version} is available`, "Changelog is available.", [
         { label: "Update and Restart", run: () => void get().installUpdate() },
         { label: "Release notes", run: () => set({ showUpdateNotes: true }) },
         { label: "Later", run: () => get().dismissUpdate() },
@@ -1789,10 +1792,8 @@ export interface MapSample {
  * ponytail: a sample of the newest 5,000 such lines in the window; on a busy connection that is
  * the last minutes of it, which is enough to draw the map but not to count a day.
  */
-const MAP_FIELDS = ["request_id", "requestId", "trace_id", "traceId", "correlation_id", "order_id", "orderId", "iccid"].flatMap((f) => [
-  f,
-  `context.${f}`,
-]);
+const mapFields = () =>
+  ["request_id", "requestId", "trace_id", "traceId", "correlation_id", "order_id", "orderId", ...customFields()].flatMap((f) => [f, `context.${f}`]);
 
 export interface Located {
   template: string;

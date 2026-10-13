@@ -1,4 +1,4 @@
-// Trace an ID: an ICCID, an order, a user, pasted from a support question, searched for in every
+// Trace an ID: a request, a trace, an order, a user, pasted from a support question, searched for in every
 // stream of a connection at once. The answer opens as a console telling that id's story, oldest
 // first, with the lanes above it.
 import { useState } from "react";
@@ -75,7 +75,7 @@ function Form({
             if (e.key === "Enter") go();
             if (e.key === "Escape") onClose();
           }}
-          placeholder="ICCID, order id, user id, request id, e-mail…"
+          placeholder="Request id, trace id, order id, user id, e-mail…"
           spellCheck={false}
           className="h-[32px] rounded-[5px] px-2.5 font-[var(--font-mono)] text-[13px] outline-none"
           style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)" }}

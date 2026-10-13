@@ -2,20 +2,46 @@
 // writes to its own stream, so the only thing that makes them one story is a field both
 // carry: a trace id, a request id, an order. This picks that field out of a row.
 
-/** The names worth following, best first. A row usually carries more than one. */
-export const NAMES = [
-  /^(x[_-])?trace[_-]?id$/i,
-  /^(x[_-])?request[_-]?id$/i,
-  /^correlation[_-]?id$/i,
-  /^transaction[_-]?id$/i,
-  /^(x[_-])?session[_-]?id$/i,
-  /^order[_-]?id$/i,
-  /^iccid$/i,
-  /^user[_-]?id$/i,
+/** The names any service might use, best first. A row usually carries more than one. */
+const BUILT_IN: [RegExp, string][] = [
+  [/^(x[_-])?trace[_-]?id$/i, "trace id"],
+  [/^(x[_-])?request[_-]?id$/i, "request id"],
+  [/^correlation[_-]?id$/i, "correlation id"],
+  [/^transaction[_-]?id$/i, "transaction id"],
+  [/^(x[_-])?session[_-]?id$/i, "session id"],
+  [/^order[_-]?id$/i, "order id"],
+  [/^user[_-]?id$/i, "user id"],
 ];
 
-/** What each of those is called, in the same order, for a reader. */
-export const NAME_LABELS = ["trace id", "request id", "correlation id", "transaction id", "session id", "order id", "ICCID", "user id"];
+/**
+ * The names worth following, best first, and what each is called for a reader, in the same
+ * order: the built-in ones, with a project's own (Settings › Advanced › Correlation fields)
+ * ahead of the user id, which is the vaguest. Kept as live arrays, so every importer sees
+ * a change to the setting at once.
+ */
+export const NAMES: RegExp[] = BUILT_IN.map(([n]) => n);
+export const NAME_LABELS: string[] = BUILT_IN.map(([, l]) => l);
+
+/** A project's own id fields, as Settings › Advanced has them. */
+let custom: string[] = [];
+
+/** The setting's text as field names: comma- or space-separated, only what a field name can be. */
+export function parseFields(text: string): string[] {
+  return [...new Set(text.split(/[\s,]+/).filter((f) => /^[A-Za-z0-9_.@-]+$/.test(f)))];
+}
+
+export function setCorrelationFields(text: string) {
+  custom = parseFields(text).filter((f) => !BUILT_IN.some(([n]) => n.test(f)));
+  const own = custom.map((f): [RegExp, string] => [new RegExp(`^${f.replace(/\./g, "\\.")}$`, "i"), f]);
+  const all = [...BUILT_IN.slice(0, -1), ...own, BUILT_IN[BUILT_IN.length - 1]];
+  NAMES.splice(0, NAMES.length, ...all.map(([n]) => n));
+  NAME_LABELS.splice(0, NAME_LABELS.length, ...all.map(([, l]) => l));
+}
+
+/** The project's own id fields, for a query that asks for rows carrying any id. */
+export function customFields(): string[] {
+  return custom;
+}
 
 /** Graylog writes a dash where a field was empty, which is not something to follow. */
 export function identifying(value: unknown): boolean {

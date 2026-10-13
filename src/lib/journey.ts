@@ -1,4 +1,4 @@
-// One id's story across every stream: an ICCID, an order, a user. Each service writes to its own
+// One id's story across every stream: a request, an order, a user. Each service writes to its own
 // stream, so the story is told as lanes, one per stream, with a point for each line in time and
 // the failures in red — and the fields the id was found in, which is how a support question
 // ("this order failed") becomes the name of the field to search next time.

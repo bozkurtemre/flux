@@ -98,7 +98,17 @@ export function AuthGate({ children }: { children: ReactNode }) {
     // the link from the email, whether it started Flux or arrived while it was open
     const opened = (urls: string[] | null) => {
       const url = urls?.find((u) => u.startsWith(AUTH_CALLBACK));
-      if (url) void finishSignIn(url).then((s) => s && enter(s, true));
+      if (!url) return;
+      // a link opened while this Mac is already signed in only brings Flux forward: exchanging
+      // it again fails, used or not, and would put the sign-in screen over a working session
+      void signedInAs()
+        .catch(() => null)
+        .then((who) => {
+          if (!who) return finishSignIn(url).then((s) => s && enter(s, true));
+          const win = getCurrentWindow();
+          return Promise.all([win.unminimize(), win.show(), win.setFocus()]).then(() => {});
+        })
+        .catch(() => {});
     };
     void getCurrent()
       .then(opened)
@@ -308,12 +318,12 @@ function AppSlice() {
   const line = (values: number[], top: number) =>
     values.map((v, i) => `${(((i + 0.5) / values.length) * 100).toFixed(2)},${(H - Math.min(1, v / top) * H).toFixed(1)}`).join(" ");
   const rows: [string, string, string, string][] = [
-    ["10:42:09.412", "ERROR", "JTS", "Provider order failed for iccid 8990373315287398854: timeout after 8000ms"],
-    ["10:42:09.388", "ERROR", "JTS", "Provider order failed for iccid 8990958308297299803: timeout after 8000ms"],
-    ["10:42:08.901", "WARN", "JTS", "provider slow: took 2314 ms"],
-    ["10:42:08.517", "INFO", "Airalo", "Order created ord-10531"],
-    ["10:42:07.240", "ERROR", "JTS", "Provider order failed for iccid 8990112290412880051: timeout after 8000ms"],
-    ["10:42:06.903", "INFO", "Telna", "Order created ord-10529"],
+    ["10:42:09.412", "ERROR", "payments", "Charge failed for request 7f3a9c2e: upstream timeout after 8000ms"],
+    ["10:42:09.388", "ERROR", "payments", "Charge failed for request b81d04f6: upstream timeout after 8000ms"],
+    ["10:42:08.901", "WARN", "payments", "upstream slow: took 2314 ms"],
+    ["10:42:08.517", "INFO", "orders", "Order created ord-10531"],
+    ["10:42:07.240", "ERROR", "payments", "Charge failed for request 4c6e1a90: upstream timeout after 8000ms"],
+    ["10:42:06.903", "INFO", "auth", "Session started for user 1842"],
   ];
   const level: Record<string, string> = { ERROR: UI.red, WARN: UI.amber, INFO: UI.green };
   const cols = "52px 92px 52px 64px 1fr";
@@ -361,7 +371,7 @@ function AppSlice() {
               <span style={{ color: UI.dim }}>:</span>
               <span style={{ color: UI.str }}>WARN</span>
               <span style={{ color: UI.purple }}> | group by </span>
-              <span>provider</span>
+              <span>service</span>
             </span>
             <span className="ml-auto mr-3 flex items-center gap-1 rounded-[5px] px-2 py-[2px]" style={{ background: UI.hover, color: UI.green }}>
               ▶ <span style={{ color: UI.dim }}>Last 1 hour</span>
@@ -398,13 +408,13 @@ function AppSlice() {
           {/* the rows */}
           <div className="font-[var(--font-mono)] text-[10.5px]">
             <div className="grid h-[22px] items-center" style={{ gridTemplateColumns: cols, background: UI.tool, color: UI.dim }}>
-              {["#", "timestamp", "level", "provider", "message"].map((h) => (
+              {["#", "timestamp", "level", "service", "message"].map((h) => (
                 <span key={h} className="truncate px-2" style={{ borderRight: `1px solid ${UI.border}` }}>
                   {h}
                 </span>
               ))}
             </div>
-            {rows.map(([at, lvl, provider, message], i) => (
+            {rows.map(([at, lvl, service, message], i) => (
               <div
                 key={i}
                 className="grid h-[21px] items-center"
@@ -419,7 +429,7 @@ function AppSlice() {
                 <span className="truncate px-2 font-semibold" style={{ color: i === 1 ? UI.text : level[lvl] }}>
                   {lvl}
                 </span>
-                <span className="truncate px-2">{provider}</span>
+                <span className="truncate px-2">{service}</span>
                 <span className="truncate px-2">{message}</span>
               </div>
             ))}
@@ -554,11 +564,11 @@ const PITCH: { title: [string, string]; text: string }[] = [
   },
   {
     title: ["Why is this spike", "different?"],
-    text: "Drag across it with ⌥ held, and Flux tells you which version, provider or host it comes from.",
+    text: "Drag across it with ⌥ held, and Flux tells you which version, service or host it comes from.",
   },
   {
     title: ["One ID,", "every service."],
-    text: "Paste an ICCID, an order or a request id, and read its whole story across every stream — the failures in red.",
+    text: "Paste a request id, a trace id or a user id, and read its whole story across every stream — the failures in red.",
   },
 ];
 

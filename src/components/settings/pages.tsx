@@ -431,6 +431,14 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
 
   return (
     <>
+      <Section title="Correlation fields">
+        <Row
+          label="Your own id fields"
+          hint="What else ties one request's lines together in your logs, besides the trace, request, correlation, transaction, session, order and user ids Flux already knows. Separated by commas; used by Follow the request, Investigate and the service map."
+        >
+          <Text value={a.correlationFields} onChange={(v) => set("correlationFields", v)} placeholder="tenant_id, booking_ref" mono width={300} />
+        </Row>
+      </Section>
       <Section title="Caches">
         <Row
           label="Introspection cache"

@@ -1,5 +1,5 @@
 // What the same log line looks like when the things that differ every time are taken out.
-// Five hundred rows of "activation failed for iccid=8931..." are one problem, and counting
+// Five hundred rows of "payment failed for order=ord-10531..." are one problem, and counting
 // them as one is the difference between reading a page and reading a number.
 //
 // It is done here, over the rows already on screen, rather than in Graylog: the masking is a

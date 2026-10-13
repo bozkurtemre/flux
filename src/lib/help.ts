@@ -45,7 +45,7 @@ export const GETTING_STARTED = `# Getting started
 
 ## Trace an ID
 
-- **⇧⌘I** (or Search Everywhere › Trace) takes an ICCID, an order, a user or a request id and searches every stream for it, oldest first. Lanes over the results show which service said what and where it failed; a dot selects its row, and "found in" narrows the search to the field the id lives in.
+- **⇧⌘I** (or Search Everywhere › Trace) takes a request id, a trace id, an order, a user or an e-mail and searches every stream for it, oldest first. Lanes over the results show which service said what and where it failed; a dot selects its row, and "found in" narrows the search to the field the id lives in.
 
 ## Keep what works
 
