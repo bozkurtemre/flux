@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
+  Activity,
   Bookmark,
   Gauge,
   Bug,
@@ -33,6 +34,7 @@ import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
 import { open as pickFolder } from "@tauri-apps/plugin-dialog";
 import { homeDir } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 
 /** macOS traffic lights are overlaid by Tauri, so the bar keeps 78px clear on the left. */
 export function TitleBar() {
@@ -151,18 +153,26 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
-  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints } = useApp();
+  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints, view, setView } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
-      <StripeButton active tip="Connection Explorer">
+      <StripeButton active={view === "explorer"} tip="Connection Explorer" onClick={() => setView("explorer")}>
         <Server size={16} />
       </StripeButton>
-      <StripeButton tip="Fields" active={showFields} onClick={toggleFields}>
-        <Tags size={16} />
+      <StripeButton
+        active={view === "monitor"}
+        tip="Monitor (Beta)"
+        badge="BETA"
+        onClick={() => setView(view === "monitor" ? "explorer" : "monitor")}
+      >
+        <Activity size={16} />
       </StripeButton>
       <div className="flex-1" />
       <StripeButton tip="Terminal" tipKey="⌥F12" active={showTerminal} onClick={toggleTerminal}>
         <SquareTerminal size={16} />
+      </StripeButton>
+      <StripeButton tip="Fields" active={showFields} onClick={toggleFields}>
+        <Tags size={16} />
       </StripeButton>
       <StripeButton tip="Endpoints" active={showEndpoints} onClick={toggleEndpoints}>
         <Gauge size={16} />
@@ -209,6 +219,7 @@ function StripeButton({
   tipKey,
   disabled,
   dot,
+  badge,
   onClick,
 }: {
   children: ReactNode;
@@ -219,6 +230,8 @@ function StripeButton({
   disabled?: boolean;
   /** A tool window with something waiting says so with a mark in this colour. */
   dot?: string;
+  /** A word over the corner of the icon, for a tool window that is still settling: BETA. */
+  badge?: string;
   onClick?: () => void;
 }) {
   return (
@@ -242,6 +255,14 @@ function StripeButton({
           className="absolute translate-x-[9px] translate-y-[-9px] rounded-full"
           style={{ width: 6, height: 6, background: dot, border: "1px solid var(--bg-window)" }}
         />
+      )}
+      {badge && (
+        <span
+          className="pointer-events-none absolute -right-[5px] -bottom-[3px] rounded-[3px] px-[2px] text-[6.5px] leading-[9px] font-bold tracking-[0.02em]"
+          style={{ background: "var(--accent)", color: "#fff", border: "1px solid var(--bg-window)" }}
+        >
+          {badge}
+        </span>
       )}
     </button>
   );
@@ -278,6 +299,7 @@ export function StatusBar() {
       )}
       <span className="ml-auto flex shrink-0 items-center gap-3">
         <BackgroundTask />
+        {settings.appearance.usage !== false && <Usage />}
         <span>{settings.connections.length} connections</span>
         {update && (
           <button
@@ -344,7 +366,7 @@ function McpPopover({ onClose }: { onClose: () => void }) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 bottom-[26px] z-[70] w-[320px] rounded-[10px] p-3"
+      className="absolute right-0 bottom-[26px] z-[70] w-[320px] rounded-[10px] p-3 whitespace-normal"
       style={{ background: "var(--bg-tool)", border: "1px solid var(--border)", boxShadow: "0 18px 48px rgba(0,0,0,.55)" }}
     >
       <div className="flex items-center">
@@ -396,6 +418,45 @@ function McpPopover({ onClose }: { onClose: () => void }) {
  * What the window is doing right now: the newest job, how far along it is when it knows, and
  * a stop button only when there is something to stop.
  */
+/** What Flux itself uses, its webview and terminals with it: shares of the whole Mac. */
+function Usage() {
+  const [u, setU] = useState<{ cpu: number; memory: number; memory_bytes: number } | null>(null);
+  useEffect(() => {
+    // read every two seconds while the window is seen; a hidden window costs nothing to watch
+    const read = () => document.visibilityState === "visible" && void invoke<typeof u>("usage_read").then(setU, () => {});
+    read();
+    const every = setInterval(read, 2000);
+    return () => clearInterval(every);
+  }, []);
+  if (!u) return null;
+  const mb = u.memory_bytes / 1024 / 1024;
+  const size = mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+  return (
+    <span className="flex items-center gap-2.5 tabular-nums" data-tip={`Flux, with its webview and terminals: ${size} of memory`}>
+      <Meter label="CPU" value={u.cpu} />
+      <Meter label="RAM" value={u.memory} />
+    </span>
+  );
+}
+
+function Meter({ label, value }: { label: string; value: number }) {
+  const tone = value >= 80 ? "var(--red)" : value >= 50 ? "var(--amber)" : "var(--accent)";
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="text-[10px] font-medium tracking-wide" style={{ color: "var(--text-muted)" }}>
+        {label}
+      </span>
+      <span className="relative h-[4px] w-[28px] overflow-hidden rounded-full" style={{ background: "var(--bg-hover)" }}>
+        <span
+          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out"
+          style={{ width: `${Math.max(4, Math.min(100, value))}%`, background: tone }}
+        />
+      </span>
+      <span className="w-[30px] text-right">{value < 10 ? value.toFixed(1) : Math.round(value)}%</span>
+    </span>
+  );
+}
+
 function BackgroundTask() {
   const { tasks } = useApp();
   const task = visibleTask(tasks);

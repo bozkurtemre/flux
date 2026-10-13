@@ -40,7 +40,7 @@ const PAGES: PageDef[] = [
     id: "appearance",
     label: "Appearance",
     parent: "Appearance & Behavior",
-    keywords: "theme dark light accent colour font size density ui",
+    keywords: "theme dark light accent colour font size density ui status bar cpu memory ram usage resources",
     render: ({ s, patch }) => <AppearancePage s={s} patch={patch} />,
   },
   {

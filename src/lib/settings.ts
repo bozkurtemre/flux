@@ -36,6 +36,8 @@ export interface Appearance {
   theme: "dark" | "light" | "system";
   /** The island over the title bar, saying what is running and what is being watched. */
   island: boolean;
+  /** Flux's own CPU and memory, in the status bar. */
+  usage: boolean;
   uiFontSize: number; // px, chrome
   density: "compact" | "default" | "comfortable";
   accent: string; // hex
@@ -144,7 +146,7 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   connections: [],
   projects: [],
-  appearance: { island: true, theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
+  appearance: { island: true, usage: true, theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
   tree: {
     rowHeight: 24,
     indent: 14,
@@ -268,6 +270,15 @@ export async function toured(): Promise<boolean> {
 
 export async function markToured(): Promise<void> {
   await writeFile(FILES.device, "touredAt", new Date().toISOString()).catch(() => {});
+}
+
+/** The address this Mac last asked a sign-in for, so the next sign-in starts with it. Per Mac. */
+export async function lastEmail(): Promise<string> {
+  return (await readFile<string>(FILES.device, "lastEmail").catch(() => undefined)) ?? "";
+}
+
+export async function rememberEmail(email: string): Promise<void> {
+  await writeFile(FILES.device, "lastEmail", email).catch(() => {});
 }
 
 /** Pre-split installs kept everything under one key; read it once so nothing is lost. */

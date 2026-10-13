@@ -54,6 +54,16 @@ export function AppearancePage({ s, patch }: { s: Settings; patch: Patch }) {
           />
         </Row>
       </Section>
+      <Section title="Status Bar">
+        <Row>
+          <Checkbox
+            checked={a.usage !== false}
+            onChange={(v) => set("usage", v)}
+            label="Show Flux's CPU and memory use"
+            hint="What Flux itself takes, its webview and terminals with it, as shares of this Mac. Read every two seconds."
+          />
+        </Row>
+      </Section>
       <Section title="Interface">
         <Row label="UI font size" hint="Applies to the chrome: tree, tabs, dialogs. Editors and grids have their own size.">
           <Num value={a.uiFontSize} onChange={(v) => set("uiFontSize", v)} min={10} max={20} suffix="px" />

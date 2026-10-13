@@ -4,6 +4,7 @@ mod local;
 mod mcp;
 mod secrets;
 mod terminal;
+mod usage;
 mod workspace;
 
 use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu};
@@ -52,6 +53,7 @@ pub fn run() {
             island::island_open,
             local::local_list,
             local::local_read,
+            usage::usage_read,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does
@@ -108,6 +110,7 @@ pub fn run() {
                 &item("help:query", "Query Language", None)?,
                 &item("help:shortcuts", "Keyboard Shortcuts", None)?,
                 &item("help:whats-new", "What's New in Flux", None)?,
+                &item("help:tour", "Show the Tour Again", None)?,
                 &line()?,
                 &item("help:report", "Report a Problem…", None)?,
                 &item("help:diagnostics", "Copy Diagnostic Info", None)?,
