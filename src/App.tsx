@@ -12,6 +12,7 @@ import { CompareWindow } from "./components/CompareWindow";
 import { FieldsPanel } from "./components/FieldsPanel";
 import { HelpWindow } from "./components/HelpWindow";
 import { TraceDialog } from "./components/TraceDialog";
+import { Onboarding } from "./components/Onboarding";
 import { ReplayWindow } from "./components/ReplayWindow";
 import { LocatedWindow } from "./components/LocatedWindow";
 import { ServiceMapWindow } from "./components/ServiceMapWindow";
@@ -20,6 +21,7 @@ import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { EndpointsPanel } from "./components/EndpointsPanel";
+import { MonitorView } from "./components/MonitorView";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
 import { About } from "@/components/About";
@@ -65,6 +67,8 @@ export default function App() {
     settings,
     showTerminal,
     showEndpoints,
+    view,
+    showTour,
     terminalSize,
     setTerminalSize,
     rightTool,
@@ -386,49 +390,53 @@ export default function App() {
         <LeftStripe />
         <Group orientation="vertical" className="min-h-0 flex-1">
           <Panel minSize="20">
-            <Group orientation="horizontal" className="h-full min-h-0">
-              <Panel defaultSize="26" minSize="14" maxSize="50">
-                <Group orientation="vertical" className="h-full min-h-0">
-                  <Panel minSize="20">
-                    <div className="island h-full">
-                      <ConnectionExplorer />
-                    </div>
-                  </Panel>
-                  <Separator className="h-1.5" style={{ display: showFields ? undefined : "none" }} />
-                  {/* the fields of what is on screen, under the tree of what can be asked */}
-                  <Panel
-                    panelRef={fieldsPanel}
-                    collapsible
-                    collapsedSize={0}
-                    defaultSize={0}
-                    minSize="10"
-                    maxSize="70"
-                    onResize={(size) => useApp.getState().showFields && size.asPercentage > 1 && setFieldsSize(size.asPercentage)}
-                  >
-                    <FieldsPanel />
-                  </Panel>
-                </Group>
-              </Panel>
-              <Separator className="w-1.5" />
-              <Panel minSize="30">
-                <div className="island-editor h-full">
-                  <EditorArea />
-                </div>
-              </Panel>
-              <Separator className="w-1.5" style={{ display: rightTool ? undefined : "none" }} />
-              <Panel
-                panelRef={queriesPanel}
-                collapsible
-                collapsedSize={0}
-                defaultSize={0}
-                minSize="12"
-                maxSize="40"
-                onResize={(size) => useApp.getState().rightTool && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
-              >
-                {/* one dock, whichever tool window the stripe asked for */}
-                {rightTool === "notifications" ? <NotificationCenter /> : <SavedQueries />}
-              </Panel>
-            </Group>
+            {view === "monitor" && <MonitorView />}
+            {/* hidden rather than unmounted: tabs, scroll and panel sizes are where they were */}
+            <div className="h-full" style={{ display: view === "monitor" ? "none" : undefined }}>
+              <Group orientation="horizontal" className="h-full min-h-0">
+                <Panel defaultSize="26" minSize="14" maxSize="50">
+                  <Group orientation="vertical" className="h-full min-h-0">
+                    <Panel minSize="20">
+                      <div className="island h-full">
+                        <ConnectionExplorer />
+                      </div>
+                    </Panel>
+                    <Separator className="h-1.5" style={{ display: showFields ? undefined : "none" }} />
+                    {/* the fields of what is on screen, under the tree of what can be asked */}
+                    <Panel
+                      panelRef={fieldsPanel}
+                      collapsible
+                      collapsedSize={0}
+                      defaultSize={0}
+                      minSize="10"
+                      maxSize="70"
+                      onResize={(size) => useApp.getState().showFields && size.asPercentage > 1 && setFieldsSize(size.asPercentage)}
+                    >
+                      <FieldsPanel />
+                    </Panel>
+                  </Group>
+                </Panel>
+                <Separator className="w-1.5" />
+                <Panel minSize="30">
+                  <div className="island-editor h-full">
+                    <EditorArea />
+                  </div>
+                </Panel>
+                <Separator className="w-1.5" style={{ display: rightTool ? undefined : "none" }} />
+                <Panel
+                  panelRef={queriesPanel}
+                  collapsible
+                  collapsedSize={0}
+                  defaultSize={0}
+                  minSize="12"
+                  maxSize="40"
+                  onResize={(size) => useApp.getState().rightTool && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
+                >
+                  {/* one dock, whichever tool window the stripe asked for */}
+                  {rightTool === "notifications" ? <NotificationCenter /> : <SavedQueries />}
+                </Panel>
+              </Group>
+            </div>
           </Panel>
           <Separator className="h-1.5" style={{ display: bottomOpen ? undefined : "none" }} />
           {/* collapsed rather than unmounted: the height you dragged it to survives hiding it,
@@ -451,6 +459,12 @@ export default function App() {
       <Island />
       <HelpWindow />
       <TraceDialog />
+      {/* the tour again, over the IDE, from Help or Find Action */}
+      {showTour && (
+        <div className="fixed inset-0 z-[100]">
+          <Onboarding onDone={() => useApp.getState().setShowTour(false)} />
+        </div>
+      )}
       <ReplayWindow />
       <LocatedWindow />
       <ServiceMapWindow />

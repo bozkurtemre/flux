@@ -1,3 +1,4 @@
+import { Veil } from "./Veil";
 import { useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -37,22 +38,25 @@ export function ConnectionExplorer() {
     <div className="flex h-full flex-col" style={{ background: "var(--bg-tool)" }}>
       <PanelHeader />
       <PanelToolbar />
-      <FilterBox />
-      <div ref={parentRef} className="flex-1 overflow-auto">
-        {state.settings.connections.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div style={{ height: v.getTotalSize(), position: "relative" }}>
-            {v.getVirtualItems().map((item) => (
-              <div
-                key={rows[item.index].id}
-                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: ROW, transform: `translateY(${item.start}px)` }}
-              >
-                <Row node={rows[item.index]} onMenu={(x, y, node) => setMenu({ x, y, node })} />
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <FilterBox />
+        <div ref={parentRef} className="flex-1 overflow-auto">
+          {state.settings.connections.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div style={{ height: v.getTotalSize(), position: "relative" }}>
+              {v.getVirtualItems().map((item) => (
+                <div
+                  key={rows[item.index].id}
+                  style={{ position: "absolute", top: 0, left: 0, width: "100%", height: ROW, transform: `translateY(${item.start}px)` }}
+                >
+                  <Row node={rows[item.index]} onMenu={(x, y, node) => setMenu({ x, y, node })} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <Veil kind="tree" />
       </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuFor(menu.node, (c) => setConfirm(c))} onClose={() => setMenu(null)} />}
       {confirm && (

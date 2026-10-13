@@ -11,6 +11,7 @@ import { ResultGrid } from "./ResultGrid";
 import { ValueInspector } from "./ValueInspector";
 import { EndpointIcon, StreamIcon } from "./icons";
 import { Logo } from "./Logo";
+import { Veil } from "./Veil";
 import { unsaved } from "@/lib/queries";
 import { useApp, type Tab } from "@/store";
 
@@ -21,7 +22,10 @@ export function EditorArea() {
   return (
     <div className="flex h-full flex-col">
       <TabStrip />
-      {tab ? <TabBody tab={tab} /> : <Welcome />}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {tab ? <TabBody tab={tab} /> : <Welcome />}
+        <Veil kind="editor" />
+      </div>
     </div>
   );
 }

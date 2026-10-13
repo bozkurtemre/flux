@@ -163,6 +163,15 @@ interface State {
   showTerminal: boolean;
   /** Endpoints shares the terminal's place at the bottom; one of the two is shown at a time. */
   showEndpoints: boolean;
+  /** The main area: the explorer and its consoles, or the Monitor dashboard in their place. */
+  view: "explorer" | "monitor";
+  /** The tour, played again over the IDE from Help or Find Action. */
+  showTour: boolean;
+  setShowTour: (show: boolean) => void;
+  /** How many times the explorer has come back from the Monitor: each one plays its shimmer once. */
+  returns: number;
+  /** What the Monitor watches, kept while it is closed: a connection, and one stream or all of them. */
+  monitorScope: { connId?: string; streamId?: string };
   /** The saved queries of the workspace that is open, newest first. */
   savedQueries: SavedQuery[];
   /** Every query that was run, newest first, whether it was worth saving or not. */
@@ -229,6 +238,8 @@ interface State {
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
   toggleEndpoints: () => void;
+  setView: (view: "explorer" | "monitor") => void;
+  setMonitorScope: (scope: { connId?: string; streamId?: string }) => void;
   /** Ask every connection whether it is there. Quiet: nothing is notified, the tree shows it. */
   checkConnections: () => Promise<void>;
   toggleRightTool: (tool: "queries" | "notifications") => void;
@@ -374,6 +385,11 @@ export const useApp = create<State>((set, get) => ({
   terminals: [],
   showTerminal: false,
   showEndpoints: false,
+  view: "explorer",
+  returns: 0,
+  showTour: false,
+  setShowTour: (showTour) => set({ showTour }),
+  monitorScope: {},
   savedQueries: [],
   history: [],
   health: {},
@@ -1216,6 +1232,9 @@ export const useApp = create<State>((set, get) => ({
     set({ showTerminal: !get().showTerminal, showEndpoints: false });
     persist(get);
   },
+
+  setView: (view) => set((s) => ({ view, returns: s.view === "monitor" && view === "explorer" ? s.returns + 1 : s.returns })),
+  setMonitorScope: (monitorScope) => set({ monitorScope }),
 
   toggleEndpoints: () => set({ showEndpoints: !get().showEndpoints, showTerminal: false }),
 
