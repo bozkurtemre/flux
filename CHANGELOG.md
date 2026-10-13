@@ -3,6 +3,24 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.29.0
+
+### Added
+
+- **Settings › Advanced › Correlation fields**: your own id fields — a tenant, a booking, anything
+  your services share — followed by Follow the request, Investigate and the service map,
+  besides the trace, request, correlation, transaction, session, order and user ids Flux knows.
+
+### Changed
+
+- Flux no longer has domain-specific id names built in; add yours under Correlation fields.
+- The update notice says a changelog is available, rather than showing its first line.
+
+### Fixed
+
+- Opening a sign-in link while already signed in brings Flux forward instead of showing the
+  sign-in screen with an expired-link error.
+
 ## 0.28.1
 
 ### Changed
