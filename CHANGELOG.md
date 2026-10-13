@@ -3,6 +3,32 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.30.0
+
+### Added
+
+- **Monitor (Beta)**: a live dashboard of a connection's logs, under Connection Explorer in the
+  left stripe — throughput, failures, error rate, p95, hosts, levels and the failures that repeat,
+  for one stream or all of them, picked from the corner.
+- Flux's own CPU and memory in the status bar, its webview and terminals included; Settings ›
+  Appearance › Status Bar hides it.
+- Sign in with the six-digit code in the email, for when the link opens on another device.
+- After the email is sent, a button opens your inbox: Gmail, Outlook, iCloud and others.
+- The tour has three new steps — explaining a spike, tracing one id across services, and handing
+  Flux to Claude Code — with captions, and Help › Show the Tour Again plays it any time.
+
+### Changed
+
+- The sign-in screen remembers the address you last used, and its preview of Flux runs live.
+- The tour fills the window, moves on with Enter and shows its keys.
+- Coming back from the Monitor, the explorer's content shimmers in while its headings stay put.
+- The Fields tool window moved under the Terminal in the left stripe.
+
+### Fixed
+
+- The MCP popover's last line no longer runs out of the popover.
+- The streams behind the sign-in screen no longer stutter while its preview updates.
+
 ## 0.29.1
 
 ### Changed
