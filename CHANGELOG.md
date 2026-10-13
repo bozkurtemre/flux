@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.28.0
+
+### Added
+
+- **Endpoints**, a tool window at the bottom (the gauge under the terminal): every endpoint Flux
+  has derived, across every stream and connection, sorted by the slowest, the most failing, the
+  most errors or the busiest. It reads what the tree has cached, so it opens at once; a row opens
+  that endpoint's console, and Refresh derives them all again from the sources.
+
+### Removed
+
+- The version control button under the terminal, which did nothing.
+
 ## 0.27.0
 
 ### Added
