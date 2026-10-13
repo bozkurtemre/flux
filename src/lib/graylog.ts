@@ -2,6 +2,12 @@
 // the views API, which is how Graylog's own interface asks, answers the rest.
 import { request, type Bucket, type DataSource, type FieldInfo, type MessagePage, type Metric, type Stream, type TimeRange } from "./datasource";
 
+/** A number Graylog sent, or nothing: a metric over no values comes back as "NaN", not as null. */
+export function finite(v: unknown): number | undefined {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export class Graylog implements DataSource {
   readonly kind = "graylog" as const;
   private auth: string;
@@ -222,7 +228,8 @@ export class Graylog implements DataSource {
     return leaves("all", "p").map((r) => ({
       at: r.key[0],
       count: value(r, "count()") ?? 0,
-      p95: value(r, "p95"),
+      // a bucket with no durations has no percentile, which Graylog answers with "NaN"
+      p95: finite(value(r, "p95")),
       errors: errors.get(r.key[0]) ?? 0,
     }));
   }
