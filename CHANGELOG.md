@@ -3,6 +3,20 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.27.0
+
+### Added
+
+- **The lanes over a traced id fold away**, as the timeline does, and **Settings › Results
+  Grid** can turn them off.
+- **A clear button in the settings search**, which takes the marks off the pages with it.
+- The source of a connection is picked from a list that shows each source's icon.
+
+### Fixed
+
+- The bug button in the title bar opens a report again.
+- The add buttons under the connections list fit beside Import.
+
 ## 0.26.0
 
 ### Added
