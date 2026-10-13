@@ -1,6 +1,6 @@
 [package]
 name = "flux"
-version = "0.29.1"
+version = "0.30.0"
 description = "The modern log explorer, for Graylog"
 authors = ["you"]
 edition = "2021"
