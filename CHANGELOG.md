@@ -3,6 +3,15 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.28.1
+
+### Changed
+
+- **The tour after signing in is shown once per Mac**, not after every sign-in.
+- **The sign-in email is drawn as a Flux window** — its title bar, an editor with the request
+  written as the console writes it, and the status bar — and prints the link for pasting into
+  Flux when it was opened on another device.
+
 ## 0.28.0
 
 ### Added
