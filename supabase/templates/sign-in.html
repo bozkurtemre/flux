@@ -283,18 +283,14 @@
                         </tr>
                       </table>
 
-                      <!-- the way in for a link opened somewhere else: Flux takes it pasted -->
-                      <p style="margin: 22px 0 6px; font-size: 12px; line-height: 1.6; color: #6f737a">
+                      <!-- a link opened on another device: copied and opened on the Mac, it signs in there -->
+                      <p style="margin: 22px 0 0; font-size: 12px; line-height: 1.6; color: #6f737a">
                         <span class="gs"
                           ><span class="gd"
-                            >Opened this on another device? Copy the link and paste it into Flux, under &ldquo;The link opened somewhere
-                            else?&rdquo;</span
+                            >Opened this on another device? Copy
+                            <a href="{{ .ConfirmationURL }}" style="color: #6b9bf5; text-decoration: underline">this sign-in link</a> and open it on
+                            the Mac where Flux is running.</span
                           ></span
-                        >
-                      </p>
-                      <p class="mono" style="margin: 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-all">
-                        <a href="{{ .ConfirmationURL }}" style="color: #6b9bf5; text-decoration: none"
-                          ><span class="gs"><span class="gd">{{ .ConfirmationURL }}</span></span></a
                         >
                       </p>
                     </td>
