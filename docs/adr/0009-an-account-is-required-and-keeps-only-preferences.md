@@ -29,8 +29,9 @@ session in storage stands until Supabase answers again — so the check revokes 
 rather than proving every launch is online. Preferences pulled behind the IDE are written to disk
 and take effect from the next launch.
 
-Supabase's own email allows a handful of messages an hour and delivers only to the project's
-members. Anyone else signing in needs a real SMTP provider configured on the project. The
+Supabase's own email allows two messages an hour and delivers only to the project's members,
+so the links go out through Resend instead, from `noreply@flux.emreb.dev`, at up to a hundred an
+hour. Its key is not in the repository: `config push` reads it from `RESEND_API_KEY`. The
 project's auth settings, email template and schema live in `supabase/` and are applied with the
 Supabase CLI, so the setup can be read and redone rather than remembered.
 
