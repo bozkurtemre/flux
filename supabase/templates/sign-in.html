@@ -1,53 +1,156 @@
 <!doctype html>
-<html>
-  <body
-    style="
-      margin: 0;
-      padding: 32px 16px;
-      background: #1e1f22;
-      font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;
-      color: #dfe1e5;
-    "
-  >
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+<!--
+  The sign-in email, dressed as the app: its dark theme, its fonts and its logo. Inter and
+  JetBrains Mono load where the mail client allows it (Apple Mail, iOS); elsewhere the system
+  font stands in. The logo is a PNG served from updates.emreb.dev, since mail clients do not
+  draw SVG; its source is flux-logo.png beside this file.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
+    <title>Sign in to Flux</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body,
+      td,
+      a {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      .mono {
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+      }
+      @media (max-width: 520px) {
+        .card {
+          width: 100% !important;
+        }
+        .pad {
+          padding: 24px !important;
+        }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 0; background: #111214; color: #dfe1e5">
+    <!-- the line a mail client shows beside the subject -->
+    <div style="display: none; max-height: 0; overflow: hidden">Your link to sign in to Flux. It is good for 15 minutes.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111214" style="background: #111214">
       <tr>
-        <td align="center">
+        <td align="center" style="padding: 40px 16px">
+          <!-- the logo and the name, as the title bar has them -->
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="card">
+            <tr>
+              <td style="padding: 0 4px 18px">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle">
+                      <img src="https://updates.emreb.dev/brand/flux-logo.png" width="36" height="36" alt="Flux" style="display: block; border: 0" />
+                    </td>
+                    <td style="vertical-align: middle; padding-left: 12px; font-size: 18px; font-weight: 600; color: #dfe1e5; letter-spacing: -0.2px">
+                      Flux
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+
+          <!-- the card: an editor island on the window -->
           <table
             role="presentation"
-            width="440"
+            width="480"
             cellpadding="0"
             cellspacing="0"
-            style="background: #2b2d30; border: 1px solid #393b40; border-radius: 12px; padding: 32px"
+            class="card"
+            bgcolor="#1e1f22"
+            style="background: #1e1f22; border: 1px solid #303337; border-radius: 12px"
           >
+            <!-- the teal of the logo, as a thin edge -->
             <tr>
-              <td style="font-size: 20px; font-weight: 600; padding-bottom: 8px">Sign in to Flux</td>
-            </tr>
-            <tr>
-              <td style="font-size: 14px; line-height: 1.55; color: #a8adb6; padding-bottom: 24px">
-                Open this on the Mac where Flux is running. The link signs you in there, and is good for 15 minutes.
+              <td
+                height="3"
+                style="
+                  height: 3px;
+                  line-height: 3px;
+                  font-size: 0;
+                  border-radius: 12px 12px 0 0;
+                  background: #22c8b2;
+                  background-image: linear-gradient(90deg, #8cf7e2, #22c8b2 40%, #0a6180);
+                "
+              >
+                &nbsp;
               </td>
             </tr>
             <tr>
-              <td>
-                <a
-                  href="{{ .ConfirmationURL }}"
-                  style="
-                    display: inline-block;
-                    background: #3574f0;
-                    color: #ffffff;
-                    text-decoration: none;
-                    font-size: 14px;
-                    font-weight: 600;
-                    padding: 11px 20px;
-                    border-radius: 7px;
-                  "
-                  >Sign in to Flux</a
+              <td class="pad" style="padding: 32px 36px 34px">
+                <!-- a console line, as the app would write the request -->
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellpadding="0"
+                  cellspacing="0"
+                  bgcolor="#26282c"
+                  style="background: #26282c; border-radius: 8px"
                 >
+                  <tr>
+                    <td class="mono" style="padding: 10px 14px; font-size: 12px; line-height: 1.5; color: #9da0a8; word-break: break-all">
+                      <span style="color: #6f737a">1&nbsp;&nbsp;</span><span style="color: #56a8f5">email</span><span style="color: #9da0a8">:</span
+                      ><span style="color: #6aab73">"{{ .Email }}"</span><span style="color: #c77dbb"> | sign in</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <h1 style="margin: 26px 0 8px; font-size: 24px; line-height: 1.25; font-weight: 600; color: #dfe1e5; letter-spacing: -0.4px">
+                  Sign in to Flux
+                </h1>
+                <p style="margin: 0 0 26px; font-size: 14px; line-height: 1.6; color: #9da0a8">
+                  Open this on the Mac where Flux is running. The link signs you in there and brings your preferences with you.
+                </p>
+
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td bgcolor="#3574f0" style="background: #3574f0; border-radius: 8px">
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        style="
+                          display: inline-block;
+                          padding: 12px 22px;
+                          font-size: 14px;
+                          font-weight: 600;
+                          color: #ffffff;
+                          text-decoration: none;
+                          border-radius: 8px;
+                        "
+                        >Sign in to Flux&nbsp;&nbsp;&rarr;</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+
+                <p class="mono" style="margin: 22px 0 0; font-size: 11.5px; line-height: 1.6; color: #6f737a">
+                  <span style="color: #5fad65">&#9679;</span>&nbsp; good for 15 minutes &middot; only on the Mac that asked
+                </p>
               </td>
             </tr>
+          </table>
+
+          <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="card">
             <tr>
-              <td style="font-size: 12px; line-height: 1.5; color: #7a7e85; padding-top: 24px">
-                If you did not ask to sign in, ignore this email: nothing happens without the link.
+              <td style="padding: 20px 4px 0; font-size: 12px; line-height: 1.6; color: #6f737a">
+                If you did not ask to sign in, ignore this email: nothing happens without the link.<br />
+                <span style="color: #4f535a">Flux &mdash; the modern log explorer.</span>
               </td>
             </tr>
           </table>
