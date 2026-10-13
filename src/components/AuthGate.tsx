@@ -307,11 +307,13 @@ function Streams() {
         </defs>
       </svg>
       {/* each stream its own layer, moved by the compositor: a transform inside one SVG is
-          repainted on the main thread, and stalls whenever React draws the slice beside it */}
+          repainted on the main thread, and stalls whenever React draws the slice beside it.
+          Not clipped to its own box, which moves with it: the waves run past it, and the panel
+          is what cuts them off */}
       {streams.map((s, i) => (
         <svg
           key={i}
-          className="flux-stream absolute inset-0 h-full w-full"
+          className="flux-stream absolute inset-0 h-full w-full overflow-visible"
           viewBox="0 0 1200 900"
           preserveAspectRatio="xMidYMid slice"
           style={{ animationDuration: `${s.duration}s`, animationDelay: `${-i * 1.7}s`, willChange: "transform" }}
