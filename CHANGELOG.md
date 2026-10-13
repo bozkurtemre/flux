@@ -3,6 +3,21 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.25.0
+
+### Added
+
+- **A short tour after you first sign in**: connecting a source, saving a query and letting Flux
+  watch it, played out on the app itself.
+
+### Changed
+
+- **Flux opens straight away when you are already signed in.** The session is still checked
+  every launch, behind the window; if it has ended, Flux asks you to sign in again or quit.
+- The Notifications and Queries panels have the same heading as the Connection Explorer, and
+  Saved Queries is now called Queries.
+- The version on the sign-in screen is no longer a button; What's new has its own.
+
 ## 0.24.0
 
 ### Added
