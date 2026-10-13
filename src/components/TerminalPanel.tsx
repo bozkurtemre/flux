@@ -42,7 +42,7 @@ export async function pasteIntoTerminal(text: string): Promise<boolean> {
  */
 export async function sendToClaude(text: string): Promise<void> {
   const pasted = await pasteIntoTerminal(text).catch(() => false);
-  if (pasted) useApp.setState({ showTerminal: true });
+  if (pasted) useApp.setState({ showTerminal: true, showEndpoints: false });
   else useApp.getState().notify("info", "Paste to Claude", "Open a terminal first, with ⌥F12.");
 }
 

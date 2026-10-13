@@ -161,6 +161,8 @@ interface State {
   terminals: TerminalTab[];
   activeTerminal?: string;
   showTerminal: boolean;
+  /** Endpoints shares the terminal's place at the bottom; one of the two is shown at a time. */
+  showEndpoints: boolean;
   /** The saved queries of the workspace that is open, newest first. */
   savedQueries: SavedQuery[];
   /** Every query that was run, newest first, whether it was worth saving or not. */
@@ -226,6 +228,7 @@ interface State {
   closeTerminal: (id: string) => void;
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
+  toggleEndpoints: () => void;
   /** Ask every connection whether it is there. Quiet: nothing is notified, the tree shows it. */
   checkConnections: () => Promise<void>;
   toggleRightTool: (tool: "queries" | "notifications") => void;
@@ -370,6 +373,7 @@ export const useApp = create<State>((set, get) => ({
   indexing: false,
   terminals: [],
   showTerminal: false,
+  showEndpoints: false,
   savedQueries: [],
   history: [],
   health: {},
@@ -488,7 +492,7 @@ export const useApp = create<State>((set, get) => ({
       return;
     }
     const tab: TerminalTab = { id: crypto.randomUUID(), projectId, title };
-    set({ terminals: [...get().terminals, tab], activeTerminal: tab.id, showTerminal: true });
+    set({ terminals: [...get().terminals, tab], activeTerminal: tab.id, showTerminal: true, showEndpoints: false });
     persist(get);
   },
 
@@ -1206,9 +1210,11 @@ export const useApp = create<State>((set, get) => ({
   },
 
   toggleTerminal: () => {
-    set({ showTerminal: !get().showTerminal });
+    set({ showTerminal: !get().showTerminal, showEndpoints: false });
     persist(get);
   },
+
+  toggleEndpoints: () => set({ showEndpoints: !get().showEndpoints, showTerminal: false }),
 
   setTerminalSize: (terminalSize) => {
     if (Math.abs(terminalSize - get().terminalSize) < 0.5) return;
@@ -2291,6 +2297,19 @@ function streamNode(s: Stream, connId: string, depth: number): TreeNode {
 }
 
 /**
+ * A stream's endpoints derived again from the source and written to the cache, which is what
+ * Refresh does to a stream in the tree and to every stream in the Endpoints panel.
+ */
+export async function deriveEndpoints(conn: Connection, streamId: string, signal?: AbortSignal): Promise<EndpointRow[]> {
+  const t = useApp.getState().settings.tree;
+  const g = clientFor(conn);
+  const fields = await g.fields(streamId, undefined, signal).catch(() => []);
+  const rows = await endpointsFrom(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit, signal });
+  await cache.putStream(cache.cacheKey(conn.id), streamId, { endpoints: rows, fields });
+  return rows;
+}
+
+/**
  * Stream children: one aggregation over the stream's traffic, normalized into endpoint
  * templates. Served from the cache when there is one, exactly as the IDE serves an
  * introspected schema; Refresh is what re-reads the source.
@@ -2301,13 +2320,7 @@ async function streamChildren(node: TreeNode, conn: Connection, force: boolean, 
   const streamId = node.streamId!;
   const cached = (await cache.load(key)).byStream[streamId];
 
-  let rows = cached?.endpoints;
-  if (force || !rows) {
-    const g = clientFor(conn);
-    const fields = await g.fields(streamId, undefined, signal).catch(() => []);
-    rows = await endpointsFrom(g, streamId, fields, { lookbackHours: t.lookbackHours, limit: t.endpointLimit, signal });
-    await cache.putStream(key, streamId, { endpoints: rows, fields });
-  }
+  const rows = force || !cached?.endpoints ? await deriveEndpoints(conn, streamId, signal) : cached.endpoints;
 
   return sortEndpoints(rows, t.sortEndpointsBy)
     .slice(0, t.endpointLimit)

@@ -19,6 +19,7 @@ import { InvestigationWindow } from "./components/InvestigationWindow";
 import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
+import { EndpointsPanel } from "./components/EndpointsPanel";
 import { TerminalPanel } from "@/components/TerminalPanel";
 import { Notifications } from "@/components/Notifications";
 import { About } from "@/components/About";
@@ -63,6 +64,7 @@ export default function App() {
     runQuery,
     settings,
     showTerminal,
+    showEndpoints,
     terminalSize,
     setTerminalSize,
     rightTool,
@@ -180,11 +182,13 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [activeTab, runQuery]);
 
-  // the panel answers the stripe button, at the height it was left at
+  // the panel answers the stripe button, at the height it was left at; the terminal and Endpoints
+  // take turns in it
+  const bottomOpen = showTerminal || showEndpoints;
   useEffect(() => {
     const panel = terminalPanel.current;
     if (!panel) return;
-    if (showTerminal) {
+    if (bottomOpen) {
       panel.expand();
       // a bare number is pixels to this library, and 32 pixels is below the minimum, which
       // collapsed the panel again the moment it was asked to open
@@ -194,7 +198,7 @@ export default function App() {
     }
     // terminalSize is deliberately absent: dragging must not re-drive the panel it came from
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showTerminal]);
+  }, [bottomOpen]);
 
   // the right tool window answers its stripe button the way the terminal answers its own
   useEffect(() => {
@@ -221,7 +225,8 @@ export default function App() {
   }, [showFields]);
 
   const onTerminalResize = (size: { asPercentage: number }) => {
-    if (useApp.getState().showTerminal && size.asPercentage > 1) setTerminalSize(size.asPercentage);
+    const { showTerminal, showEndpoints } = useApp.getState();
+    if ((showTerminal || showEndpoints) && size.asPercentage > 1) setTerminalSize(size.asPercentage);
   };
 
   // Is each connection still there? The tree used to answer "whatever was loaded last", so a
@@ -425,11 +430,14 @@ export default function App() {
               </Panel>
             </Group>
           </Panel>
-          <Separator className="h-1.5" style={{ display: showTerminal ? undefined : "none" }} />
+          <Separator className="h-1.5" style={{ display: bottomOpen ? undefined : "none" }} />
           {/* collapsed rather than unmounted: the height you dragged it to survives hiding it,
               and so do the terminals, which would otherwise be torn down and started again */}
           <Panel panelRef={terminalPanel} collapsible collapsedSize={0} defaultSize={0} minSize="10" maxSize="80" onResize={onTerminalResize}>
-            <TerminalPanel />
+            <div className="h-full" style={{ display: showEndpoints ? "none" : undefined }}>
+              <TerminalPanel />
+            </div>
+            {showEndpoints && <EndpointsPanel />}
           </Panel>
         </Group>
         <RightStripe />

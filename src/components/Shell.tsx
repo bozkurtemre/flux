@@ -2,12 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Bell,
   Bookmark,
+  Gauge,
   Bug,
   ChevronDown,
   Folder,
   FolderOpen,
   FolderX,
-  GitBranch,
   Keyboard,
   MoreVertical,
   Palette,
@@ -151,7 +151,7 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
-  const { showTerminal, toggleTerminal, showFields, toggleFields } = useApp();
+  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints } = useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton active tip="Connection Explorer">
@@ -164,8 +164,8 @@ export function LeftStripe() {
       <StripeButton tip="Terminal" tipKey="⌥F12" active={showTerminal} onClick={toggleTerminal}>
         <SquareTerminal size={16} />
       </StripeButton>
-      <StripeButton tip="Version control">
-        <GitBranch size={16} />
+      <StripeButton tip="Endpoints" active={showEndpoints} onClick={toggleEndpoints}>
+        <Gauge size={16} />
       </StripeButton>
     </div>
   );
