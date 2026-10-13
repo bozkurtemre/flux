@@ -3,6 +3,12 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.30.2
+
+### Fixed
+
+- The timeline over a Graylog stream with no durations no longer says "p95 up to NaN ms".
+
 ## 0.30.1
 
 ### Fixed
