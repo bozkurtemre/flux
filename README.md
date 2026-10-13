@@ -165,6 +165,7 @@ queries are never synced: they stay on the machine they were set up on. See `doc
 | `session.json`       | config directory   | which tabs and branches were open with no workspace open |
 | `queries.json`       | config directory   | the queries you kept with no workspace open              |
 | `.window-state.json` | config directory   | the size and place of the window                         |
+| `device.json`        | config directory   | that this Mac has seen the tour, which then shows again  |
 | `<folder>/.flux/`    | the workspace      | that folder's stream grouping, saved queries and session |
 | Introspection cache  | OS cache directory | nothing, it is re-read from the source                   |
 | Your preferences     | your Flux account  | nothing, this Mac keeps its own copy too                 |

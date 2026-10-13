@@ -227,6 +227,8 @@ const FILES = {
   connections: "connections.json",
   projects: "projects.json",
   preferences: "preferences.json",
+  /** What belongs to this Mac alone and is never synced: so far, whether the tour was shown. */
+  device: "device.json",
 } as const;
 
 /** Bump when a file's shape changes in a way older readers cannot handle. */
@@ -254,6 +256,16 @@ async function writeFile(name: string, key: string, value: unknown): Promise<voi
   await s.set("formatVersion", FORMAT_VERSION);
   await s.set(key, value);
   await s.save();
+}
+
+/** Whether the tour after signing in has been shown on this Mac. It lives with the config, so
+ *  removing Flux with its data shows it again, and it is not a preference, so it never syncs. */
+export async function toured(): Promise<boolean> {
+  return !!(await readFile<string>(FILES.device, "touredAt").catch(() => undefined));
+}
+
+export async function markToured(): Promise<void> {
+  await writeFile(FILES.device, "touredAt", new Date().toISOString()).catch(() => {});
 }
 
 /** Pre-split installs kept everything under one key; read it once so nothing is lost. */

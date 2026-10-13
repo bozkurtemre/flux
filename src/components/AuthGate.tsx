@@ -21,6 +21,7 @@ import { UI } from "./darkUi";
 import { Onboarding } from "./Onboarding";
 import { Spinner } from "./icons";
 import { AUTH_CALLBACK, finishSignIn, isEmail, pullPreferences, sendLink, signedInAs, verify, type AuthState } from "@/lib/cloud";
+import { markToured, toured } from "@/lib/settings";
 import { failureReason } from "@/lib/progress";
 
 /** The teal of the logo: the panel that says what Flux is wears its colour, not the chosen accent. */
@@ -41,8 +42,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "checking" });
   const [ready, setReady] = useState(false);
   const [welcome, setWelcome] = useState(false);
-  // the tour follows the welcome, so it is seen once, by someone who has just signed in
+  // the tour follows the welcome, once per Mac; make dev shows it every time, to work on it
   const [touring, setTouring] = useState(false);
+  const afterWelcome = () =>
+    void (import.meta.env.DEV ? Promise.resolve(false) : toured()).then((seen) => (seen ? setReady(true) : setTouring(true)));
   const [booted, setBooted] = useState(false);
   const [expired, setExpired] = useState<string | null>(null);
 
@@ -109,6 +112,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return (
       <Onboarding
         onDone={() => {
+          void markToured();
           setTouring(false);
           setReady(true);
         }}
@@ -151,7 +155,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             onSignedOut={(error) => setState({ status: "signed-out", error })}
             onLink={(url) => void finishSignIn(url).then((s) => s && enter(s, true))}
             welcome={welcome}
-            onIn={() => setTouring(true)}
+            onIn={afterWelcome}
             onSkip={skip}
           />
         </div>
