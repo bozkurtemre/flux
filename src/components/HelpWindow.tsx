@@ -45,6 +45,7 @@ export function HelpWindow() {
       const what = event.payload;
       if (what === "start" || what === "query" || what === "whats-new") return setPage(what);
       if (what === "find-action") return app.setShowSearch(true, "actions");
+      if (what === "tour") return app.setShowTour(true);
       if (what === "shortcuts") return app.setShowSettings(true, "keymap");
       if (what === "report") return void reportProblem();
       if (what === "diagnostics") {

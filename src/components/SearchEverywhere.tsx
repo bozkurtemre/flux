@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Settings2, SunMoon, FoldVertical, History, RefreshCw, Fingerprint, Waypoints } from "lucide-react";
+import { Compass, Fingerprint, FoldVertical, History, RefreshCw, Search, Settings2, SunMoon, Waypoints } from "lucide-react";
 import { ConnectionIcon, EndpointIcon, ProjectIcon, StreamIcon } from "./icons";
 import { useApp, type TreeNode } from "@/store";
 
@@ -82,6 +82,14 @@ export function SearchEverywhere() {
           const conn = app.tabs.find((t) => t.id === app.activeTab)?.connId ?? app.settings.connections[0]?.id;
           if (conn) void app.openServiceMap(conn);
         },
+      },
+      {
+        key: "a:tour",
+        group: "Actions",
+        title: "Show the tour again",
+        score: 0,
+        icon: <Compass size={14} style={{ color: "var(--text-dim)" }} />,
+        run: () => useApp.getState().setShowTour(true),
       },
       {
         key: "a:collapse",
