@@ -1,6 +1,7 @@
 <!doctype html>
 <!--
-  The sign-in email, dressed as the app: its dark theme, its fonts and its logo. Inter and
+  The sign-in email, drawn as a Flux window: the title bar with its tab, an editor island with
+  the request written as a console would write it, and the status bar along the foot. Inter and
   JetBrains Mono load where the mail client allows it (Apple Mail, iOS); elsewhere the system
   font stands in. The logo is a PNG served from updates.emreb.dev, since mail clients do not
   draw SVG; its source is flux-logo.png beside this file.
@@ -46,17 +47,21 @@
         background: #000;
         mix-blend-mode: difference;
       }
-      @media (max-width: 520px) {
-        .card {
+      @media (max-width: 560px) {
+        .window {
           width: 100% !important;
         }
         .pad {
-          padding: 24px !important;
+          padding-left: 22px !important;
+          padding-right: 22px !important;
+        }
+        .wide {
+          display: none !important;
         }
       }
     </style>
   </head>
-  <body class="body" style="margin: 0; padding: 0; background: #111214; background-image: linear-gradient(#111214, #111214); color: #dfe1e5">
+  <body class="body" style="margin: 0; padding: 0; background: #0c0d0f; background-image: linear-gradient(#0c0d0f, #0c0d0f); color: #dfe1e5">
     <!-- the line a mail client shows beside the subject -->
     <div style="display: none; max-height: 0; overflow: hidden">Your link to sign in to Flux. It is good for 15 minutes.</div>
     <table
@@ -64,130 +69,265 @@
       width="100%"
       cellpadding="0"
       cellspacing="0"
-      bgcolor="#111214"
-      style="background: #111214; background-image: linear-gradient(#111214, #111214)"
+      bgcolor="#0c0d0f"
+      style="background: #0c0d0f; background-image: linear-gradient(#0c0d0f, #0c0d0f)"
     >
       <tr>
-        <td align="center" style="padding: 40px 16px">
-          <!-- the logo and the name, as the title bar has them -->
-          <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="card">
+        <td align="center" style="padding: 40px 14px">
+          <!-- the window -->
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            class="window"
+            bgcolor="#111214"
+            style="
+              max-width: 540px;
+              background: #111214;
+              background-image: linear-gradient(#111214, #111214);
+              border: 1px solid #2b2d31;
+              border-radius: 12px;
+            "
+          >
+            <!-- the title bar: the lights, the logo and the one tab -->
             <tr>
-              <td style="padding: 0 4px 18px">
-                <table role="presentation" cellpadding="0" cellspacing="0">
+              <td style="padding: 10px 14px 8px">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="vertical-align: middle">
-                      <img src="https://updates.emreb.dev/brand/flux-logo.png" width="36" height="36" alt="Flux" style="display: block; border: 0" />
+                    <td width="56" style="width: 56px; vertical-align: middle; font-size: 0; line-height: 0">
+                      <span
+                        style="
+                          display: inline-block;
+                          width: 10px;
+                          height: 10px;
+                          border-radius: 5px;
+                          background: #ff5f57;
+                          background-image: linear-gradient(#ff5f57, #ff5f57);
+                          margin-right: 6px;
+                        "
+                      ></span
+                      ><span
+                        style="
+                          display: inline-block;
+                          width: 10px;
+                          height: 10px;
+                          border-radius: 5px;
+                          background: #febc2e;
+                          background-image: linear-gradient(#febc2e, #febc2e);
+                          margin-right: 6px;
+                        "
+                      ></span
+                      ><span
+                        style="
+                          display: inline-block;
+                          width: 10px;
+                          height: 10px;
+                          border-radius: 5px;
+                          background: #28c840;
+                          background-image: linear-gradient(#28c840, #28c840);
+                        "
+                      ></span>
                     </td>
-                    <td style="vertical-align: middle; padding-left: 12px; font-size: 18px; font-weight: 600; color: #dfe1e5; letter-spacing: -0.2px">
+                    <td style="vertical-align: middle; padding-left: 10px">
+                      <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td
+                            bgcolor="#26282c"
+                            style="
+                              background: #26282c;
+                              background-image: linear-gradient(#26282c, #26282c);
+                              border-radius: 6px;
+                              padding: 5px 10px 5px 8px;
+                            "
+                          >
+                            <table role="presentation" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="vertical-align: middle; padding-right: 7px; font-size: 0; line-height: 0">
+                                  <img
+                                    src="https://updates.emreb.dev/brand/flux-logo.png"
+                                    width="14"
+                                    height="14"
+                                    alt=""
+                                    style="display: block; border: 0; border-radius: 3px"
+                                  />
+                                </td>
+                                <td class="mono" style="vertical-align: middle; font-size: 11.5px; color: #dfe1e5; white-space: nowrap">
+                                  <span class="gs"><span class="gd">sign-in.flux</span></span>
+                                </td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                    <td align="right" class="wide" style="vertical-align: middle; font-size: 11px; color: #6f737a; white-space: nowrap">
                       <span class="gs"><span class="gd">Flux</span></span>
                     </td>
                   </tr>
                 </table>
               </td>
             </tr>
-          </table>
 
-          <!-- the card: an editor island on the window -->
-          <table
-            role="presentation"
-            width="480"
-            cellpadding="0"
-            cellspacing="0"
-            class="card"
-            bgcolor="#1e1f22"
-            style="background: #1e1f22; background-image: linear-gradient(#1e1f22, #1e1f22); border: 1px solid #303337; border-radius: 12px"
-          >
-            <!-- the teal of the logo, as a thin edge -->
+            <!-- the editor island -->
             <tr>
-              <td
-                height="3"
-                style="
-                  height: 3px;
-                  line-height: 3px;
-                  font-size: 0;
-                  border-radius: 12px 12px 0 0;
-                  background: #22c8b2;
-                  background-image: linear-gradient(90deg, #8cf7e2, #22c8b2 40%, #0a6180);
-                "
-              >
-                &nbsp;
-              </td>
-            </tr>
-            <tr>
-              <td class="pad" style="padding: 32px 36px 34px">
-                <!-- a console line, as the app would write the request -->
+              <td style="padding: 0 6px">
                 <table
                   role="presentation"
                   width="100%"
                   cellpadding="0"
                   cellspacing="0"
-                  bgcolor="#26282c"
-                  style="background: #26282c; background-image: linear-gradient(#26282c, #26282c); border-radius: 8px"
+                  bgcolor="#1e1f22"
+                  style="background: #1e1f22; background-image: linear-gradient(#1e1f22, #1e1f22); border-radius: 10px"
                 >
                   <tr>
-                    <td class="mono" style="padding: 10px 14px; font-size: 12px; line-height: 1.5; color: #9da0a8; overflow-wrap: anywhere">
-                      <span class="gs"
-                        ><span class="gd"
-                          ><span style="color: #6f737a">1&nbsp;&nbsp;</span><span style="color: #56a8f5">email</span
-                          ><span style="color: #9da0a8">:</span
-                          ><span style="color: #6aab73">"<a style="color: #6aab73; text-decoration: none">{{ .Email }}</a>"</span
-                          ><span style="color: #c77dbb; white-space: nowrap"> | sign in</span></span
-                        ></span
-                      >
-                    </td>
-                  </tr>
-                </table>
+                    <td class="pad" style="padding: 34px 36px 30px">
+                      <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="vertical-align: middle; padding-right: 14px; font-size: 0; line-height: 0">
+                            <img
+                              src="https://updates.emreb.dev/brand/flux-logo.png"
+                              width="40"
+                              height="40"
+                              alt="Flux"
+                              style="display: block; border: 0"
+                            />
+                          </td>
+                          <td style="vertical-align: middle">
+                            <div style="font-size: 20px; line-height: 1.25; font-weight: 600; color: #dfe1e5; letter-spacing: -0.3px">
+                              <span class="gs"><span class="gd">Sign in to Flux</span></span>
+                            </div>
+                            <div style="padding-top: 3px; font-size: 13px; line-height: 1.4; color: #9da0a8">
+                              <span class="gs"><span class="gd">The modern log explorer</span></span>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
 
-                <h1 style="margin: 26px 0 8px; font-size: 24px; line-height: 1.25; font-weight: 600; color: #dfe1e5; letter-spacing: -0.4px">
-                  <span class="gs"><span class="gd">Sign in to Flux</span></span>
-                </h1>
-                <p style="margin: 0 0 26px; font-size: 14px; line-height: 1.6; color: #9da0a8">
-                  <span class="gs"
-                    ><span class="gd"
-                      >Open this on the Mac where Flux is running. The link signs you in there and brings your preferences with you.</span
-                    ></span
-                  >
-                </p>
+                      <p style="margin: 24px 0 22px; font-size: 14px; line-height: 1.65; color: #b4b8bf">
+                        <span class="gs"
+                          ><span class="gd"
+                            >Open this on the Mac where Flux is running. The link signs you in there and brings your preferences with you.</span
+                          ></span
+                        >
+                      </p>
 
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="#3574f0" style="background: #3574f0; background-image: linear-gradient(#3574f0, #3574f0); border-radius: 8px">
-                      <a
-                        href="{{ .ConfirmationURL }}"
+                      <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td bgcolor="#3574f0" style="background: #3574f0; background-image: linear-gradient(#3574f0, #3574f0); border-radius: 6px">
+                            <a
+                              href="{{ .ConfirmationURL }}"
+                              style="
+                                display: inline-block;
+                                padding: 11px 20px;
+                                font-size: 13.5px;
+                                font-weight: 600;
+                                color: #ffffff;
+                                text-decoration: none;
+                                border-radius: 6px;
+                              "
+                              ><span class="gs"><span class="gd">Sign in to Flux&nbsp;&nbsp;&rarr;</span></span></a
+                            >
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- the request, as the query console writes it: a gutter of line numbers, then the code -->
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        bgcolor="#191a1d"
                         style="
-                          display: inline-block;
-                          padding: 12px 22px;
-                          font-size: 14px;
-                          font-weight: 600;
-                          color: #ffffff;
-                          text-decoration: none;
+                          margin-top: 28px;
+                          background: #191a1d;
+                          background-image: linear-gradient(#191a1d, #191a1d);
+                          border: 1px solid #2b2d31;
                           border-radius: 8px;
                         "
-                        ><span class="gs"><span class="gd">Sign in to Flux&nbsp;&nbsp;&rarr;</span></span></a
                       >
+                        <tr>
+                          <td
+                            class="mono"
+                            width="34"
+                            align="right"
+                            style="
+                              width: 34px;
+                              padding: 12px 10px 12px 0;
+                              font-size: 11.5px;
+                              line-height: 1.75;
+                              color: #4f535a;
+                              vertical-align: top;
+                              border-right: 1px solid #2b2d31;
+                            "
+                          >
+                            <span class="gs"
+                              ><span class="gd">1<br />2<br />3<br />4</span></span
+                            >
+                          </td>
+                          <td class="mono" style="padding: 12px 14px; font-size: 11.5px; line-height: 1.75; color: #9da0a8; overflow-wrap: anywhere">
+                            <span class="gs"
+                              ><span class="gd"
+                                ><span style="color: #6f737a; font-style: italic">// a sign-in was asked for</span><br /><span style="color: #56a8f5"
+                                  >email</span
+                                >: <span style="color: #6aab73">"<a style="color: #6aab73; text-decoration: none">{{ .Email }}</a>"</span><br /><span
+                                  style="color: #56a8f5"
+                                  >expires</span
+                                >: <span style="color: #2aacb8">15</span> <span style="color: #6f737a">min</span><br /><span style="color: #56a8f5"
+                                  >opens</span
+                                >: <span style="color: #6aab73">"the Mac that asked"</span></span
+                              ></span
+                            >
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- the way in for a link opened somewhere else: Flux takes it pasted -->
+                      <p style="margin: 22px 0 6px; font-size: 12px; line-height: 1.6; color: #6f737a">
+                        <span class="gs"
+                          ><span class="gd"
+                            >Opened this on another device? Copy the link and paste it into Flux, under &ldquo;The link opened somewhere
+                            else?&rdquo;</span
+                          ></span
+                        >
+                      </p>
+                      <p class="mono" style="margin: 0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-all">
+                        <a href="{{ .ConfirmationURL }}" style="color: #6b9bf5; text-decoration: none"
+                          ><span class="gs"><span class="gd">{{ .ConfirmationURL }}</span></span></a
+                        >
+                      </p>
                     </td>
                   </tr>
                 </table>
+              </td>
+            </tr>
 
-                <p class="mono" style="margin: 22px 0 0; font-size: 11.5px; line-height: 1.6; color: #6f737a">
-                  <span class="gs"
-                    ><span class="gd"
-                      ><span style="color: #5fad65">&#9679;</span>&nbsp; good for 15 minutes &middot; only on the Mac that asked</span
-                    ></span
-                  >
-                </p>
+            <!-- the status bar -->
+            <tr>
+              <td style="padding: 7px 14px 8px">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td class="mono" style="font-size: 10.5px; color: #6f737a; white-space: nowrap">
+                      <span class="gs"
+                        ><span class="gd"><span style="color: #5fad65">&#9679;</span>&nbsp; Ready</span></span
+                      >
+                    </td>
+                    <td class="mono wide" align="right" style="font-size: 10.5px; color: #6f737a; white-space: nowrap">
+                      <span class="gs"><span class="gd">flux.emreb.dev &nbsp;&middot;&nbsp; UTF-8 &nbsp;&middot;&nbsp; secure link</span></span>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
 
-          <table role="presentation" width="480" cellpadding="0" cellspacing="0" class="card">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="window" style="max-width: 540px">
             <tr>
-              <td style="padding: 20px 4px 0; font-size: 12px; line-height: 1.6; color: #6f737a">
+              <td style="padding: 18px 6px 0; font-size: 11.5px; line-height: 1.6; color: #5d6168">
                 <span class="gs"
                   ><span class="gd"
-                    >If you did not ask to sign in, ignore this email: nothing happens without the link.<br /><span style="color: #4f535a"
-                      >Flux &mdash; the modern log explorer.</span
-                    ></span
+                    >If you did not ask to sign in, ignore this email: nothing happens without the link, and it expires on its own.</span
                   ></span
                 >
               </td>
