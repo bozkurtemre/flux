@@ -189,7 +189,7 @@ export function RightStripe() {
       >
         <PanelRight size={16} />
       </StripeButton>
-      <StripeButton tip="Saved Queries" active={rightTool === "queries"} onClick={() => toggleRightTool("queries")}>
+      <StripeButton tip="Queries" active={rightTool === "queries"} onClick={() => toggleRightTool("queries")}>
         <Bookmark size={16} />
       </StripeButton>
     </div>

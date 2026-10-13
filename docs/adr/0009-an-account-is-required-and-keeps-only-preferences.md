@@ -9,8 +9,9 @@ every row is behind row-level security, readable and writable by its owner alone
 Signing in is an email with a link. The link comes back to the app through its `flux://`
 scheme and is completed with PKCE, so it signs in only the Mac that asked for it — a link
 forwarded or opened on a phone does nothing. Every launch asks Supabase whether the session on
-this machine is still good before the window opens; a session in storage is not taken at its
-word, and a Supabase that cannot be reached keeps the window closed with a way to try again.
+this machine is still good, but behind the IDE rather than in front of it: a session in storage
+opens the window at once, and one Supabase refuses ends in a dialog over it that offers signing
+in again or quitting. Without a session in storage the sign-in screen is the window.
 
 ## What syncs, and what never does
 
@@ -22,11 +23,11 @@ nothing on another machine. They stay in the config directory and the workspace,
 
 ## Consequences
 
-Flux cannot be used without an account, and cannot be opened at all while Supabase is
-unreachable — on a plane, behind a network that blocks it, or during an outage of theirs. That
-is the cost of checking the session every launch rather than trusting a cached one, and it was
-chosen knowingly; a grace period for a session verified recently is the change to make if it
-starts costing more than it protects.
+Flux cannot be used without an account. A Supabase that cannot be reached does not close a
+signed-in IDE — on a plane, behind a network that blocks it, or during an outage of theirs the
+session in storage stands until Supabase answers again — so the check revokes a refused session
+rather than proving every launch is online. Preferences pulled behind the IDE are written to disk
+and take effect from the next launch.
 
 Supabase's own email allows a handful of messages an hour and delivers only to the project's
 members. Anyone else signing in needs a real SMTP provider configured on the project. The

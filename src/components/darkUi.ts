@@ -1,0 +1,20 @@
+/** The dark theme's own colours: the slice is drawn as the app draws itself, whatever theme is on. */
+export const UI = {
+  window: "#111214",
+  editor: "#1e1f22",
+  tool: "#26282c",
+  hover: "#303236",
+  border: "#303337",
+  text: "#dfe1e5",
+  dim: "#9da0a8",
+  muted: "#6f737a",
+  accent: "#3574f0",
+  selection: "#2f5aa8",
+  stripe: "#232427",
+  green: "#5fad65",
+  amber: "#d9a343",
+  red: "#e55765",
+  purple: "#c77dbb",
+  key: "#56a8f5",
+  str: "#6aab73",
+};

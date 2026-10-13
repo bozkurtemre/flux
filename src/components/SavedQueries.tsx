@@ -50,7 +50,10 @@ export function SavedQueries() {
   const [page, setPage] = useState<"saved" | "history">("saved");
   return (
     <div className="island flex h-full flex-col overflow-hidden">
-      <div className="flex h-[26px] shrink-0 items-center gap-1 px-1.5" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+      <div className="flex h-[28px] shrink-0 items-center gap-1 pr-1.5 pl-3">
+        <span className="mr-auto text-[12px] font-semibold" style={{ color: "var(--text)" }}>
+          Queries
+        </span>
         {(["saved", "history"] as const).map((p) => (
           <button
             key={p}

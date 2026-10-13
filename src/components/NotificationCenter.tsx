@@ -16,8 +16,8 @@ export function NotificationCenter() {
 
   return (
     <div className="island flex h-full flex-col overflow-hidden">
-      <div className="flex h-[26px] shrink-0 items-center gap-2 px-2" style={{ borderBottom: "1px solid var(--border-soft)" }}>
-        <span className="text-[11px] font-medium" style={{ color: "var(--text-dim)" }}>
+      <div className="flex h-[28px] shrink-0 items-center gap-2 px-3">
+        <span className="text-[12px] font-semibold" style={{ color: "var(--text)" }}>
           Notifications
         </span>
         <span className="text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>

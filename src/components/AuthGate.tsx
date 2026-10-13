@@ -1,4 +1,6 @@
 // The door. Flux opens only for someone signed in, and that is asked of Supabase every launch.
+// A session already on this machine opens the IDE at once and is checked behind it; one Supabase
+// refuses ends in a dialog over the IDE that leaves two ways out: sign in again, or quit.
 // Signing in is an email with a link; the link comes back to this app through its own URL
 // scheme, and the preferences kept in the cloud are put in place before the window opens.
 //
@@ -7,14 +9,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { ArrowRight, Bug, ChevronDown, Fingerprint, Link2, Lock, Mail, Microscope, RotateCw, Sparkles, Waypoints, WifiOff, X } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ConfirmDialog } from "./ContextMenu";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { REPO, reportUrl } from "@/lib/help";
 import { changelogSection } from "@/lib/updates";
 import changelog from "../../CHANGELOG.md?raw";
 import { Notes } from "./UpdateNotes";
 import { Logo } from "./Logo";
+import { UI } from "./darkUi";
+import { Onboarding } from "./Onboarding";
 import { Spinner } from "./icons";
-import { AUTH_CALLBACK, finishSignIn, isEmail, pullPreferences, sendLink, verify, type AuthState } from "@/lib/cloud";
+import { AUTH_CALLBACK, finishSignIn, isEmail, pullPreferences, sendLink, signedInAs, verify, type AuthState } from "@/lib/cloud";
 import { failureReason } from "@/lib/progress";
 
 /** The teal of the logo: the panel that says what Flux is wears its colour, not the chosen accent. */
@@ -35,6 +41,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "checking" });
   const [ready, setReady] = useState(false);
   const [welcome, setWelcome] = useState(false);
+  // the tour follows the welcome, so it is seen once, by someone who has just signed in
+  const [touring, setTouring] = useState(false);
+  const [booted, setBooted] = useState(false);
+  const [expired, setExpired] = useState<string | null>(null);
 
   // signed in is not open yet: the cloud's preferences are written first, so the window comes
   // up with them rather than switching under the person a moment later. Signing in just now is
@@ -51,13 +61,37 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   };
 
+  // make dev only: Vite folds import.meta.env.DEV to false in a release build, so prod never has it
+  const skip = import.meta.env.DEV
+    ? () => {
+        setState({ status: "signed-in", email: "dev@localhost" });
+        setReady(true);
+      }
+    : undefined;
+
   const check = () => {
     setState({ status: "checking" });
     void verify().then(enter);
   };
 
   useEffect(() => {
-    void verify().then(enter);
+    // a session in storage opens the IDE now; Supabase is asked behind it. Only a refusal
+    // interrupts: an unreachable Supabase leaves the session as it is, as an offline launch should.
+    void signedInAs()
+      .catch(() => null)
+      .then(async (email) => {
+        if (!email) {
+          setBooted(true);
+          return enter(await verify());
+        }
+        setState({ status: "signed-in", email });
+        setReady(true);
+        setBooted(true);
+        const now = await verify();
+        if (now.status === "signed-out") setExpired(now.error ?? "Your session has ended. Sign in again.");
+        // ponytail: preferences pulled now are written to disk and apply from the next launch
+        else if (now.status === "signed-in") void pullPreferences().catch(() => {});
+      });
     // the link from the email, whether it started Flux or arrived while it was open
     const opened = (urls: string[] | null) => {
       const url = urls?.find((u) => u.startsWith(AUTH_CALLBACK));
@@ -70,7 +104,40 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => void stop.then((unlisten) => unlisten()).catch(() => {});
   }, []);
 
-  if (ready && state.status === "signed-in") return <>{children}</>;
+  if (!booted) return <div className="h-full" style={{ background: "var(--bg-window)" }} />;
+  if (touring) {
+    return (
+      <Onboarding
+        onDone={() => {
+          setTouring(false);
+          setReady(true);
+        }}
+      />
+    );
+  }
+  if (ready && state.status === "signed-in") {
+    return (
+      <>
+        {children}
+        {expired && (
+          <ConfirmDialog
+            title="Your session has ended"
+            message={`${expired} Flux needs a signed-in account to stay open.`}
+            confirmLabel="Sign in again"
+            cancelLabel="Quit Flux"
+            danger={false}
+            onConfirm={() => {
+              setReady(false);
+              setState({ status: "signed-out", error: expired });
+              setExpired(null);
+            }}
+            onCancel={() => void getCurrentWindow().close()}
+            onDismiss={() => {}}
+          />
+        )}
+      </>
+    );
+  }
   return (
     <div className="relative flex h-full" style={{ background: "var(--bg-window)", color: "var(--text)" }}>
       {/* the title bar is drawn by the app; this strip, across both halves, is where the window is dragged by */}
@@ -84,7 +151,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
             onSignedOut={(error) => setState({ status: "signed-out", error })}
             onLink={(url) => void finishSignIn(url).then((s) => s && enter(s, true))}
             welcome={welcome}
-            onIn={() => setReady(true)}
+            onIn={() => setTouring(true)}
+            onSkip={skip}
           />
         </div>
         <Corner />
@@ -216,27 +284,6 @@ function Streams() {
     </div>
   );
 }
-
-/** The dark theme's own colours: the slice is drawn as the app draws itself, whatever theme is on. */
-const UI = {
-  window: "#111214",
-  editor: "#1e1f22",
-  tool: "#26282c",
-  hover: "#303236",
-  border: "#303337",
-  text: "#dfe1e5",
-  dim: "#9da0a8",
-  muted: "#6f737a",
-  accent: "#3574f0",
-  selection: "#2f5aa8",
-  stripe: "#232427",
-  green: "#5fad65",
-  amber: "#d9a343",
-  red: "#e55765",
-  purple: "#c77dbb",
-  key: "#56a8f5",
-  str: "#6aab73",
-};
 
 /**
  * A slice of Flux itself, a second after a spike: a console with its query, the timeline with
@@ -425,15 +472,7 @@ function Corner() {
       <button className={link} title="What's new" aria-label="What's new" onClick={() => setNews(true)}>
         <Sparkles size={14} />
       </button>
-      {version && (
-        <button
-          onClick={() => setNews(true)}
-          title="What's new in this version"
-          className="ml-1 rounded-[6px] px-1.5 py-1 font-[var(--font-mono)] text-[11px] tabular-nums transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--text)]"
-        >
-          v{version}
-        </button>
-      )}
+      {version && <span className="ml-1 px-1.5 font-[var(--font-mono)] text-[11px] tabular-nums">v{version}</span>}
       {news && <WhatsNew version={version} onClose={() => setNews(false)} onAll={() => go(`${REPO}/releases`)} />}
     </div>
   );
@@ -708,6 +747,7 @@ function Door({
   onLink,
   welcome,
   onIn,
+  onSkip,
 }: {
   state: AuthState;
   onRetry: () => void;
@@ -715,6 +755,7 @@ function Door({
   onLink: (url: string) => void;
   welcome: boolean;
   onIn: () => void;
+  onSkip?: () => void;
 }) {
   if (welcome && state.status === "signed-in") return <Welcome email={state.email} onIn={onIn} />;
   if (state.status === "checking" || state.status === "signed-in") {
@@ -762,10 +803,20 @@ function Door({
       </>
     );
   }
-  return <SignIn error={state.error} onError={onSignedOut} onLink={onLink} />;
+  return <SignIn error={state.error} onError={onSignedOut} onLink={onLink} onSkip={onSkip} />;
 }
 
-function SignIn({ error, onError, onLink }: { error?: string; onError: (error?: string) => void; onLink: (url: string) => void }) {
+function SignIn({
+  error,
+  onError,
+  onLink,
+  onSkip,
+}: {
+  error?: string;
+  onError: (error?: string) => void;
+  onLink: (url: string) => void;
+  onSkip?: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -947,6 +998,16 @@ function SignIn({ error, onError, onLink }: { error?: string; onError: (error?: 
           Continue with email
           {!busy && <ArrowRight size={15} />}
         </button>
+        {import.meta.env.DEV && onSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="flex h-[36px] items-center justify-center rounded-[8px] text-[12.5px] hover:bg-[var(--bg-hover)]"
+            style={{ border: "1px dashed var(--border)", color: "var(--text-dim)" }}
+          >
+            Skip sign-in (dev only)
+          </button>
+        )}
       </form>
       {error && <Problem>{error}</Problem>}
       <p className="mt-8 flex items-start gap-2 text-[11.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
