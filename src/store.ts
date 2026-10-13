@@ -173,6 +173,8 @@ interface State {
   queriesSize: number;
   /** The timeline folded away for now, as opposed to turned off in Settings. */
   timelineOpen: boolean;
+  /** Whether a traced id's lanes are drawn or folded to their heading, for every tab. */
+  journeyOpen: boolean;
   /** The fields of the results, under the tree. */
   showFields: boolean;
   fieldsSize: number;
@@ -229,6 +231,7 @@ interface State {
   toggleRightTool: (tool: "queries" | "notifications") => void;
   setQueriesSize: (n: number) => void;
   toggleTimeline: () => void;
+  toggleJourney: () => void;
   toggleFields: () => void;
   setFieldsSize: (n: number) => void;
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
@@ -372,6 +375,7 @@ export const useApp = create<State>((set, get) => ({
   health: {},
   rightTool: null,
   timelineOpen: true,
+  journeyOpen: true,
   showFields: true,
   fieldsSize: 34,
   terminalSize: 32,
@@ -542,6 +546,7 @@ export const useApp = create<State>((set, get) => ({
     persist(get);
   },
   toggleTimeline: () => set({ timelineOpen: !get().timelineOpen }),
+  toggleJourney: () => set({ journeyOpen: !get().journeyOpen }),
 
   toggleFields: () => {
     set({ showFields: !get().showFields });

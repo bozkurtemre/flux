@@ -191,6 +191,14 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
         </Row>
         <Row>
           <Checkbox
+            checked={r.journey}
+            onChange={(v) => set("journey", v)}
+            label="Show the lanes over a traced id"
+            hint="When a search follows one id across streams, which stream said what and when, above the rows."
+          />
+        </Row>
+        <Row>
+          <Checkbox
             checked={r.deployMarkers}
             onChange={(v) => set("deployMarkers", v)}
             label="Mark merged pull requests on the timeline"
@@ -542,7 +550,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
 
   return (
     <div className="flex h-full min-h-0 min-w-0 gap-3">
-      <div className="flex w-[260px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+      <div className="flex w-[300px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
         <div className="min-h-0 flex-1 overflow-auto py-1">
           {list.map((c, i) => (
             <div
@@ -593,7 +601,11 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
           >
             <Trash2 size={12} />
           </Button>
-          <label className="ml-auto cursor-pointer text-[11px]" style={{ color: "var(--accent)" }} title="Read connections from a .env file">
+          <label
+            className="ml-auto shrink-0 cursor-pointer px-1 text-[11px] whitespace-nowrap"
+            style={{ color: "var(--accent)" }}
+            title="Read connections from a .env file"
+          >
             Import
             <input
               type="file"
@@ -615,14 +627,16 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
                 <Text value={conn.name} onChange={(v) => field({ name: v })} width={200} placeholder="prod" />
               </Row>
               <Row label="Source" hint="Which kind of server the logs come from. Queries are Lucene on both.">
-                <span className="flex items-center gap-2">
-                  <SourceIcon kind={conn.kind} size={16} />
-                  <Select
-                    value={conn.kind}
-                    onChange={(kind: SourceKind) => field({ kind })}
-                    options={(Object.keys(SOURCE_KINDS) as SourceKind[]).map((k) => ({ value: k, label: SOURCE_KINDS[k].label }))}
-                  />
-                </span>
+                <Select
+                  value={conn.kind}
+                  onChange={(kind: SourceKind) => field({ kind })}
+                  width={200}
+                  options={(Object.keys(SOURCE_KINDS) as SourceKind[]).map((k) => ({
+                    value: k,
+                    label: SOURCE_KINDS[k].label,
+                    icon: <SourceIcon kind={k} size={14} />,
+                  }))}
+                />
               </Row>
               {conn.kind === "local" ? (
                 <Row

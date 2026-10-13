@@ -76,6 +76,8 @@ export interface ResultSettings {
   autoRefreshSeconds: number; // 0 = off
   /** The timeline over the results. It is two more requests per query, so it can be turned off. */
   timeline: boolean;
+  /** The lanes over a traced id's results: which stream said what, and when. */
+  journey: boolean;
   /** Nested JSON in the value inspector folds away behind a chevron. */
   jsonTree: boolean;
   /** The pull requests merged into a project's repository, drawn on its timeline. */
@@ -164,6 +166,7 @@ export const DEFAULTS: Settings = {
     rowHeight: 24,
     autoRefreshSeconds: 0,
     timeline: true,
+    journey: true,
     jsonTree: true,
     deployMarkers: true,
   },

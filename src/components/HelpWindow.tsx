@@ -30,6 +30,11 @@ export async function diagnostics(): Promise<string> {
   ].join("\n");
 }
 
+/** A GitHub issue opened in the browser, with the diagnostics already in it. */
+export function reportProblem(): Promise<void> {
+  return diagnostics().then((d) => openUrl(reportUrl(d)));
+}
+
 export function HelpWindow() {
   const [page, setPage] = useState<Page | null>(null);
 
@@ -41,7 +46,7 @@ export function HelpWindow() {
       if (what === "start" || what === "query" || what === "whats-new") return setPage(what);
       if (what === "find-action") return app.setShowSearch(true, "actions");
       if (what === "shortcuts") return app.setShowSettings(true, "keymap");
-      if (what === "report") return void diagnostics().then((d) => openUrl(reportUrl(d)));
+      if (what === "report") return void reportProblem();
       if (what === "diagnostics") {
         return void diagnostics()
           .then((d) => navigator.clipboard.writeText(d))

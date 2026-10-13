@@ -283,6 +283,21 @@ export function SettingsDialog() {
                   className="selectable h-full w-full bg-transparent text-[12px] outline-none placeholder:text-[var(--text-muted)]"
                   style={{ color: "var(--text)" }}
                 />
+                {/* the marks follow the query, so emptying it takes them off the pages too */}
+                {query && (
+                  <button
+                    onClick={(e) => {
+                      setQuery("");
+                      (e.currentTarget.previousElementSibling as HTMLInputElement | null)?.focus();
+                    }}
+                    data-tip="Clear"
+                    aria-label="Clear the search"
+                    className="flex size-[16px] shrink-0 items-center justify-center rounded-full hover:bg-[var(--bg-hover)]"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    <X size={11} />
+                  </button>
+                )}
               </div>
             </div>
             <nav className="min-h-0 flex-1 overflow-auto pb-2">

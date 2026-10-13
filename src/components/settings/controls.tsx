@@ -1,4 +1,5 @@
-import { createContext, type ReactNode } from "react";
+import { createContext, useState, type ReactNode } from "react";
+import { ContextMenu } from "../ContextMenu";
 import { Check, ChevronDown } from "lucide-react";
 
 /**
@@ -75,9 +76,44 @@ export function Select<T extends string | number>({
 }: {
   value: T;
   onChange: (v: T) => void;
-  options: { value: T; label: string }[];
+  /** With an icon on each option, the box and its list draw them; a native select cannot. */
+  options: { value: T; label: string; icon?: ReactNode }[];
   width?: number;
 }) {
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const current = options.find((o) => o.value === value);
+  if (options.some((o) => o.icon)) {
+    return (
+      <span className="relative inline-block max-w-full" style={{ width }}>
+        <button
+          type="button"
+          onClick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            setMenu(menu ? null : { x: r.left, y: r.bottom + 4 });
+          }}
+          className="flex h-[26px] w-full items-center gap-2 rounded-[4px] pr-6 pl-2 text-left text-[13px] outline-none"
+          style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text)" }}
+        >
+          {current?.icon}
+          <span className="truncate">{current?.label ?? String(value)}</span>
+        </button>
+        <ChevronDown size={12} className="pointer-events-none absolute top-[7px] right-2" style={{ color: "var(--text-dim)" }} />
+        {menu && (
+          <ContextMenu
+            x={menu.x}
+            y={menu.y}
+            onClose={() => setMenu(null)}
+            items={options.map((o) => ({
+              label: o.label,
+              icon: o.icon,
+              shortcut: o.value === value ? "✓" : undefined,
+              onClick: () => onChange(o.value),
+            }))}
+          />
+        )}
+      </span>
+    );
+  }
   return (
     <span className="relative inline-block max-w-full" style={{ width }}>
       <select

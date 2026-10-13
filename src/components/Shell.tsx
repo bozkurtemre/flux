@@ -26,6 +26,8 @@ import { Logo } from "./Logo";
 import { McpIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp } from "@/store";
+import { failureReason } from "@/lib/progress";
+import { reportProblem } from "./HelpWindow";
 import { taskLabel, visibleTask, worstOf } from "@/lib/progress";
 import { shortPath, workspaceName } from "@/lib/workspaces";
 import { clientConfig } from "@/lib/mcp";
@@ -122,7 +124,11 @@ export function TitleBar() {
         <button className={icon} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
           <Wrench size={15} style={{ color: "var(--text-dim)" }} />
         </button>
-        <button className={icon}>
+        <button
+          className={icon}
+          data-tip="Report a problem"
+          onClick={() => void reportProblem().catch((e: unknown) => useApp.getState().notify("error", "Could not open the report", failureReason(e)))}
+        >
           <Bug size={15} style={{ color: "var(--text-dim)" }} />
         </button>
         <button className={icon} data-tip="Search Everywhere" data-tip-key="⇧⇧" onClick={() => setShowSearch(true)}>
