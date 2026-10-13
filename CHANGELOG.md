@@ -3,6 +3,12 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.30.1
+
+### Fixed
+
+- The streams behind the sign-in screen run all the way across it again, rather than stopping short.
+
 ## 0.30.0
 
 ### Added
