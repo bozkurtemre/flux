@@ -247,24 +247,21 @@ export function StatusBar() {
   const tab = tabs.find((t) => t.id === activeTab);
   const conn = settings.connections.find((c) => c.id === tab?.connId);
   return (
-    <div className="flex h-6 shrink-0 items-center gap-3 px-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+    <div className="flex h-6 shrink-0 items-center gap-3 px-3 text-[11px] whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
       {settingsError && (
-        <span className="truncate" style={{ color: "var(--red)" }} title={settingsError}>
+        <span className="min-w-0 truncate" style={{ color: "var(--red)" }} title={settingsError}>
           {settingsError}
         </span>
       )}
       {tab ? (
         <>
-          <span className="flex items-center gap-1.5">
+          <span className="flex shrink-0 items-center gap-1.5">
             <Server size={11} />
             {conn?.name ?? "—"}
           </span>
-          <span className="truncate">{tab.streamLabel}</span>
-          {tab.error ? (
-            <span style={{ color: "var(--red)" }} className="truncate">
-              {tab.error}
-            </span>
-          ) : tab.page ? (
+          <span className="min-w-0 truncate">{tab.streamLabel}</span>
+          {/* a failed query says why in its own console; the status bar only counts what came back */}
+          {!tab.error && tab.page ? (
             <span>
               {tab.page.rows.length} rows · {tab.took} ms
             </span>
@@ -273,7 +270,7 @@ export function StatusBar() {
       ) : (
         <span>Ready</span>
       )}
-      <span className="ml-auto flex items-center gap-3">
+      <span className="ml-auto flex shrink-0 items-center gap-3">
         <BackgroundTask />
         <span>{settings.connections.length} connections</span>
         {update && (

@@ -3,6 +3,7 @@ import { ChevronRight, Search, X } from "lucide-react";
 import { Button, Indexing } from "./controls";
 import { findAll } from "@/lib/find";
 import {
+  AccountPage,
   AdvancedPage,
   AppearancePage,
   ConnectionsPage,
@@ -29,6 +30,12 @@ interface PageDef {
 }
 
 const PAGES: PageDef[] = [
+  {
+    id: "account",
+    label: "Account",
+    keywords: "account sign in sign out email profile sync cloud preferences delete supabase",
+    render: ({ s }) => <AccountPage s={s} />,
+  },
   {
     id: "appearance",
     label: "Appearance",

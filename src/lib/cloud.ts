@@ -133,6 +133,35 @@ export async function signedInAs(): Promise<string | null> {
   return data.session?.user.email ?? null;
 }
 
+export type Account = { email: string; createdAt: string; lastSignIn: string | null; syncedAt: string | null };
+
+/**
+ * The signed-in account as Settings › Account shows it: who, since when, and when this account's
+ * preferences were last written. The first three come from the session in storage; the last asks
+ * Supabase, and is null when it has nothing yet or cannot be reached.
+ */
+export async function accountOf(): Promise<Account | null> {
+  if (!SUPABASE_URL) return null;
+  const { data } = await cloud().auth.getSession();
+  const user = data.session?.user;
+  if (!user) return null;
+  const { data: row } = await cloud()
+    .from("user_settings")
+    .select("updated_at")
+    .eq("user_id", user.id)
+    .maybeSingle()
+    .then(
+      (r) => r,
+      () => ({ data: null }),
+    );
+  return {
+    email: user.email ?? "",
+    createdAt: user.created_at,
+    lastSignIn: user.last_sign_in_at ?? null,
+    syncedAt: (row?.updated_at as string | undefined) ?? null,
+  };
+}
+
 async function userId(): Promise<string | null> {
   const { data } = await cloud().auth.getSession();
   return data.session?.user.id ?? null;

@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Lock, Trash2 } from "lucide-react";
 import { SourceIcon } from "../icons";
 import { Button, Checkbox, Indexing, Num, Row, Section, Select, Swatches, Text } from "./controls";
 import { QUICK_RANGES, SOURCE_KINDS, type SourceKind } from "@/lib/datasource";
@@ -16,7 +16,7 @@ import { open as openFolder, save as saveDialog } from "@tauri-apps/plugin-dialo
 import { bundleName, makeBundle, mergeBundle, readBundle } from "@/lib/bundle";
 import { IDES } from "@/lib/source";
 import { ConfirmDialog } from "../ContextMenu";
-import { deleteCloudData, signedInAs, signOut } from "@/lib/cloud";
+import { accountOf, deleteCloudData, pushPreferences, signOut, type Account } from "@/lib/cloud";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
 
@@ -258,44 +258,136 @@ export function ResultsPage({ s, patch }: { s: Settings; patch: Patch }) {
   );
 }
 
-export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch; onReset: () => void }) {
-  const a = s.advanced;
-  const set = <K extends keyof typeof a>(k: K, v: (typeof a)[K]) => patch((x) => ({ ...x, advanced: { ...x.advanced, [k]: v } }));
-  const [cacheDir, setCacheDir] = useState("");
-  const [cleared, setCleared] = useState<number | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
-  const [forgetting, setForgetting] = useState(false);
+/** When something happened, as a date and time in this Mac's own format. */
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—");
 
+/** What follows the account to another Mac, by the settings page it is set on, and what never does. */
+const SYNCED = [
+  "Appearance",
+  "Connection Explorer",
+  "Query Console",
+  "Results Grid",
+  "Terminal",
+  "Updates",
+  "MCP Server",
+  "Jira",
+  "Advanced Settings",
+];
+const LOCAL = ["Connections and their tokens", "Projects", "Saved queries and history", "Replay stage addresses", "Keymap and workspace"];
+
+export function AccountPage({ s }: { s: Settings }) {
+  const indexing = useContext(Indexing);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [forgetting, setForgetting] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const notify = useApp((x) => x.notify);
+
+  const load = () => void accountOf().then(setAccount);
   useEffect(() => {
-    cache
-      .location()
-      .then(setCacheDir)
-      .catch(() => {});
-    void signedInAs().then(setAccount);
-  }, []);
+    if (!indexing) load();
+  }, [indexing]);
+
+  const syncNow = async () => {
+    setSyncing(true);
+    try {
+      await pushPreferences(s);
+      load();
+    } catch (e) {
+      notify("error", "Could not sync", failureReason(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const list = (items: string[], color: string, Icon: typeof Check) => (
+    <ul className="flex flex-col gap-1.5">
+      {items.map((item) => (
+        <li key={item} className="flex items-center gap-2 text-[13px]">
+          <Icon size={13} style={{ color }} className="shrink-0" />
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <>
-      <Section title="Account">
-        <Row
-          label="Signed in as"
-          hint="Your preferences sync to this account. Connections, their tokens, projects and saved queries stay on this Mac."
-        >
-          <span className="flex flex-wrap items-center gap-2">
-            <span className="text-[13px]">{account ?? "—"}</span>
-            <Button
-              onClick={async () => {
-                await signOut();
-                // the door opens again, asking who is there
-                location.reload();
-              }}
-            >
-              Sign out
-            </Button>
-            <Button onClick={() => setForgetting(true)}>Delete synced preferences…</Button>
+      <Section title="Profile">
+        <div className="flex items-center gap-3 py-2">
+          <span
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-[18px] font-semibold uppercase"
+            style={{ background: "color-mix(in srgb, var(--accent) 22%, transparent)", color: "var(--accent)" }}
+          >
+            {account?.email.charAt(0) || "?"}
           </span>
+          <span className="min-w-0">
+            <span className="block truncate text-[14px] font-medium">{account?.email ?? "Not signed in"}</span>
+            <span className="block text-[12px]" style={{ color: "var(--text-muted)" }}>
+              Signed in with an email link
+            </span>
+          </span>
+        </div>
+        <Row label="Member since">
+          <span className="text-[13px]">{when(account?.createdAt ?? null)}</span>
+        </Row>
+        <Row label="Last signed in">
+          <span className="text-[13px]">{when(account?.lastSignIn ?? null)}</span>
         </Row>
       </Section>
+
+      <Section title="Sync">
+        <Row label="Last synced" hint="Your preferences are sent a few seconds after you change one, and brought in whenever you sign in.">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[13px]">{account?.syncedAt ? when(account.syncedAt) : "Not yet"}</span>
+            <Button onClick={() => void syncNow()} disabled={syncing || !account}>
+              {syncing ? "Syncing…" : "Sync now"}
+            </Button>
+          </span>
+        </Row>
+        <div className="grid grid-cols-1 gap-5 py-2 sm:grid-cols-2">
+          <div>
+            <p className="pb-2 text-[12px] font-medium" style={{ color: "var(--text-dim)" }}>
+              Follows you to every Mac
+            </p>
+            {list(SYNCED, "var(--green)", Check)}
+          </div>
+          <div>
+            <p className="pb-2 text-[12px] font-medium" style={{ color: "var(--text-dim)" }}>
+              Never leaves this Mac
+            </p>
+            {list(LOCAL, "var(--text-muted)", Lock)}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Sign out and delete">
+        <Row label="Sign out" hint="Flux closes to the sign-in screen. This Mac keeps its settings, connections and queries.">
+          <Button onClick={() => setLeaving(true)}>Sign out…</Button>
+        </Row>
+        <Row
+          label="Synced preferences"
+          hint="Removes the copy kept with your account. This Mac keeps its own settings, and the next change you make is synced again."
+        >
+          <Button onClick={() => setForgetting(true)} disabled={!account?.syncedAt}>
+            Delete synced preferences…
+          </Button>
+        </Row>
+      </Section>
+
+      {leaving && (
+        <ConfirmDialog
+          title="Sign out of Flux?"
+          message="Flux returns to the sign-in screen. Nothing on this Mac is deleted."
+          confirmLabel="Sign out"
+          onConfirm={async () => {
+            await signOut();
+            // the door opens again, asking who is there
+            location.reload();
+          }}
+          onCancel={() => setLeaving(false)}
+        />
+      )}
       {forgetting && (
         <ConfirmDialog
           title="Delete your synced preferences?"
@@ -303,12 +395,34 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
           onConfirm={() => {
             setForgetting(false);
             void deleteCloudData()
-              .then(() => useApp.getState().notify("info", "Synced preferences deleted", "Nothing of yours is kept in the cloud now."))
-              .catch((e: unknown) => useApp.getState().notify("error", "Could not delete them", failureReason(e)));
+              .then(() => {
+                notify("info", "Synced preferences deleted", "Nothing of yours is kept in the cloud now.");
+                load();
+              })
+              .catch((e: unknown) => notify("error", "Could not delete them", failureReason(e)));
           }}
           onCancel={() => setForgetting(false)}
         />
       )}
+    </>
+  );
+}
+
+export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch; onReset: () => void }) {
+  const a = s.advanced;
+  const set = <K extends keyof typeof a>(k: K, v: (typeof a)[K]) => patch((x) => ({ ...x, advanced: { ...x.advanced, [k]: v } }));
+  const [cacheDir, setCacheDir] = useState("");
+  const [cleared, setCleared] = useState<number | null>(null);
+
+  useEffect(() => {
+    cache
+      .location()
+      .then(setCacheDir)
+      .catch(() => {});
+  }, []);
+
+  return (
+    <>
       <Section title="Caches">
         <Row
           label="Introspection cache"
