@@ -7,7 +7,22 @@
 // It takes the whole window: on the left what Flux is, on the right the one thing to do.
 import { useEffect, useState, type ReactNode } from "react";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { ArrowRight, Bug, ChevronDown, Fingerprint, Link2, Lock, Mail, Microscope, RotateCw, Sparkles, Waypoints, WifiOff, X } from "lucide-react";
+import {
+  ArrowRight,
+  Bug,
+  ChevronDown,
+  Fingerprint,
+  Link2,
+  Lock,
+  LogIn,
+  Mail,
+  Microscope,
+  RotateCw,
+  Sparkles,
+  Waypoints,
+  WifiOff,
+  X,
+} from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ConfirmDialog } from "./ContextMenu";
@@ -696,7 +711,11 @@ function Welcome({ email, onIn }: { email: string; onIn: () => void }) {
     <>
       <Steps at={3} />
       <div className="flux-pop relative mb-6 flex size-16 items-center justify-center">
-        <span className="absolute inset-0 rounded-full blur-xl" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }} />
+        {/* a shadow rather than a blur filter: inside the scaling pop, WebKit clipped the blur to a square */}
+        <span
+          className="absolute inset-[6px] rounded-full"
+          style={{ boxShadow: "0 0 28px 10px color-mix(in srgb, var(--accent) 40%, transparent)" }}
+        />
         <svg width="64" height="64" viewBox="0 0 64 64" className="relative">
           <circle cx="32" cy="32" r="29" fill="var(--accent)" />
           <path
@@ -971,10 +990,14 @@ function SignIn({
   return (
     <>
       <Steps at={1} />
-      <div className="mb-5 md:hidden">
-        <Logo size={40} />
+      {/* the same tile the next step has, so the two read as one sequence */}
+      <div
+        className="mb-5 flex size-12 items-center justify-center rounded-[14px]"
+        style={{ background: "color-mix(in srgb, var(--accent) 16%, transparent)", color: "var(--accent)" }}
+      >
+        <LogIn size={22} />
       </div>
-      <h1 className="text-[26px] font-semibold tracking-tight">Sign in to Flux</h1>
+      <h1 className="text-[24px] font-semibold tracking-tight">Sign in to Flux</h1>
       <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "var(--text-dim)" }}>
         No password. We email you a link, and it signs you in on this Mac.
       </p>
