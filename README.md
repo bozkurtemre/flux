@@ -221,6 +221,10 @@ secrets read from a folder outside the repository — `~/Desktop/flux-updater-ke
 release anything but the commit the version was tagged at, and running it twice for the same
 version publishes the same files again.
 
+Use one or the other for a version, never both: `make release-local` pushes the tag, which
+starts the workflow too, and two builds of one version overwrite each other's package and
+manifest. With Actions running, `make publish` is the release.
+
 Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security

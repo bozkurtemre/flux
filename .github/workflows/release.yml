@@ -121,7 +121,10 @@ jobs:
           put "updates/$version/Flux.app.tar.gz" "$macos/Flux.app.tar.gz" application/gzip "$immutable"
           put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
 
-          RELEASE_NOTES="$(cat release-notes.md)" node scripts/manifest.mjs \
+          # the manifest being replaced carries the minimum version and the last releases' notes
+          # forward, as scripts/release-local.sh does; without it every release forgot them
+          previous="$(curl -fsS "https://updates.emreb.dev/updates/latest.json?x=$RANDOM" 2>/dev/null || echo '{}')"
+          PREVIOUS_MANIFEST="$previous" RELEASE_NOTES="$(cat release-notes.md)" node scripts/manifest.mjs \
             "$version" "$macos/Flux.app.tar.gz.sig" \
             "https://updates.emreb.dev/updates/$version/Flux.app.tar.gz" 10 > latest.json
           cat latest.json
