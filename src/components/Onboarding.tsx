@@ -1,13 +1,50 @@
 // The tour, shown once right after signing in, and again from Help: what a first hour with Flux needs,
 // played on a drawing of the app rather than told. A cursor moves, clicks and types; each step
-// loops until the next is asked for, so it can be watched twice. The drawing uses the app's own
-// colours, like the slice beside the sign-in, and every target sits at a fixed spot in a frame
-// of a fixed size, so the cursor lands on what it clicks without measuring anything; the frame is
-// enlarged as a whole to fit the window.
+// loops until the next is asked for, so it can be watched twice. The drawing is the app at its
+// own size — the chrome, icons, spacing, copy and theme colours of the components it shows, laid
+// out as a 1280 × 780 window — and every target sits at a fixed spot in it, so the cursor lands
+// on what it clicks without measuring anything; the frame is shrunk as a whole to fit the window.
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Bell, BellRing, Copy, Database, Fingerprint, Plug, Plus, Search } from "lucide-react";
-import { UI } from "./darkUi";
-import { ClaudeIcon } from "./icons";
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  Bell,
+  Bookmark,
+  Bug,
+  CalendarClock,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardCopy,
+  Columns3,
+  Download,
+  Filter,
+  Fingerprint,
+  FoldVertical,
+  Gauge,
+  Link2,
+  MoreVertical,
+  PanelRight,
+  Pencil,
+  Play,
+  Plus,
+  Radio,
+  RefreshCw,
+  RotateCw,
+  Save,
+  Search,
+  SearchCode,
+  Server,
+  Settings2,
+  SquareTerminal,
+  Tags,
+  TriangleAlert,
+  Wrench,
+  X,
+} from "lucide-react";
+import { Logo } from "./Logo";
+import { Chevron, ClaudeIcon, ConnectionIcon, McpIcon, SourceIcon, StreamIcon } from "./icons";
 
 /** Where the cursor goes, whether it clicks there, a shortcut shown instead, how long it stays, and a caption for it. */
 type Beat = { at: [number, number]; click?: boolean; keys?: string; hold: number; say?: string };
@@ -15,18 +52,84 @@ type Beat = { at: [number, number]; click?: boolean; keys?: string; hold: number
 /** How long the cursor takes to travel; what it clicks changes when it arrives. */
 const MOVE = 750;
 
-const W = 800;
-const H = 460;
-/** The height of the tool windows: under the title bar, over the status bar. */
-const BODY = H - 58;
+// The window as App lays it out: a 6px margin, the title bar, a stripe either side, the status
+// bar along the bottom, and the tool windows as islands between them, 6px apart.
+const W = 1280;
+const H = 780;
+const PAD = 6;
+const TOP = 36;
+const MAIN_BOTTOM = H - PAD - 24;
+const EXPLORER_X = PAD + 36;
+const EXPLORER_W = 300;
+const EDITOR_X = EXPLORER_X + EXPLORER_W + 6;
+const RIGHT_STRIPE_X = W - PAD - 36;
+const QUERIES_X = RIGHT_STRIPE_X - 260;
+/** Where the terminal panel starts, when it is open. */
+const TERMINAL_Y = 476;
+
+// inside the editor island, from its top: the tab strip, the console, the timeline, the grid
+const TABS_H = 45;
+const CONSOLE_H = 180;
+const TIMELINE_Y = TABS_H + CONSOLE_H + 1;
+const CHART_H = 56;
+const NUM_W = 52;
+const BUCKETS = [5, 6, 5, 7, 6, 8, 6, 9, 22, 31, 27, 12, 8, 7, 9, 6, 5, 7, 6, 8];
+/** The buckets an ⌥-drag runs across, in the explain scene. */
+const SPIKE = [8, 10];
+
+/** The middle of a bucket, in a timeline whose editor ends at `right`. */
+const bucketX = (i: number, right = RIGHT_STRIPE_X) => {
+  const bar = (right - EDITOR_X - 16 - (BUCKETS.length - 1)) / BUCKETS.length;
+  return Math.round(EDITOR_X + 8 + i * (bar + 1) + bar / 2);
+};
+const CHART_Y = TOP + TIMELINE_Y + 6 + 15;
+
+// where things are, for the beats
+const TREE_Y = TOP + 28 + 26 + 28;
+const ADD_CONNECTION: [number, number] = [EXPLORER_X + EXPLORER_W / 2, TREE_Y + 40 + 16 + 8 + 18 + 8 + 12];
+const DIALOG = { x: 140, y: 70, w: 1000, h: 640 };
+const FORM_X = DIALOG.x + 232 + 16 + 300 + 12 + 162;
+const NAME_Y = DIALOG.y + 38 + 32 + 16 + 28 + 16;
+const URL_Y = NAME_Y + 95;
+const TOKEN_Y = URL_Y + 31;
+const OK: [number, number] = [DIALOG.x + DIALOG.w - 16 - 22, DIALOG.y + DIALOG.h - 24];
+const STREAM_ROW: [number, number] = [EXPLORER_X + 80, TREE_Y + 24 + 12];
+const QUERY_LINE: [number, number] = [EDITOR_X + 140, TOP + TABS_H + 30 + 12];
+const NAME_DIALOG = { x: (W - 420) / 2, y: 300, h: 168 };
+const BOOKMARK: [number, number] = [RIGHT_STRIPE_X + 18, TOP + 6 + 64 + 14];
+const SAVED_ROW: [number, number] = [QUERIES_X + 80, TOP + 28 + 30 + 24];
+const MENU = { x: QUERIES_X - 40, y: SAVED_ROW[1] + 6 };
+const WATCH_ITEM: [number, number] = [MENU.x + 100, MENU.y + 4 + 3 * 24 + 12];
+const BALLOON = { x: W - 12 - 360, y: H - 36 - 110 };
+const BALLOON_OPEN: [number, number] = [BALLOON.x + 16 + 16 + 10 + 22, BALLOON.y + 12 + 20 + 24 + 10 + 12];
+const TRACE = { x: (W - 520) / 2, y: Math.round(H * 0.14) };
+const TRACE_INPUT: [number, number] = [TRACE.x + 200, TRACE.y + 16 + 20 + 12 + 16];
+const MCP_BUTTON: [number, number] = [W - PAD - 12 - 11, MAIN_BOTTOM + 12];
+const MCP_POPOVER = { right: PAD + 12, bottom: H - MAIN_BOTTOM - 1 + 26 - 2, w: 320 };
+const COPY_COMMAND: [number, number] = [W - MCP_POPOVER.right - MCP_POPOVER.w + 12 + 78 + 8 + 50, H - MCP_POPOVER.bottom - 12 - 30 - 12 - 11];
+const TERMINAL_AT: [number, number] = [EXPLORER_X + 520, TERMINAL_Y + 32 + 46];
+
+type Chrome = {
+  /** The connection, stream and count the status bar names for the tab in front. */
+  tab?: { stream: string; rows: string };
+  connections?: number;
+  /** Which right tool window is open, and which stripe button is pressed. */
+  queries?: boolean;
+  mcp?: boolean;
+  terminal?: boolean;
+};
 
 type Scene = {
   title: string;
   text: ReactNode;
   beats: Beat[];
-  /** The frame, as it is once beat `landed` has happened. */
+  /** The stripes and status bar, as they are once beat `landed` has happened. */
+  chrome: (landed: number) => Chrome;
+  /** The islands and whatever is open over them. */
   draw: (landed: number) => ReactNode;
 };
+
+const ORDERS = { stream: "orders", rows: "6 rows · 214 ms" };
 
 const SCENES: Scene[] = [
   {
@@ -38,19 +141,20 @@ const SCENES: Scene[] = [
       </>
     ),
     beats: [
-      { at: [600, 330], hold: 700 },
-      { at: [101, 114], click: true, hold: 700, say: "Add a connection" },
-      { at: [248, 149], click: true, hold: 600, say: "Pick its kind" },
-      { at: [380, 206], click: true, hold: 1500, say: "Its URL" },
-      { at: [380, 254], click: true, hold: 1300, say: "A token, kept on this Mac" },
-      { at: [512, 315], click: true, hold: 3000, say: "Save, and the streams appear" },
+      { at: [760, 420], hold: 700 },
+      { at: ADD_CONNECTION, click: true, hold: 900, say: "Add a connection" },
+      { at: [FORM_X + 140, URL_Y], click: true, hold: 1500, say: "Its URL" },
+      { at: [FORM_X + 140, TOKEN_Y], click: true, hold: 1300, say: "A token, kept on this Mac" },
+      { at: OK, click: true, hold: 3200, say: "OK, and the streams appear" },
     ],
+    chrome: (l) => ({ connections: l >= 4 ? 1 : 0 }),
     draw: (l) => (
       <>
-        <Tree connected={l >= 5} />
-        <Editor>{l < 5 && <Empty icon={<Database size={20} />} text="No connections yet" />}</Editor>
-        {l >= 1 && l < 5 && <ConnectionDialog kind={l >= 2} url={l >= 3} token={l >= 4} />}
-        {l >= 5 && <Toast icon={<Database size={12} />} title="Connected to acme · prod" text="12 streams found" />}
+        <Explorer>{l >= 4 ? <Tree fresh /> : <NoConnections />}</Explorer>
+        <Editor>
+          <Welcome connected={l >= 4} />
+        </Editor>
+        {l >= 1 && l < 4 && <ConnectionSettings url={l >= 2} token={l >= 3} />}
       </>
     ),
   },
@@ -63,21 +167,25 @@ const SCENES: Scene[] = [
       </>
     ),
     beats: [
-      { at: [480, 340], hold: 600 },
-      { at: [90, 93], click: true, hold: 500, say: "Open a stream" },
-      { at: [330, 71], click: true, hold: 1300, say: "Type a Lucene query" },
-      { at: [345, 88], keys: "⌘ ⏎", hold: 1300, say: "Run it" },
-      { at: [345, 88], keys: "⌘ S", hold: 1400, say: "Save it by name" },
-      { at: [503, 202], click: true, hold: 3000, say: "It waits in Queries" },
+      { at: [760, 520], hold: 600 },
+      { at: STREAM_ROW, click: true, hold: 700, say: "Open a stream" },
+      { at: QUERY_LINE, click: true, hold: 1300, say: "Type a Lucene query" },
+      { at: QUERY_LINE, keys: "⌘ ⏎", hold: 1300, say: "Run it" },
+      { at: [NAME_DIALOG.x + 220, NAME_DIALOG.y + 96], keys: "⌘ S", hold: 1500, say: "Save it by name" },
+      { at: [NAME_DIALOG.x + 420 - 16 - 24, NAME_DIALOG.y + NAME_DIALOG.h - 29], click: true, hold: 800 },
+      { at: BOOKMARK, click: true, hold: 3000, say: "It waits in Queries" },
     ],
+    chrome: (l) => ({ connections: 1, tab: l >= 3 ? ORDERS : undefined, queries: l >= 6 }),
     draw: (l) => (
       <>
-        <Tree connected open={l >= 1} />
-        <Editor side>
-          {l >= 1 ? <Console query={l >= 2 ? "level:ERROR" : ""} typing={l === 2} results={l >= 3} /> : <Empty text="Open a stream to start" />}
+        <Explorer>
+          <Tree selected={l >= 1 ? "orders" : undefined} />
+        </Explorer>
+        <Editor right={l >= 6 ? QUERIES_X - 6 : undefined}>
+          {l >= 1 ? <Console tab="orders" query={l >= 2 ? "level:ERROR" : ""} typing={l === 2} results={l >= 3} /> : <Welcome connected />}
         </Editor>
-        <SavedPanel saved={l >= 5 ? ["Payment errors"] : []} fresh={l === 5} />
-        {l === 4 && <SavePopover />}
+        {l >= 6 && <Queries saved={SAVED.slice(0, 1)} fresh />}
+        {(l === 4 || l === 5) && <NameDialog typed={l === 4} />}
       </>
     ),
   },
@@ -90,33 +198,26 @@ const SCENES: Scene[] = [
       </>
     ),
     beats: [
-      { at: [520, 330], hold: 600 },
-      { at: [441, 128], keys: "⌥", hold: 500, say: "Hold ⌥ and drag" },
-      { at: [556, 128], hold: 900, say: "across the spike" },
-      { at: [520, 330], hold: 4600, say: "What sets it apart" },
+      { at: [760, 560], hold: 600 },
+      { at: [bucketX(SPIKE[0]), CHART_Y + 30], keys: "⌥", hold: 500, say: "Hold ⌥ and drag" },
+      { at: [bucketX(SPIKE[1]), CHART_Y + 30], hold: 900, say: "across the spike" },
+      { at: [EDITOR_X + 360, TOP + TIMELINE_Y + 100 + 70], hold: 4600, say: "What sets it apart" },
     ],
+    chrome: () => ({ connections: 1, tab: ORDERS }),
     draw: (l) => (
       <>
-        <Tree connected open />
+        <Explorer>
+          <Tree selected="orders" />
+        </Explorer>
         <Editor>
-          <Console query="level:ERROR" results />
-        </Editor>
-        {/* the dragged span, over the timeline's spike */}
-        {l >= 1 && (
-          <span
-            className="pointer-events-none rounded-[2px] transition-[width] duration-700 ease-out"
-            style={box({
-              left: 441,
-              top: 104,
-              height: 48,
-              width: l >= 2 ? 115 : 0,
-              background: "rgba(199,125,187,0.22)",
-              borderLeft: `1px solid ${UI.purple}`,
-              borderRight: l >= 2 ? `1px solid ${UI.purple}` : undefined,
-            })}
+          <Console
+            tab="orders"
+            query="level:ERROR"
+            results
+            dragging={l === 1 || l === 2 ? (l === 2 ? SPIKE : [SPIKE[0], SPIKE[0]]) : undefined}
+            explained={l >= 3}
           />
-        )}
-        {l >= 3 && <Explained />}
+        </Editor>
       </>
     ),
   },
@@ -128,17 +229,22 @@ const SCENES: Scene[] = [
       </>
     ),
     beats: [
-      { at: [480, 330], hold: 500 },
-      { at: [480, 330], keys: "⇧ ⌘ I", hold: 1100, say: "Trace an ID" },
-      { at: [500, 141], keys: "⌘ V", hold: 1300, say: "Paste any id" },
-      { at: [500, 141], keys: "⏎", hold: 600 },
-      { at: [600, 345], hold: 4800, say: "Its whole story, in order" },
+      { at: [760, 520], hold: 500 },
+      { at: [760, 520], keys: "⇧ ⌘ I", hold: 1100, say: "Trace an ID" },
+      { at: TRACE_INPUT, keys: "⌘ V", hold: 1300, say: "Paste any id" },
+      { at: TRACE_INPUT, keys: "⏎", hold: 600 },
+      { at: [EDITOR_X + 600, TOP + TIMELINE_Y + 100 + 44], hold: 4800, say: "Its whole story, in order" },
     ],
+    chrome: (l) => ({ connections: 1, tab: l >= 4 ? { stream: "3 streams", rows: "5 rows · 388 ms" } : ORDERS }),
     draw: (l) => (
       <>
-        <Tree connected open />
-        <Editor>{l >= 4 ? <Journey /> : <Empty icon={<Fingerprint size={20} />} text="Any id your services log" />}</Editor>
-        {l >= 1 && l < 4 && <TracePopover typed={l >= 2} />}
+        <Explorer>
+          <Tree selected="orders" />
+        </Explorer>
+        <Editor>
+          {l >= 4 ? <Console tab={TRACE_ID} query={`"${TRACE_ID}"`} results journey /> : <Console tab="orders" query="level:ERROR" results />}
+        </Editor>
+        {l >= 1 && l < 4 && <TraceForm typed={l >= 2} />}
       </>
     ),
   },
@@ -146,24 +252,29 @@ const SCENES: Scene[] = [
     title: "Let Flux watch it",
     text: (
       <>
-        The bell on a saved query tells you when new matches arrive, while Flux is open — or, with <b>Alert when › Nothing arrives</b>, when a cron or
-        a webhook goes quiet.
+        Right-click a saved query and <b>Watch for new matches</b>: Flux tells you when they arrive, while it is open — or, with{" "}
+        <b>Alert when › Nothing arrives</b>, when a cron or a webhook goes quiet.
       </>
     ),
     beats: [
-      { at: [420, 300], hold: 600 },
-      { at: [773, 69], click: true, hold: 900, say: "Ring the bell" },
-      { at: [430, 250], hold: 1200, say: "New matches arrive" },
-      { at: [660, 379], click: true, hold: 3000, say: "Click to see them" },
+      { at: [700, 520], hold: 600 },
+      { at: SAVED_ROW, click: true, hold: 900, say: "Right-click a saved query" },
+      { at: WATCH_ITEM, click: true, hold: 900, say: "Watch for new matches" },
+      { at: [760, 560], hold: 1500, say: "New matches arrive" },
+      { at: BALLOON_OPEN, click: true, hold: 3000, say: "Open them" },
     ],
+    chrome: () => ({ connections: 1, tab: ORDERS, queries: true }),
     draw: (l) => (
       <>
-        <Tree connected open />
-        <Editor side>
-          <Console query="level:ERROR" results fresh={l >= 3} />
+        <Explorer>
+          <Tree selected="orders" />
+        </Explorer>
+        <Editor right={QUERIES_X - 6}>
+          <Console tab="Payment errors" query="level:ERROR" results fresh={l >= 4} />
         </Editor>
-        <SavedPanel saved={["Payment errors", "Slow checkouts"]} watching={l >= 1} />
-        {l === 2 && <Toast icon={<BellRing size={12} />} title="Payment errors" text="3 new matches · click to see them" />}
+        <Queries saved={SAVED} watching={l >= 2} current={l >= 4} />
+        {l === 1 && <WatchMenu />}
+        {l === 3 && <Balloon />}
       </>
     ),
   },
@@ -171,24 +282,28 @@ const SCENES: Scene[] = [
     title: "Hand it to Claude Code",
     text: (
       <>
-        Flux is an MCP server. Turn it on from <b>MCP</b> in the status bar, paste the one command into a terminal, and Claude Code reads your logs
-        with Flux's own tools — searching, counting, opening a query in front of you.
+        Flux is an MCP server. Turn it on from the <b>MCP</b> icon in the status bar, paste the one command into a terminal, and Claude Code reads
+        your logs with Flux's own tools — searching, counting, opening a query in front of you.
       </>
     ),
     beats: [
-      { at: [420, 260], hold: 600 },
-      { at: [756, 449], click: true, hold: 900, say: "MCP, in the status bar" },
-      { at: [580, 407], click: true, hold: 900, say: "Copy the command" },
-      { at: [640, 260], keys: "⌘ V", hold: 1500, say: "Paste it in a terminal" },
-      { at: [640, 260], keys: "⏎", hold: 1900, say: "Ask Claude Code" },
-      { at: [430, 330], hold: 4200, say: "It reads your logs through Flux" },
+      { at: [700, 300], hold: 600 },
+      { at: MCP_BUTTON, click: true, hold: 900, say: "MCP, in the status bar" },
+      { at: COPY_COMMAND, click: true, hold: 900, say: "Copy the command" },
+      { at: TERMINAL_AT, keys: "⌘ V", hold: 1500, say: "Paste it in a terminal" },
+      { at: TERMINAL_AT, keys: "⏎", hold: 1900, say: "Ask Claude Code" },
+      { at: [EXPLORER_X + 760, TERMINAL_Y + 200], hold: 4200, say: "It reads your logs through Flux" },
     ],
+    chrome: (l) => ({ connections: 1, tab: ORDERS, mcp: l >= 1, terminal: l >= 3 }),
     draw: (l) => (
       <>
-        <Tree connected />
-        <Editor>
-          <Terminal step={l} />
+        <Explorer bottom={l >= 3 ? TERMINAL_Y - 6 : undefined}>
+          <Tree selected="orders" />
+        </Explorer>
+        <Editor bottom={l >= 3 ? TERMINAL_Y - 6 : undefined}>
+          <Console tab="orders" query="level:ERROR" results />
         </Editor>
+        {l >= 3 && <Terminal step={l} />}
         {(l === 1 || l === 2) && <McpPopover copied={l === 2} />}
       </>
     ),
@@ -198,7 +313,7 @@ const SCENES: Scene[] = [
 /** How much the drawing is scaled: as large as the window allows, smaller in a small one, so the buttons always show. */
 function useScale(): number {
   // what the page needs besides the frame: its padding, the heading and its two lines, the footer, the gaps
-  const fit = () => Math.max(0.7, Math.min((innerWidth - 96) / W, (innerHeight - 340) / H, 1.6));
+  const fit = () => Math.max(0.4, Math.min((innerWidth - 96) / W, (innerHeight - 340) / H, 1));
   const [scale, setScale] = useState(fit);
   useEffect(() => {
     const onResize = () => setScale(fit());
@@ -333,40 +448,53 @@ function Stage({ scene, scale }: { scene: Scene; scale: number }) {
   }, [beat, now.hold, scene.beats.length]);
 
   const arrived = landed === beat;
+  const chrome = scene.chrome(landed);
   return (
-    // drawn at its own size and enlarged as a whole, so every beat still lands where it points
+    // drawn at the app's own size and shrunk as a whole, so every beat still lands where it points
     <div className="relative max-w-full shrink-0" style={{ width: W * scale, height: H * scale }}>
       <div
-        className="relative overflow-hidden rounded-[12px] text-[11px] select-none"
+        className="relative overflow-hidden rounded-[12px] text-[13px] select-none"
         style={{
           transform: `scale(${scale})`,
           transformOrigin: "0 0",
           width: W,
           height: H,
-          background: UI.window,
-          border: "1px solid rgba(255,255,255,0.09)",
+          background: "var(--bg-window)",
+          border: "1px solid var(--border)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
-          color: UI.text,
+          color: "var(--text)",
+          fontFamily: "var(--font-ui)",
         }}
       >
         <TitleBar />
+        <LeftStripe terminal={chrome.terminal} />
+        <RightStripe queries={chrome.queries} />
+        <StatusBar {...chrome} />
         {scene.draw(landed)}
-        <StatusBar mcp={scene.title === "Hand it to Claude Code"} />
 
         {arrived && now.click && (
           <span
             key={beat}
-            className="flux-click pointer-events-none absolute size-[34px] rounded-full"
-            style={{ left: now.at[0] - 17, top: now.at[1] - 17, border: `2px solid ${UI.accent}`, background: "rgba(53,116,240,0.18)" }}
+            className="flux-click pointer-events-none absolute z-40 size-[40px] rounded-full"
+            style={{
+              left: now.at[0] - 20,
+              top: now.at[1] - 20,
+              border: "2px solid var(--accent)",
+              background: "color-mix(in srgb, var(--accent) 18%, transparent)",
+            }}
           />
         )}
         {arrived && now.keys && (
-          <span key={`k${beat}`} className="flux-in pointer-events-none absolute flex gap-1" style={{ left: now.at[0] + 18, top: now.at[1] - 34 }}>
+          <span
+            key={`k${beat}`}
+            className="flux-in pointer-events-none absolute z-40 flex gap-1.5"
+            style={{ left: now.at[0] + 22, top: now.at[1] - 44 }}
+          >
             {now.keys.split(" ").map((k) => (
               <kbd
                 key={k}
-                className="flex h-[26px] min-w-[26px] items-center justify-center rounded-[6px] px-1.5 text-[13px] font-medium"
-                style={{ background: UI.hover, border: `1px solid ${UI.border}`, borderBottomWidth: 3, color: UI.text }}
+                className="flex h-[34px] min-w-[34px] items-center justify-center rounded-[8px] px-2 text-[17px] font-medium"
+                style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", borderBottomWidth: 3, color: "var(--text)" }}
               >
                 {k}
               </kbd>
@@ -377,13 +505,13 @@ function Stage({ scene, scale }: { scene: Scene; scale: number }) {
           // the caption beside the cursor, on whichever side has room
           <span
             key={`s${beat}`}
-            className="flux-in pointer-events-none absolute z-30 rounded-[6px] px-2 py-1 text-[11px] font-medium whitespace-nowrap"
+            className="flux-in pointer-events-none absolute z-40 rounded-[8px] px-3 py-1.5 text-[15px] font-medium whitespace-nowrap"
             style={{
-              top: Math.min(now.at[1] + 16, H - 52),
-              ...(now.at[0] > W - 220 ? { right: W - now.at[0] + 10 } : { left: now.at[0] + 18 }),
-              background: UI.accent,
-              color: "#fff",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
+              top: Math.min(now.at[1] + 22, H - 70),
+              ...(now.at[0] > W - 300 ? { right: W - now.at[0] + 12 } : { left: now.at[0] + 24 }),
+              background: "var(--accent)",
+              color: "var(--accent-text)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
             }}
           >
             {now.say}
@@ -398,13 +526,13 @@ function Stage({ scene, scale }: { scene: Scene; scale: number }) {
 function Cursor({ at, pressed }: { at: [number, number]; pressed: boolean }) {
   return (
     <svg
-      width="18"
-      height="24"
+      width="24"
+      height="32"
       viewBox="0 0 18 24"
-      className="pointer-events-none absolute top-0 left-0 z-20"
+      className="pointer-events-none absolute top-0 left-0 z-50"
       style={{
-        transform: `translate(${at[0] - 2}px, ${at[1] - 2}px) scale(${pressed ? 0.88 : 1})`,
-        transformOrigin: "2px 2px",
+        transform: `translate(${at[0] - 3}px, ${at[1] - 3}px) scale(${pressed ? 0.88 : 1})`,
+        transformOrigin: "3px 3px",
         transition: `transform ${MOVE}ms cubic-bezier(0.45, 0, 0.2, 1)`,
         filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.5))",
       }}
@@ -424,322 +552,689 @@ function Typed({ text, ms = 900 }: { text: string; ms?: number }) {
 }
 
 const box = (style: CSSProperties): CSSProperties => ({ position: "absolute", ...style });
+const dim = { color: "var(--text-dim)" } as const;
+const muted = { color: "var(--text-muted)" } as const;
+
+// ——— the chrome: Shell's title bar, stripes and status bar ———
 
 function TitleBar() {
+  const icon = "flex size-7 items-center justify-center rounded-md";
   return (
-    <div className="flex h-[30px] items-center gap-3 px-3">
-      <span className="flex gap-[6px]">
+    <div className="flex h-9 items-center gap-2 pr-1 pl-[78px]" style={box({ left: PAD, right: PAD, top: 0 })}>
+      {/* the window's own buttons, where macOS draws them */}
+      <span className="absolute top-[12px] left-[8px] flex gap-[8px]">
         {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-          <span key={c} className="size-[10px] rounded-full" style={{ background: c }} />
+          <span key={c} className="size-[12px] rounded-full" style={{ background: c }} />
         ))}
       </span>
-      <span style={{ color: UI.muted }}>Flux</span>
+      <span className="flex items-center gap-1.5 rounded-md px-1.5 py-1">
+        <Logo size={18} radius={40} />
+        <span className="text-[13px]">Flux</span>
+        <ChevronDown size={12} style={dim} />
+      </span>
+      <span className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px]" style={dim}>
+        Connections
+        <ChevronDown size={12} />
+      </span>
+      <span className="ml-auto flex items-center gap-0.5">
+        {[Wrench, Bug, Search, MoreVertical].map((Glyph, i) => (
+          <span key={i} className={icon}>
+            <Glyph size={15} style={dim} />
+          </span>
+        ))}
+      </span>
     </div>
   );
 }
 
-/** The tree on the left: empty with its add button, or one connection and its streams. */
-function Tree({ connected, open }: { connected?: boolean; open?: boolean }) {
-  const streams = ["orders", "gateway", "wallet"];
+function StripeButton({ children, active, badge }: { children: ReactNode; active?: boolean; badge?: string }) {
   return (
-    <div className="overflow-hidden rounded-[10px]" style={box({ left: 6, top: 30, width: 190, height: BODY, background: UI.editor })}>
-      <div className="flex h-[28px] items-center px-3 text-[11.5px] font-semibold">Connection Explorer</div>
-      {!connected ? (
-        <div
-          className="flex items-center justify-center gap-1.5 rounded-[6px]"
-          style={box({ left: 12, top: 70, width: 166, height: 28, border: `1px dashed ${UI.border}`, color: UI.dim })}
+    <span
+      className="relative flex size-7 items-center justify-center rounded-md"
+      style={{ background: active ? "var(--stripe-active)" : undefined, color: "var(--text-dim)" }}
+    >
+      {children}
+      {badge && (
+        <span
+          className="absolute -right-[5px] -bottom-[3px] rounded-[3px] px-[2px] text-[6.5px] leading-[9px] font-bold tracking-[0.02em]"
+          style={{ background: "var(--accent)", color: "#fff", border: "1px solid var(--bg-window)" }}
         >
-          <Plus size={12} /> Add connection
-        </div>
-      ) : (
-        <div className="flux-in" style={box({ left: 0, top: 30, right: 0 })}>
-          <Row depth={0} icon={<Database size={11} color={UI.key} />} label="acme · prod" />
-          {streams.map((s) => (
-            <Row
-              key={s}
-              depth={1}
-              icon={<span className="size-[7px] rounded-[2px]" style={{ background: UI.green }} />}
-              label={s}
-              selected={open && s === "orders"}
-            />
-          ))}
-        </div>
+          {badge}
+        </span>
       )}
+    </span>
+  );
+}
+
+function LeftStripe({ terminal }: { terminal?: boolean }) {
+  return (
+    <div className="flex w-9 flex-col items-center gap-1 py-1.5" style={box({ left: PAD, top: TOP, bottom: H - MAIN_BOTTOM })}>
+      <StripeButton active>
+        <Server size={16} />
+      </StripeButton>
+      <StripeButton badge="BETA">
+        <Activity size={16} />
+      </StripeButton>
+      <div className="flex-1" />
+      <StripeButton active={terminal}>
+        <SquareTerminal size={16} />
+      </StripeButton>
+      <StripeButton>
+        <Tags size={16} />
+      </StripeButton>
+      <StripeButton>
+        <Gauge size={16} />
+      </StripeButton>
     </div>
   );
 }
 
-function Row({ depth, icon, label, selected }: { depth: number; icon: ReactNode; label: string; selected?: boolean }) {
+function RightStripe({ queries }: { queries?: boolean }) {
   return (
-    <div className="flex h-[22px] items-center gap-1.5" style={{ paddingLeft: 12 + depth * 16, background: selected ? UI.selection : undefined }}>
-      {icon}
-      {label}
+    <div className="flex w-9 flex-col items-center gap-1 py-1.5" style={box({ left: RIGHT_STRIPE_X, top: TOP, bottom: H - MAIN_BOTTOM })}>
+      <StripeButton>
+        <Bell size={16} />
+      </StripeButton>
+      <StripeButton>
+        <PanelRight size={16} />
+      </StripeButton>
+      <StripeButton active={queries}>
+        <Bookmark size={16} />
+      </StripeButton>
     </div>
   );
 }
 
-/** The editor in the middle; with `side`, it leaves room for the panel on the right. */
-function Editor({ side, children }: { side?: boolean; children: ReactNode }) {
+function Meter({ label, value }: { label: string; value: number }) {
   return (
-    <div className="overflow-hidden rounded-[10px]" style={box({ left: 202, top: 30, right: side ? 212 : 6, height: BODY, background: UI.editor })}>
+    <span className="flex items-center gap-1.5">
+      <span className="text-[10px] font-medium tracking-wide" style={muted}>
+        {label}
+      </span>
+      <span className="relative h-[4px] w-[28px] overflow-hidden rounded-full" style={{ background: "var(--bg-hover)" }}>
+        <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.max(4, value)}%`, background: "var(--accent)" }} />
+      </span>
+      <span className="w-[30px] text-right">{value.toFixed(1)}%</span>
+    </span>
+  );
+}
+
+function StatusBar({ tab, connections = 1, mcp }: Chrome) {
+  return (
+    <div
+      className="flex h-6 items-center gap-3 px-3 text-[11px] whitespace-nowrap"
+      style={box({ left: PAD, right: PAD, top: MAIN_BOTTOM, ...muted })}
+    >
+      {tab ? (
+        <>
+          <span className="flex items-center gap-1.5">
+            <Server size={11} />
+            acme
+          </span>
+          <span>{tab.stream}</span>
+          <span>{tab.rows}</span>
+        </>
+      ) : (
+        <span>Ready</span>
+      )}
+      <span className="ml-auto flex items-center gap-3 tabular-nums">
+        <span className="flex items-center gap-2.5">
+          <Meter label="CPU" value={0.4} />
+          <Meter label="RAM" value={0.3} />
+        </span>
+        <span>{connections} connections</span>
+        <span
+          className="flex size-[22px] items-center justify-center rounded"
+          style={{ color: mcp ? "var(--green)" : "var(--text-muted)", background: mcp ? "var(--bg-hover)" : undefined }}
+        >
+          <McpIcon size={16} />
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// ——— the islands ———
+
+/** Connection Explorer: its header, its toolbar, the filter, and what it holds. */
+function Explorer({ children, bottom = MAIN_BOTTOM }: { children: ReactNode; bottom?: number }) {
+  const btn = "flex size-[22px] items-center justify-center rounded";
+  return (
+    <div className="island flex flex-col" style={box({ left: EXPLORER_X, top: TOP, width: EXPLORER_W, height: bottom - TOP })}>
+      <div className="flex h-[28px] shrink-0 items-center px-3">
+        <span className="text-[12px] font-semibold">Connection Explorer</span>
+      </div>
+      <div className="flex h-[26px] shrink-0 items-center gap-0.5 px-2">
+        <span className={btn}>
+          <Plus size={15} style={{ color: "var(--accent)" }} />
+        </span>
+        <span className={btn}>
+          <SearchCode size={14} style={dim} />
+        </span>
+        <span className="mx-1 h-3.5 w-px" style={{ background: "var(--border)" }} />
+        <span className={btn}>
+          <RefreshCw size={13} style={dim} />
+        </span>
+        <span className={btn}>
+          <FoldVertical size={14} style={dim} />
+        </span>
+        <span className="mx-1 h-3.5 w-px" style={{ background: "var(--border)" }} />
+        <span className={btn}>
+          <SquareTerminal size={14} style={dim} />
+        </span>
+        <span className={btn}>
+          <Settings2 size={14} style={dim} />
+        </span>
+      </div>
+      <div className="mx-2 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
+        <Filter size={11} style={muted} />
+        <span className="text-[12px]" style={muted}>
+          Filter…
+        </span>
+      </div>
       {children}
     </div>
   );
 }
 
-function Empty({ icon, text }: { icon?: ReactNode; text: string }) {
+function NoConnections() {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2" style={{ color: UI.muted }}>
-      {icon}
-      {text}
+    <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+      <ConnectionIcon />
+      <p className="text-[12px]" style={muted}>
+        No connections yet
+      </p>
+      <span className="rounded px-2 py-1 text-[12px]" style={{ background: "var(--accent)", color: "var(--accent-text)" }}>
+        Add a connection
+      </span>
     </div>
   );
 }
 
-const ROWS: [string, string, string][] = [
-  ["10:42:09.412", "orders", "Payment failed for ord-10531: card declined"],
-  ["10:42:08.388", "orders", "Payment failed for ord-10529: provider timeout"],
-  ["10:41:57.901", "orders", "Refund failed for ord-10488: amount mismatch"],
-  ["10:41:44.517", "orders", "Payment failed for ord-10502: card declined"],
-  ["10:41:30.240", "orders", "Payment failed for ord-10497: 3DS abandoned"],
-  ["10:41:12.903", "orders", "Payment failed for ord-10490: provider timeout"],
-];
+const STREAMS = ["orders", "gateway", "payments", "wallet"];
 
-/** A console: its tab, the query line, and — once it has run — the timeline and the rows. */
-function Console({ query, typing, results, fresh }: { query: string; typing?: boolean; results?: boolean; fresh?: boolean }) {
-  const counts = [4, 6, 5, 7, 5, 8, 6, 9, 14, 22, 18, 11, 8, 7, 9, 6, 5, 7, 6, 8];
-  const peak = Math.max(...counts);
-  const rows = fresh ? [["10:42:31.007", "orders", "Payment failed for ord-10544: card declined"] as const, ...ROWS] : ROWS;
+function TreeRow({
+  depth,
+  open,
+  icon,
+  label,
+  sub,
+  selected,
+}: {
+  depth: number;
+  open?: boolean;
+  icon: ReactNode;
+  label: string;
+  sub?: string;
+  selected?: boolean;
+}) {
+  return (
+    <div
+      className="flex h-[24px] items-center gap-1.5 pr-2 text-[13px]"
+      style={{ paddingLeft: 4 + depth * 14, background: selected ? "var(--sel-focus)" : undefined, color: selected ? "#fff" : undefined }}
+    >
+      <span className="flex size-4 shrink-0 items-center justify-center">
+        <Chevron open={!!open} />
+      </span>
+      <span className="flex size-4 shrink-0 items-center justify-center">{icon}</span>
+      <span className="truncate">{label}</span>
+      {sub && (
+        <span className="ml-1 truncate text-[11px]" style={muted}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** One Graylog and its streams, as the tree shows them once it has been asked. */
+function Tree({ selected, fresh }: { selected?: string; fresh?: boolean }) {
+  return (
+    <div className={fresh ? "flux-in" : undefined}>
+      <TreeRow depth={0} open icon={<ConnectionIcon live />} label="acme" sub="graylog.acme.io" />
+      {STREAMS.map((s) => (
+        <TreeRow key={s} depth={1} icon={<StreamIcon />} label={s} selected={s === selected} />
+      ))}
+    </div>
+  );
+}
+
+/** The editor island, between the explorer and the right stripe or the tool window there. */
+function Editor({ children, right = RIGHT_STRIPE_X, bottom = MAIN_BOTTOM }: { children: ReactNode; right?: number; bottom?: number }) {
+  return (
+    <div className="island-editor flex flex-col" style={box({ left: EDITOR_X, top: TOP, width: right - EDITOR_X, height: bottom - TOP })}>
+      {children}
+    </div>
+  );
+}
+
+/** EditorArea's welcome, with no tab open. */
+function Welcome({ connected }: { connected?: boolean }) {
+  const hints: [string, string][] = [
+    ["Search Everywhere", "⇧ ⇧"],
+    ["Go to Endpoint", "⇧⌘O"],
+    ["Execute Query", "⌘⏎"],
+    ["Close Tab", "⌘W"],
+    ["Settings", "⌘,"],
+  ];
   return (
     <>
-      <div className="flex h-[26px] items-center gap-1.5 px-2.5" style={{ borderBottom: `1px solid ${UI.border}` }}>
-        <span className="flex h-[20px] items-center gap-1.5 rounded-[5px] px-2" style={{ background: UI.tool }}>
-          <span className="size-[7px] rounded-[2px]" style={{ background: UI.green }} />
-          orders
-        </span>
-      </div>
-      <div className="flex h-[30px] items-center gap-3 font-[var(--font-mono)] text-[11.5px]" style={{ borderBottom: `1px solid ${UI.border}` }}>
-        <span className="w-[22px] text-right" style={{ color: UI.muted }}>
-          1
-        </span>
-        {query ? (
-          <span>
-            {typing ? (
-              <Typed text={query} />
-            ) : (
-              <>
-                <span style={{ color: UI.key }}>level</span>
-                <span style={{ color: UI.dim }}>:</span>
-                <span style={{ color: UI.str }}>ERROR</span>
-              </>
-            )}
-          </span>
-        ) : (
-          <span className="flex items-center gap-1" style={{ color: UI.muted }}>
-            <Search size={11} /> Lucene query
-          </span>
-        )}
-        <span className="mr-2.5 ml-auto rounded-[5px] px-2 py-[2px]" style={{ background: UI.hover, color: UI.green }}>
-          ▶ <span style={{ color: UI.dim }}>Last 1 hour</span>
-        </span>
-      </div>
-      {results && (
-        <div className="flux-in">
-          <div className="px-2.5 pt-2 pb-1.5" style={{ borderBottom: `1px solid ${UI.border}` }}>
-            <div className="pb-1 text-[10px]" style={{ color: UI.muted }}>
-              {fresh ? 147 : 144} messages
-            </div>
-            <div className="flex h-[40px] items-end gap-px">
-              {counts.map((c, i) => (
-                <div key={i} className="flex-1 rounded-[1px]" style={{ height: `${(c / peak) * 40}px`, background: UI.red, opacity: 0.7 }} />
-              ))}
-            </div>
-          </div>
-          <div className="font-[var(--font-mono)] text-[10.5px]">
-            {rows.map(([at, , message], i) => (
-              <div
-                key={at}
-                className={`flex h-[22px] items-center gap-2 px-2.5 ${fresh && i === 0 ? "flux-flash" : ""}`}
-                style={{ background: i % 2 ? UI.stripe : undefined }}
-              >
-                <span style={{ color: UI.dim }}>{at}</span>
-                <span className="font-semibold" style={{ color: UI.red }}>
-                  ERROR
+      <div className="h-[45px] shrink-0" />
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 pb-[45px]">
+        <Logo size={56} />
+        <h1 className="text-[22px] font-light">Welcome to Flux</h1>
+        {connected ? (
+          <div className="flux-in mt-2 flex flex-col gap-3">
+            {hints.map(([label, keys]) => (
+              <span key={label} className="flex items-baseline gap-3 text-[15px]" style={muted}>
+                {label}
+                <span className="text-[14px]" style={dim}>
+                  {keys}
                 </span>
-                <span className="truncate">{message}</span>
-              </div>
+              </span>
             ))}
           </div>
+        ) : (
+          <span
+            className="mt-2 flex h-[76px] w-[140px] flex-col items-center justify-center gap-2 rounded-lg text-[12px]"
+            style={{ background: "var(--bg-tool)", border: "1px solid var(--accent)", ...dim }}
+          >
+            <span style={{ color: "var(--accent)" }}>＋</span>
+            Connection
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
+const TRACE_ID = "req_7f3a9c2e";
+
+type Line = [at: string, source: string, level: string, message: string];
+
+const LINES: Line[] = [
+  ["2026-10-14 10:42:09", "payments-2", "ERROR", "Payment failed for ord-10531: card declined"],
+  ["2026-10-14 10:42:08", "payments-1", "ERROR", "Payment failed for ord-10529: provider timeout"],
+  ["2026-10-14 10:41:57", "payments-2", "ERROR", "Refund failed for ord-10488: amount mismatch"],
+  ["2026-10-14 10:41:44", "payments-2", "ERROR", "Payment failed for ord-10502: card declined"],
+  ["2026-10-14 10:41:30", "payments-1", "ERROR", "Payment failed for ord-10497: 3DS abandoned"],
+  ["2026-10-14 10:41:12", "payments-2", "ERROR", "Payment failed for ord-10490: provider timeout"],
+];
+const FRESH: Line[] = [
+  ["2026-10-14 10:42:31", "payments-2", "ERROR", "Payment failed for ord-10544: card declined"],
+  ["2026-10-14 10:42:30", "payments-1", "ERROR", "Payment failed for ord-10543: provider timeout"],
+  ["2026-10-14 10:42:28", "payments-2", "ERROR", "Payment failed for ord-10541: card declined"],
+];
+/** One request across three services, oldest first, as a traced id's console has it. */
+const STORY: Line[] = [
+  ["2026-10-14 10:42:09", "gateway", "INFO", `POST /v1/orders ${TRACE_ID}`],
+  ["2026-10-14 10:42:09", "orders", "INFO", `Order ord-10531 created ${TRACE_ID}`],
+  ["2026-10-14 10:42:09", "payments", "INFO", `Charging ord-10531 with the card provider ${TRACE_ID}`],
+  ["2026-10-14 10:42:17", "payments", "ERROR", `Charge failed: upstream timeout after 8000ms ${TRACE_ID}`],
+  ["2026-10-14 10:42:17", "orders", "WARN", `Order ord-10531 left pending ${TRACE_ID}`],
+];
+
+/**
+ * A console tab as EditorArea draws it: the tab, the toolbar, the query line, and once it has
+ * run, the timeline, whatever sits over the grid, the grid and its footer.
+ */
+function Console({
+  tab,
+  query,
+  typing,
+  results,
+  fresh,
+  dragging,
+  explained,
+  journey,
+}: {
+  tab: string;
+  query: string;
+  typing?: boolean;
+  results?: boolean;
+  fresh?: boolean;
+  /** The buckets an ⌥-drag is across, while it is held. */
+  dragging?: number[];
+  explained?: boolean;
+  journey?: boolean;
+}) {
+  const btn = "flex size-6 items-center justify-center rounded";
+  const lines = journey ? STORY : fresh ? [...FRESH, ...LINES] : LINES;
+  return (
+    <>
+      <div className="flex h-[45px] shrink-0 items-start gap-1 px-1.5 pt-1.5">
+        <span className="flex h-[26px] items-center gap-1.5 rounded-md px-2 text-[12px]" style={{ background: "var(--bg-raised)" }}>
+          <span className="flex size-3.5 items-center justify-center">
+            <StreamIcon />
+          </span>
+          <span className="font-[var(--font-mono)]">{tab}</span>
+        </span>
+        <span className="mt-[3px] mr-1 ml-auto flex size-5 items-center justify-center" style={dim}>
+          <MoreVertical size={13} />
+        </span>
+      </div>
+      <div className="flex shrink-0 flex-col" style={{ height: CONSOLE_H }}>
+        <div className="flex h-[30px] shrink-0 items-center gap-1 px-1.5">
+          <span className={btn}>
+            <Play size={14} style={{ color: "var(--green)" }} fill="var(--green)" />
+          </span>
+          <span className={btn}>
+            <RotateCw size={13} style={dim} />
+          </span>
+          <span className={btn}>
+            <Save size={13} style={dim} />
+          </span>
+          <span className={btn}>
+            <Radio size={13} style={dim} />
+          </span>
+          <span className={btn} style={{ opacity: results ? 1 : 0.35 }}>
+            <Download size={13} style={dim} />
+          </span>
+          <span className={btn} style={{ opacity: results ? 1 : 0.35 }}>
+            <ClaudeIcon size={13} />
+          </span>
+          <span className={btn}>
+            <Link2 size={13} style={dim} />
+          </span>
+          <span className="mx-1 h-4 w-px" style={{ background: "var(--border)" }} />
+          <span
+            className="flex h-6 items-center gap-1 rounded px-1.5 text-[12px]"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border)" }}
+          >
+            Last {journey ? "7 days" : "1 hour"} <ChevronDown size={11} style={dim} />
+          </span>
+          <span className={btn}>
+            <CalendarClock size={13} style={dim} />
+          </span>
+          <span className="ml-auto pr-1 text-[11px]" style={muted}>
+            | group by field · ⌘⏎ to run
+          </span>
+        </div>
+        <div className="flex font-[var(--font-mono)] text-[13px] leading-[20px]" style={{ background: "var(--bg-editor)" }}>
+          <span className="w-[34px] shrink-0 pr-2 text-right" style={{ color: "var(--gutter-text)" }}>
+            1
+          </span>
+          <span className="min-w-0 flex-1 truncate pl-1" style={{ background: "color-mix(in srgb, var(--bg-hover) 50%, transparent)" }}>
+            {query ? (
+              typing ? (
+                <Typed text={query} />
+              ) : (
+                <Highlighted query={query} />
+              )
+            ) : (
+              <span style={{ color: "var(--syn-comment)" }}>Lucene query, e.g. level_name:ERROR AND httpStatusCode:&gt;=500</span>
+            )}
+          </span>
+        </div>
+      </div>
+      <div className="h-px shrink-0" style={{ background: "var(--border)" }} />
+      {results && (
+        <div className="flux-in flex min-h-0 flex-1 flex-col">
+          <Timeline count={lines.length * 24 + (fresh ? 3 : 0)} dragging={dragging} quiet={journey} />
+          {explained && <Explained />}
+          {journey && <Lanes />}
+          <Grid lines={lines} fresh={fresh ? FRESH.length : 0} />
         </div>
       )}
     </>
   );
 }
 
-/** Saved Queries, on the right, with each query's bell. */
-function SavedPanel({ saved, fresh, watching }: { saved: string[]; fresh?: boolean; watching?: boolean }) {
+/** The console's colours: a field, its colon, a value. */
+function Highlighted({ query }: { query: string }) {
+  const at = query.indexOf(":");
+  if (at < 0) return <span style={{ color: "var(--syn-str)" }}>{query}</span>;
   return (
-    <div className="overflow-hidden rounded-[10px]" style={box({ right: 6, top: 30, width: 200, height: BODY, background: UI.editor })}>
-      <div className="flex h-[28px] items-center px-3 text-[11.5px] font-semibold">Queries</div>
-      {!saved.length && (
-        <p className="px-3 pt-1" style={{ color: UI.muted }}>
-          Nothing saved yet.
-        </p>
-      )}
-      {saved.map((name, i) => {
-        const on = watching && i === 0;
-        return (
-          <div key={name} className={`flex h-[22px] items-center gap-1.5 px-3 ${fresh ? "flux-in flux-flash" : ""}`}>
-            <Search size={11} color={UI.dim} />
-            <span className="truncate">{name}</span>
-            <span
-              className="ml-auto flex size-[18px] items-center justify-center rounded-[4px]"
-              style={{ background: on ? "rgba(53,116,240,0.2)" : undefined }}
-            >
-              {on ? <BellRing size={11} color={UI.accent} /> : <Bell size={11} color={UI.muted} />}
-            </span>
-          </div>
-        );
-      })}
-    </div>
+    <>
+      <span style={{ color: "var(--syn-key)" }}>{query.slice(0, at)}</span>
+      <span style={{ color: "var(--syn-op)" }}>:</span>
+      <span style={{ color: "var(--syn-str)" }}>{query.slice(at + 1)}</span>
+    </>
   );
 }
 
-function SavePopover() {
+function Timeline({ count, dragging, quiet }: { count: number; dragging?: number[]; quiet?: boolean }) {
+  const peak = Math.max(...BUCKETS);
+  const picked = (i: number) => !!dragging && i >= dragging[0] && i <= dragging[1];
   return (
-    <div
-      className="flux-in rounded-[10px] p-3"
-      style={box({
-        left: 300,
-        top: 120,
-        width: 240,
-        background: UI.tool,
-        border: `1px solid ${UI.border}`,
-        boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-      })}
-    >
-      <p className="pb-1.5 font-semibold">Save query</p>
-      <div className="flex h-[26px] items-center rounded-[6px] px-2" style={{ background: UI.window, border: `1px solid ${UI.accent}` }}>
-        <Typed text="Payment errors" ms={700} />
+    <div className="shrink-0 px-2 pt-1.5 pb-1" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+      <div className="flex items-center gap-1.5 pb-1 text-[10px] leading-[15px]" style={muted}>
+        <ChevronDown size={11} />
+        <span>{count.toLocaleString()} messages</span>
+        {!quiet && <span style={{ color: "var(--red)" }}>— errors up to 4.2%</span>}
+        <span className="ml-auto">drag to narrow the range · ⌥-drag to explain a spike</span>
       </div>
-      <div className="mt-2.5 flex justify-end">
-        <span className="rounded-[6px] px-3 py-[5px] font-medium" style={{ background: UI.accent, color: "#fff" }}>
-          Save
-        </span>
+      <div className="relative flex items-end gap-px" style={{ height: CHART_H }}>
+        {BUCKETS.map((c, i) => (
+          <div
+            key={i}
+            className="flex-1"
+            style={{
+              height: Math.max(2, ((quiet ? (i === 9 ? 5 : i > 8 && i < 12 ? 2 : 0) : c) / (quiet ? 5 : peak)) * CHART_H),
+              minWidth: 2,
+              background: dragging && picked(i) ? "var(--purple)" : "var(--accent)",
+              opacity: dragging ? (picked(i) ? 1 : 0.35) : 0.75,
+              borderRadius: 1,
+            }}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-/** Settings › Connections, cut down to the fields a first connection needs. */
-function ConnectionDialog({ kind, url, token }: { kind: boolean; url: boolean; token: boolean }) {
-  const field = (top: number, label: string, value: ReactNode) => (
-    <>
-      <span style={box({ left: 16, top: top - 16, color: UI.dim })}>{label}</span>
-      <div
-        className="flex items-center rounded-[6px] px-2 font-[var(--font-mono)]"
-        style={box({ left: 16, top, width: 348, height: 28, background: UI.window, border: `1px solid ${UI.border}` })}
-      >
-        {value}
-      </div>
-    </>
-  );
-  return (
-    <>
-      <div className="flux-in" style={box({ inset: 0, background: "rgba(0,0,0,0.35)" })} />
-      <div
-        className="flux-in rounded-[12px]"
-        style={box({
-          left: 190,
-          top: 80,
-          width: 380,
-          height: 270,
-          background: UI.tool,
-          border: `1px solid ${UI.border}`,
-          boxShadow: "0 20px 50px rgba(0,0,0,0.55)",
-        })}
-      >
-        <p className="font-semibold" style={box({ left: 16, top: 14, fontSize: 13 })}>
-          New connection
-        </p>
-        <span style={box({ left: 16, top: 40, color: UI.dim })}>Source</span>
-        {["Graylog", "Kibana", "Local"].map((k, i) => {
-          const on = kind && i === 0;
-          return (
-            <span
-              key={k}
-              className="flex items-center justify-center rounded-[6px]"
-              style={box({
-                left: 16 + i * 90,
-                top: 56,
-                width: 84,
-                height: 26,
-                border: `1px solid ${on ? UI.accent : UI.border}`,
-                background: on ? "rgba(53,116,240,0.18)" : undefined,
-                color: on ? UI.text : UI.dim,
-              })}
-            >
-              {k}
-            </span>
-          );
-        })}
-        {field(112, "Graylog URL", url ? <Typed text="https://graylog.acme.io" /> : <span style={{ color: UI.muted }}>https://</span>)}
-        {field(160, "Access token", token ? <Typed text="••••••••••••••••" ms={700} /> : null)}
-        <span
-          className="flex items-center justify-center rounded-[6px]"
-          style={box({ left: 192, top: 220, width: 84, height: 30, border: `1px solid ${UI.border}`, color: UI.dim })}
-        >
-          Cancel
-        </span>
-        <span
-          className="flex items-center justify-center rounded-[6px] font-medium"
-          style={box({ left: 280, top: 220, width: 84, height: 30, background: UI.accent, color: "#fff", opacity: token ? 1 : 0.5 })}
-        >
-          Save
-        </span>
-      </div>
-    </>
-  );
-}
-
-/** What the explain found: the fields whose values the spike has far more of than the time before. */
+/** ExplainPanel, over the grid, with what the stretch holds far more of than the time before it. */
 function Explained() {
-  const found: [string, string, number, number][] = [
-    ["version", "v2.4.1", 92, 8],
-    ["host", "payments-2", 88, 31],
-    ["route", "POST /v1/charges", 79, 40],
+  const rows: [string, string, number, number][] = [
+    ["version", "v2.4.1", 0.92, 0.08],
+    ["source", "payments-2", 0.88, 0.31],
+    ["route", "POST /v1/charges", 0.79, 0.4],
   ];
+  const share = (v: number, colour: string) => (
+    <span className="flex w-[118px] shrink-0 items-center gap-1.5">
+      <span className="h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: "var(--bg-hover)" }}>
+        <span className="block h-full rounded-full" style={{ width: `${v * 100}%`, background: colour }} />
+      </span>
+      <span className="w-[38px] text-right tabular-nums">{Math.round(v * 100)}%</span>
+    </span>
+  );
   return (
-    <div
-      className="flux-in flex flex-col rounded-[8px]"
-      style={box({
-        left: 212,
-        top: 160,
-        width: 572,
-        background: UI.tool,
-        border: `1px solid ${UI.border}`,
-        boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
-      })}
-    >
-      <div className="flex h-[26px] items-center gap-2 px-2.5" style={{ borderBottom: `1px solid ${UI.border}`, color: UI.dim }}>
-        <span className="font-medium" style={{ color: UI.purple }}>
+    <div className="flux-in flex shrink-0 flex-col" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="flex h-[26px] shrink-0 items-center gap-2 px-2 text-[11px]" style={{ background: "var(--bg-tool)", ...dim }}>
+        <span className="font-medium" style={{ color: "var(--purple)" }}>
           explain
         </span>
-        10:41 – 10:43 against the three times as long before it
+        <span className="truncate">10:41:00.000 – 10:43:00.000 against the three times as long before it, over 6 fields</span>
+        <span className="ml-auto flex size-5 items-center justify-center">
+          <X size={12} />
+        </span>
       </div>
-      {found.map(([field, value, inSpike, before], i) => (
-        <div key={field} className="flux-in flex h-[30px] items-center gap-3 px-2.5" style={{ animationDelay: `${150 + i * 180}ms` }}>
-          <span className="w-[60px] font-[var(--font-mono)]" style={{ color: UI.key }}>
-            {field}
+      <div className="text-[12px]">
+        <div className="flex h-[22px] items-center gap-3 px-3 text-[10.5px]" style={muted}>
+          <span className="w-[150px] shrink-0">field</span>
+          <span className="min-w-0 flex-1">value</span>
+          <span className="w-[118px] shrink-0">in the stretch</span>
+          <span className="w-[118px] shrink-0">before it</span>
+        </div>
+        {rows.map(([field, value, inside, before], i) => (
+          <div key={field} className="flux-in flex h-[24px] items-center gap-3 px-3" style={{ animationDelay: `${150 + i * 160}ms` }}>
+            <span className="w-[150px] shrink-0 truncate font-[var(--font-mono)]" style={dim}>
+              {field}
+            </span>
+            <span className="min-w-0 flex-1 truncate font-[var(--font-mono)]">{value}</span>
+            {share(inside, "var(--purple)")}
+            {share(before, "var(--text-muted)")}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** JourneyPanel: a lane per stream, a dot where each line fell, the failure in red. */
+function Lanes() {
+  const lanes: [string, number[], number?][] = [
+    ["gateway", [4]],
+    ["orders", [10, 96]],
+    ["payments", [36], 94],
+  ];
+  return (
+    <div className="flex shrink-0 flex-col gap-1 py-2 pr-3 pl-2 text-[11.5px]" style={{ borderBottom: "1px solid var(--border)" }}>
+      <div className="flex items-center gap-x-3" style={dim}>
+        <ChevronDown size={11} className="-mr-1.5" />
+        <span className="font-[var(--font-mono)] font-medium" style={{ color: "var(--text)" }}>
+          {TRACE_ID}
+        </span>
+        <span>3 streams · 2026-10-14 10:42:09 → 2026-10-14 10:42:17</span>
+        <span style={{ color: "var(--red)" }}>1 failed</span>
+        <span className="flex items-center gap-1">
+          found in
+          <span className="rounded px-1.5 font-[var(--font-mono)]" style={{ background: "var(--bg-active)" }}>
+            request_id <span style={muted}>5</span>
           </span>
-          <span className="w-[130px] truncate font-[var(--font-mono)]" style={{ color: UI.str }}>
-            {value}
+        </span>
+        <span className="ml-auto" style={muted}>
+          over the 5 rows on screen
+        </span>
+      </div>
+      {lanes.map(([stream, points, failed], n) => (
+        <div key={stream} className="flux-in flex h-[18px] items-center gap-2 pl-5" style={{ animationDelay: `${n * 200}ms` }}>
+          <span className="w-[160px] shrink-0 truncate">{stream}</span>
+          <span className="w-[64px] shrink-0 text-right tabular-nums" style={{ color: failed ? "var(--red)" : "var(--text-muted)" }}>
+            {points.length + (failed ? 1 : 0)}
+            {failed ? " · 1✕" : ""}
           </span>
-          <span className="relative h-[6px] flex-1 overflow-hidden rounded-full" style={{ background: UI.hover }}>
-            <span className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${inSpike}%`, background: UI.purple }} />
+          <div className="relative h-full min-w-0 flex-1">
+            <div className="absolute top-1/2 right-0 left-0 h-px" style={{ background: "var(--border)" }} />
+            {[...points, ...(failed ? [failed] : [])].map((p) => (
+              <span
+                key={p}
+                className="absolute top-1/2 size-[8px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{ left: `${p}%`, background: p === failed ? "var(--red)" : "var(--accent)" }}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const COLUMNS: [string, number | undefined][] = [
+  ["timestamp", 170],
+  ["source", 120],
+  ["level", 80],
+  ["message", undefined],
+];
+
+/** ResultGrid: the gutter, the headers, striped one-line rows, the levels in their colours, the footer. */
+function Grid({ lines, fresh }: { lines: Line[]; fresh: number }) {
+  const tone = (level: string) => (level === "ERROR" ? "var(--red)" : level === "WARN" ? "var(--amber)" : "var(--text-dim)");
+  const cell = "shrink-0 truncate px-2 font-[var(--font-mono)] text-[12px] leading-[24px]";
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <div className="flex h-[26px]" style={{ background: "var(--bg-tool)" }}>
+          <div className="shrink-0" style={{ width: NUM_W, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }} />
+          {COLUMNS.map(([c, w]) => (
+            <div
+              key={c}
+              className="flex items-center px-2 text-[11px] font-medium"
+              style={{ width: w, flex: w ? undefined : 1, borderRight: "1px solid var(--border)", borderBottom: "1px solid var(--border)", ...dim }}
+            >
+              {c}
+            </div>
+          ))}
+        </div>
+        {lines.map(([at, source, level, message], i) => (
+          <div
+            key={`${at}${message}`}
+            className={`flex h-[24px] ${i < fresh ? "flux-in" : ""}`}
+            style={{
+              background: i < fresh ? "color-mix(in srgb, var(--green) 14%, transparent)" : i % 2 ? "var(--row-alt)" : undefined,
+            }}
+          >
+            <div
+              className="shrink-0 px-2 text-right font-[var(--font-mono)] text-[11px] leading-[24px] tabular-nums"
+              style={{ width: NUM_W, background: "var(--bg-tool)", borderRight: "1px solid var(--border)", ...muted }}
+            >
+              {i + 1}
+            </div>
+            <div className={cell} style={{ width: 170, borderRight: "1px solid var(--border-soft)" }}>
+              {at}
+            </div>
+            <div className={cell} style={{ width: 120, borderRight: "1px solid var(--border-soft)" }}>
+              {source}
+            </div>
+            <div className={cell} style={{ width: 80, borderRight: "1px solid var(--border-soft)", color: tone(level) }}>
+              {level}
+            </div>
+            <div className={`${cell} min-w-0 flex-1`}>{message}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex h-[26px] shrink-0 items-center gap-3 px-2 text-[11px]" style={{ borderTop: "1px solid var(--border)", ...muted }}>
+        <span className="px-1.5">Reload</span>
+        <span className="px-1.5">{lines.length} rows</span>
+        <span className="flex items-center gap-0.5">
+          <ChevronLeft size={13} className="opacity-35" />
+          <span className="min-w-[72px] text-center tabular-nums">1–{lines.length}</span>
+          <ChevronRight size={13} className="opacity-35" />
+        </span>
+        <span>total {lines.length}</span>
+        <span>214 ms</span>
+        <span className="ml-auto flex items-center gap-1 px-1.5">
+          <Columns3 size={12} /> Columns
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const SAVED = [
+  { name: "Payment errors", query: "level:ERROR", stream: "orders" },
+  { name: "Slow checkouts", query: "route:checkout AND took_ms:>2000", stream: "gateway" },
+];
+
+/** SavedQueries, docked on the right. */
+function Queries({ saved, fresh, watching, current }: { saved: typeof SAVED; fresh?: boolean; watching?: boolean; current?: boolean }) {
+  return (
+    <div className="island flex flex-col" style={box({ left: QUERIES_X, top: TOP, width: RIGHT_STRIPE_X - QUERIES_X, height: MAIN_BOTTOM - TOP })}>
+      <div className="flex h-[28px] shrink-0 items-center gap-1 pr-1.5 pl-3">
+        <span className="mr-auto text-[12px] font-semibold">Queries</span>
+        <span className="h-[18px] rounded px-1.5 text-[11px] leading-[18px] font-medium" style={{ background: "var(--bg-active)" }}>
+          Saved
+        </span>
+        <span className="h-[18px] rounded px-1.5 text-[11px] leading-[18px] font-medium" style={dim}>
+          History
+        </span>
+      </div>
+      <div className="mx-2 mt-1 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
+        <Filter size={11} style={muted} />
+        <span className="text-[12px]" style={muted}>
+          Filter…
+        </span>
+      </div>
+      {saved.map((q, i) => (
+        <div
+          key={q.name}
+          className={`flex flex-col gap-0.5 px-2 py-1.5 ${fresh ? "flux-in flux-flash" : ""}`}
+          style={{ background: current && i === 0 ? "var(--bg-active)" : undefined }}
+        >
+          <div className="flex items-center gap-1.5">
+            {watching && i === 0 && (
+              <span className="flux-in flex items-center gap-0.5 text-[10px] tabular-nums" style={{ color: "var(--amber)" }}>
+                <TriangleAlert size={10} />
+                1m
+              </span>
+            )}
+            <span className="truncate text-[12px]">{q.name}</span>
+          </div>
+          <span className="truncate font-[var(--font-mono)] text-[11px]" style={muted}>
+            {q.query}
           </span>
-          <span className="w-[120px] text-right tabular-nums" style={{ color: UI.dim }}>
-            <b style={{ color: UI.text }}>{inSpike}%</b> vs {before}% before
+          <span className="truncate text-[10px]" style={muted}>
+            {q.stream}
           </span>
         </div>
       ))}
@@ -747,226 +1242,455 @@ function Explained() {
   );
 }
 
-/** ⇧⌘I, as the app draws it: one field, for any id. */
-function TracePopover({ typed }: { typed: boolean }) {
+/** The saved query's context menu, as ContextMenu draws it. */
+function WatchMenu() {
+  const items: [ReactNode, string][] = [
+    [<SquareTerminal size={12} />, "Open"],
+    [<ClipboardCopy size={12} />, "Copy query"],
+    [<Pencil size={12} />, "Rename…"],
+    [<Bell size={12} />, "Watch for new matches"],
+  ];
   return (
     <div
-      className="flux-in flex flex-col gap-2.5 rounded-[10px] p-3.5"
+      className="flux-in z-30 min-w-[220px] overflow-hidden rounded-[6px] py-1"
       style={box({
-        left: 260,
-        top: 90,
-        width: 480,
-        background: UI.tool,
-        border: `1px solid ${UI.border}`,
-        boxShadow: "0 16px 40px rgba(0,0,0,0.55)",
+        left: MENU.x,
+        top: MENU.y,
+        background: "var(--bg-tool)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 12px 32px rgba(0,0,0,.5)",
       })}
     >
-      <span className="flex items-center gap-2 font-semibold">
-        <Fingerprint size={13} color={UI.accent} /> Trace an ID across every stream
-      </span>
-      <span
-        className="flex h-[30px] items-center rounded-[6px] px-2.5 font-[var(--font-mono)] text-[12px]"
-        style={{ background: UI.window, border: `1px solid ${UI.accent}` }}
-      >
-        {typed ? <Typed text="req_7f3a9c2e" ms={500} /> : <span style={{ color: UI.muted }}>Request id, trace id, user id…</span>}
-      </span>
+      {items.map(([icon, label], i) => (
+        <div
+          key={label}
+          className="mx-1 flex h-[24px] items-center gap-2 rounded px-2.5 text-[13px]"
+          style={i === 3 ? { background: "var(--sel-focus)", color: "#fff" } : undefined}
+        >
+          <span className="flex size-4 items-center justify-center">{icon}</span>
+          {label}
+        </div>
+      ))}
     </div>
   );
 }
 
-/** One request across the services, a line at a time, the failure where it happened. */
-function Journey() {
-  const steps: [string, string, string, string][] = [
-    ["10:42:09.104", "gateway", "INFO", "POST /v1/orders from 81.214.6.20"],
-    ["10:42:09.131", "orders", "INFO", "Order ord-10531 created"],
-    ["10:42:09.388", "payments", "INFO", "Charging ord-10531 with the card provider"],
-    ["10:42:17.391", "payments", "ERROR", "Charge failed: upstream timeout after 8000ms"],
-    ["10:42:17.402", "orders", "WARN", "Order ord-10531 left pending"],
-  ];
-  const tone: Record<string, string> = { INFO: UI.green, WARN: UI.amber, ERROR: UI.red };
+/** A watch's notice, in the corner above the status bar the balloons use. */
+function Balloon() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-[30px] shrink-0 items-center gap-2 px-3" style={{ borderBottom: `1px solid ${UI.border}` }}>
-        <Fingerprint size={12} color={UI.accent} />
-        <span className="font-[var(--font-mono)]" style={{ color: UI.text }}>
-          req_7f3a9c2e
-        </span>
-        <span style={{ color: UI.muted }}>· 5 lines across 3 services · 8.3 s</span>
-      </div>
-      <div className="relative flex flex-col gap-1 py-2 pr-3 pl-7">
-        {/* the request's thread, down the lanes */}
-        <span className="absolute top-4 bottom-4 left-[15px] w-px" style={{ background: UI.border }} />
-        {steps.map(([at, service, level, message], i) => (
-          <div
-            key={at}
-            className="flux-in relative flex h-[34px] items-center gap-3 rounded-[6px] px-2.5"
-            style={{ animationDelay: `${i * 260}ms`, background: level === "ERROR" ? "rgba(229,87,101,0.12)" : UI.stripe }}
-          >
+    <div
+      className="flux-in z-30 rounded-[10px] px-4 py-3"
+      style={box({
+        left: BALLOON.x,
+        top: BALLOON.y,
+        width: 360,
+        background: "var(--bg-tool)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 14px 40px rgba(0,0,0,.55)",
+      })}
+    >
+      <div className="flex gap-2.5">
+        <TriangleAlert size={16} style={{ color: "var(--amber)" }} className="mt-px shrink-0" />
+        <div className="min-w-0">
+          <p className="truncate pr-5 text-[13px] font-semibold">Payment errors</p>
+          <p className="mt-0.5 text-[13px]" style={dim}>
+            3 new matches on orders
+          </p>
+          <div className="mt-2.5 flex gap-2">
             <span
-              className="absolute -left-[16px] size-[9px] rounded-full"
-              style={{ background: tone[level], boxShadow: `0 0 0 3px ${UI.editor}` }}
-            />
-            <span className="font-[var(--font-mono)] text-[10.5px]" style={{ color: UI.dim }}>
-              {at}
-            </span>
-            <span className="w-[66px] rounded-[4px] px-1.5 text-center text-[10.5px]" style={{ background: UI.hover }}>
-              {service}
-            </span>
-            <span className="w-[44px] font-semibold" style={{ color: tone[level] }}>
-              {level}
-            </span>
-            <span className="truncate" style={{ color: level === "ERROR" ? UI.text : undefined }}>
-              {message}
+              className="flex h-[24px] items-center rounded-[4px] px-2.5 text-[12px]"
+              style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }}
+            >
+              Open
             </span>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function StatusBar({ mcp }: { mcp: boolean }) {
-  return (
-    <div className="flex items-center gap-3 px-3 text-[10.5px]" style={box({ left: 0, right: 0, bottom: 0, height: 22, color: UI.muted })}>
-      <span className="flex items-center gap-1.5">
-        <span className="size-[6px] rounded-full" style={{ background: UI.green }} /> acme · prod
-      </span>
-      <span className="ml-auto">UTF-8</span>
-      <span
-        className="flex items-center gap-1 rounded-[4px] px-1.5 py-[1px]"
-        style={{ color: mcp ? UI.text : UI.muted, background: mcp ? UI.hover : undefined }}
-      >
-        <Plug size={10} /> MCP
-      </span>
-    </div>
-  );
-}
+/** A modal's dimmed backdrop, over the whole window as the app's are. */
+const Backdrop = () => <div className="flux-in z-20" style={box({ inset: 0, background: "rgba(0,0,0,.45)" })} />;
 
-/** The status bar's MCP popover, as it is in the app: on, where, and the command to copy. */
-function McpPopover({ copied }: { copied: boolean }) {
+/** ConfirmDialog with its name field: what ⌘S asks the first time a query is kept. */
+function NameDialog({ typed }: { typed: boolean }) {
+  const button = "h-[26px] rounded-[4px] px-3 text-[13px] leading-[24px]";
   return (
-    <div
-      className="flux-in flex flex-col gap-2 rounded-[10px] p-3.5"
-      style={box({
-        right: 8,
-        bottom: 28,
-        width: 290,
-        height: 120,
-        background: UI.tool,
-        border: `1px solid ${UI.border}`,
-        boxShadow: "0 16px 40px rgba(0,0,0,0.55)",
-      })}
-    >
-      <span className="flex items-center gap-2 font-semibold">
-        MCP Server
-        <span className="rounded-full px-1.5 text-[9.5px]" style={{ background: "rgba(95,184,101,0.2)", color: UI.green }}>
-          On
-        </span>
-      </span>
-      <span className="truncate font-[var(--font-mono)] text-[10.5px]" style={{ color: UI.dim }}>
-        http://127.0.0.1:4319/mcp
-      </span>
-      <span
-        className="mt-1 flex w-[124px] items-center justify-center gap-1.5 rounded-[6px] font-medium"
-        style={{ height: 26, background: copied ? UI.hover : UI.accent, color: copied ? UI.green : "#fff" }}
+    <>
+      <Backdrop />
+      <div
+        className="flux-in z-30 rounded-[10px] p-4"
+        style={box({
+          left: NAME_DIALOG.x,
+          top: NAME_DIALOG.y,
+          width: 420,
+          background: "var(--bg-tool)",
+          border: "1px solid var(--border)",
+          boxShadow: "0 24px 64px rgba(0,0,0,.55)",
+        })}
       >
-        {copied ? (
-          "Copied"
-        ) : (
-          <>
-            <Copy size={11} /> Copy command
-          </>
-        )}
-      </span>
-    </div>
-  );
-}
-
-/** A terminal in the editor: the command pasted, Claude Code asked, and it reading the logs through Flux. */
-function Terminal({ step }: { step: number }) {
-  const line = "flex items-start gap-2 whitespace-pre-wrap";
-  return (
-    <div className="flex h-full flex-col gap-1.5 p-3 font-[var(--font-mono)] text-[10.5px] leading-[1.6]" style={{ color: UI.dim }}>
-      <span className="text-[11px] font-semibold" style={{ fontFamily: "inherit", color: UI.text }}>
-        Terminal
-      </span>
-      <span className={line}>
-        <span style={{ color: UI.green }}>~/acme $</span>
-        {step >= 3 && (
-          <span style={{ color: UI.text }}>
-            {step === 3 ? (
-              <Typed text="claude mcp add --transport http flux http://127.0.0.1:4319/mcp …" ms={1000} />
-            ) : (
-              "claude mcp add --transport http flux http://127.0.0.1:4319/mcp …"
-            )}
+        <p className="text-[13px] font-semibold">Save query</p>
+        <p className="mt-1.5 text-[13px]" style={dim}>
+          It is kept with this workspace, on orders.
+        </p>
+        <div
+          className="mt-3 flex h-[26px] items-center rounded-[4px] px-2 text-[13px]"
+          style={{ background: "var(--bg-input)", border: "1px solid var(--accent)" }}
+        >
+          {typed ? <Typed text="Payment errors" ms={700} /> : "Payment errors"}
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <span className={button} style={{ background: "var(--bg-raised)", border: "1px solid var(--border)" }}>
+            Cancel
           </span>
-        )}
-      </span>
-      {step >= 4 && (
-        <>
-          <span className="flux-in">Added HTTP MCP server flux to local config</span>
-          <span className={`${line} flux-in`}>
-            <span style={{ color: UI.green }}>~/acme $</span>
-            <span style={{ color: UI.text }}>claude</span>
+          <span className={button} style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }}>
+            Save
+          </span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** TraceDialog: one field for any id, the range, and Trace. */
+function TraceForm({ typed }: { typed: boolean }) {
+  return (
+    <>
+      <Backdrop />
+      <div
+        className="flux-in z-30 flex flex-col gap-3 rounded-[10px] p-4"
+        style={box({
+          left: TRACE.x,
+          top: TRACE.y,
+          width: 520,
+          background: "var(--bg-tool)",
+          border: "1px solid var(--border)",
+          boxShadow: "0 24px 64px rgba(0,0,0,.55)",
+        })}
+      >
+        <div className="flex items-center gap-2 text-[13px] font-semibold">
+          <Fingerprint size={15} style={{ color: "var(--accent)" }} /> Trace an ID across every stream
+        </div>
+        <div
+          className="flex h-[32px] items-center rounded-[5px] px-2.5 font-[var(--font-mono)] text-[13px]"
+          style={{ background: "var(--bg-input)", border: "1px solid var(--accent)" }}
+        >
+          {typed ? <Typed text={TRACE_ID} ms={500} /> : <span style={muted}>Request id, trace id, order id, user id, e-mail…</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-[26px] w-[150px] items-center justify-between rounded-[4px] px-2 text-[13px]"
+            style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+          >
+            Last 7 days <ChevronDown size={12} style={dim} />
           </span>
           <span
-            className="flux-in mt-1 flex items-center gap-2 rounded-[6px] px-2.5 py-1.5"
-            style={{ border: `1px solid ${UI.border}`, color: UI.text }}
+            className="ml-auto flex h-[28px] items-center rounded-[5px] px-3 text-[12.5px]"
+            style={{ background: "var(--accent)", color: "var(--accent-text)", opacity: typed ? 1 : 0.4 }}
           >
-            <ClaudeIcon size={11} />
-            {step === 4 ? <Typed text="Why are orders failing since 10:40?" ms={900} /> : "Why are orders failing since 10:40?"}
+            Trace
           </span>
-        </>
-      )}
-      {step >= 5 && (
-        <>
-          <span className="flux-in mt-1">
-            <span style={{ color: UI.accent }}>●</span> <span style={{ color: UI.text }}>flux · search_logs</span>
-            {'(streams: ["orders"], query: "level:ERROR", minutes: 30)'}
+        </div>
+        <p className="text-[11px]" style={muted}>
+          Searched as text in every stream, oldest first. The lanes over the results show which service said what, and when it failed.
+        </p>
+      </div>
+    </>
+  );
+}
+
+/** Settings, open on Connections with a Graylog being filled in. */
+function ConnectionSettings({ url, token }: { url: boolean; token: boolean }) {
+  const pages: [string, string?][] = [
+    ["Account"],
+    ["Appearance & Behavior", "parent"],
+    ["Appearance", "child"],
+    ["Connection Explorer", "child"],
+    ["Keymap"],
+    ["Editor", "parent"],
+    ["Query Console", "child"],
+    ["Results Grid", "child"],
+    ["Terminal"],
+    ["Projects"],
+    ["Updates"],
+    ["MCP Server"],
+    ["Workspace"],
+    ["Connections"],
+    ["Jira"],
+    ["Advanced Settings"],
+  ];
+  const button = "h-[26px] rounded-[4px] px-3 text-[13px] leading-[24px]";
+  const outline = { background: "var(--bg-raised)", border: "1px solid var(--border)" };
+  const row = (label: string, field: ReactNode, hint?: string) => (
+    <div className="flex items-start gap-3 py-[3px]">
+      <span className="w-[150px] shrink-0 pt-[3px] text-right text-[13px]">{label}</span>
+      <div className="min-w-0 flex-1">
+        {field}
+        {hint && (
+          <p className="mt-0.5 text-[11px] leading-snug" style={muted}>
+            {hint}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+  const input = (value: ReactNode, mono?: boolean, focused?: boolean) => (
+    <div
+      className={`flex h-[26px] w-full items-center overflow-hidden rounded-[4px] px-2 text-[13px] ${mono ? "font-[var(--font-mono)]" : ""}`}
+      style={{ background: "var(--bg-input)", border: `1px solid ${focused ? "var(--accent)" : "var(--border)"}` }}
+    >
+      {value}
+    </div>
+  );
+  return (
+    <>
+      <Backdrop />
+      <div
+        className="flux-in z-30 flex flex-col overflow-hidden rounded-[10px]"
+        style={box({
+          left: DIALOG.x,
+          top: DIALOG.y,
+          width: DIALOG.w,
+          height: DIALOG.h,
+          background: "var(--bg-tool)",
+          border: "1px solid var(--border)",
+          boxShadow: "0 24px 64px rgba(0,0,0,.55)",
+        })}
+      >
+        <div className="flex h-[38px] shrink-0 items-center px-4" style={{ borderBottom: "1px solid var(--border)" }}>
+          <span className="text-[13px] font-semibold">Settings</span>
+          <X size={14} className="ml-auto" />
+        </div>
+        <div className="flex min-h-0 flex-1">
+          <div className="flex w-[232px] shrink-0 flex-col" style={{ borderRight: "1px solid var(--border)" }}>
+            <div className="p-2">
+              <div
+                className="flex h-[26px] items-center gap-1.5 rounded-[4px] px-2"
+                style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+              >
+                <Search size={12} style={muted} />
+                <span className="text-[12px]" style={muted}>
+                  Search settings
+                </span>
+              </div>
+            </div>
+            {pages.map(([label, kind]) =>
+              kind === "parent" ? (
+                <div key={label} className="flex h-[24px] items-center gap-1 pr-2 pl-3 text-[13px]">
+                  <ChevronRight size={11} style={{ ...dim, transform: "rotate(90deg)" }} />
+                  {label}
+                </div>
+              ) : (
+                <div
+                  key={label}
+                  className="mx-1 flex h-[24px] items-center rounded text-[13px]"
+                  style={{
+                    paddingLeft: kind === "child" ? 26 : 10,
+                    background: label === "Connections" ? "var(--sel-focus)" : undefined,
+                    color: label === "Connections" ? "#fff" : undefined,
+                  }}
+                >
+                  {label}
+                </div>
+              ),
+            )}
+          </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <div className="flex h-[32px] shrink-0 items-center px-4 text-[12px]" style={{ borderBottom: "1px solid var(--border)" }}>
+              Connections
+            </div>
+            <div className="flex min-h-0 flex-1 gap-3 p-4">
+              <div className="flex w-[300px] shrink-0 flex-col rounded-[4px]" style={{ border: "1px solid var(--border)" }}>
+                <div className="flex-1 py-1">
+                  <div
+                    className="mx-1 flex h-[24px] items-center gap-2 rounded px-2 text-[13px]"
+                    style={{ background: "var(--sel-focus)", color: "#fff" }}
+                  >
+                    <SourceIcon kind="graylog" />
+                    acme
+                    <span className="ml-auto text-[10px]">Graylog</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 p-1.5" style={{ borderTop: "1px solid var(--border)" }}>
+                  {(["graylog", "kibana", "local"] as const).map((k) => (
+                    <span key={k} className={`${button} flex items-center gap-1`} style={outline}>
+                      ＋ <SourceIcon kind={k} />
+                    </span>
+                  ))}
+                  <span className="ml-auto px-1 text-[11px]" style={{ color: "var(--accent)" }}>
+                    Import
+                  </span>
+                </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-[13px] font-semibold">Connection</span>
+                  <span className="h-px flex-1" style={{ background: "var(--border)" }} />
+                </div>
+                <div className="pl-1">
+                  {row("Name", input("acme"))}
+                  {row(
+                    "Source",
+                    <div
+                      className="flex h-[26px] w-[200px] items-center gap-2 rounded-[4px] px-2 text-[13px]"
+                      style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                    >
+                      <SourceIcon kind="graylog" size={14} /> Graylog
+                      <ChevronDown size={12} className="ml-auto" style={dim} />
+                    </div>,
+                    "Which kind of server the logs come from. Queries are Lucene on both.",
+                  )}
+                  {row(
+                    "Graylog URL",
+                    input(
+                      url ? <Typed text="https://graylog.acme.io" /> : <span style={muted}>https://graylog.example.com</span>,
+                      true,
+                      url && !token,
+                    ),
+                  )}
+                  {row(
+                    "Access token",
+                    input(token ? <Typed text="••••••••••••••••••••" ms={700} /> : null, true, token),
+                    "Graylog profile › Edit tokens. Kept in connections.json on this machine, never in an export.",
+                  )}
+                </div>
+                <div className="mt-5 flex items-center gap-2 pl-[162px]">
+                  <span className={button} style={outline}>
+                    Test
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex h-[48px] shrink-0 items-center gap-2 px-4" style={{ borderTop: "1px solid var(--border)" }}>
+          <span className="text-[11px]" style={muted}>
+            Unsaved changes
           </span>
-          <span className="flux-in pl-3" style={{ animationDelay: "500ms" }}>
-            ⎿ 42 lines
-          </span>
-          <span className="flux-in" style={{ animationDelay: "1100ms" }}>
-            <span style={{ color: UI.accent }}>●</span> <span style={{ color: UI.text }}>flux · open_query</span>
-            {'(stream: "orders", query: "level:ERROR")'}
-          </span>
-          <span className="flux-in mt-1.5" style={{ animationDelay: "1900ms", color: UI.text }}>
-            Payments started failing at 10:41. Most are <span style={{ color: UI.red }}>card declined</span> (61%) and{" "}
-            <span style={{ color: UI.red }}>provider timeout</span> (30%) — the timeouts all come from one provider. I opened the query in Flux for
-            you.
-          </span>
-        </>
-      )}
+          <div className="ml-auto flex gap-2">
+            <span className={button} style={outline}>
+              Cancel
+            </span>
+            <span className={button} style={outline}>
+              Apply
+            </span>
+            <span className={button} style={{ background: "var(--accent)", color: "#fff", border: "1px solid var(--accent)" }}>
+              OK
+            </span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** The status bar's MCP popover, as Shell draws it: on, where, and the configuration to copy. */
+function McpPopover({ copied }: { copied: boolean }) {
+  const button = "h-[22px] rounded-[4px] px-2 text-[11px] leading-[20px]";
+  const outline = { background: "var(--bg-raised)", border: "1px solid var(--border)" };
+  return (
+    <div
+      className="flux-in z-30 w-[320px] rounded-[10px] p-3"
+      style={box({
+        right: MCP_POPOVER.right,
+        bottom: MCP_POPOVER.bottom,
+        background: "var(--bg-tool)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 18px 48px rgba(0,0,0,.55)",
+      })}
+    >
+      <div className="flex items-center">
+        <span className="text-[13px] font-semibold">MCP Server</span>
+        <Settings2 size={12} className="ml-auto" style={dim} />
+      </div>
+      <label className="mt-2 flex items-center gap-2 text-[12px]">
+        <span className="flex size-[13px] items-center justify-center rounded-[3px] text-[10px] text-white" style={{ background: "var(--accent)" }}>
+          ✓
+        </span>
+        Enable MCP Server
+      </label>
+      <p className="mt-2 font-[var(--font-mono)] text-[11px]" style={{ color: "var(--accent)" }}>
+        http://127.0.0.1:4319/mcp
+      </p>
+      <p className="mt-3 text-[11px]" style={dim}>
+        Manual client configuration
+      </p>
+      <div className="mt-1.5 flex gap-2">
+        <span className={button} style={outline}>
+          Copy JSON
+        </span>
+        <span className={button} style={copied ? { ...outline, color: "var(--green)" } : outline}>
+          {copied ? "Copied" : "Copy command"}
+        </span>
+      </div>
+      <p className="mt-3 text-[11px]" style={muted}>
+        Read-only: connections, streams, searches and endpoints. Tokens are never part of an answer.
+      </p>
     </div>
   );
 }
 
-function Toast({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+/** TerminalPanel, open under the editor: Claude Code added, asked, and reading the logs through Flux. */
+function Terminal({ step }: { step: number }) {
+  const prompt = <span style={{ color: "var(--green)" }}>~/acme %</span>;
+  const command = 'claude mcp add --transport http flux http://127.0.0.1:4319/mcp --header "Authorization: Bearer …"';
   return (
     <div
-      className="flux-in flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
-      style={box({
-        right: 16,
-        bottom: 34,
-        width: 250,
-        background: UI.tool,
-        border: `1px solid ${UI.border}`,
-        boxShadow: "0 12px 30px rgba(0,0,0,0.5)",
-      })}
+      className="island flux-in flex flex-col"
+      style={box({ left: EXPLORER_X, top: TERMINAL_Y, width: RIGHT_STRIPE_X - EXPLORER_X, height: MAIN_BOTTOM - TERMINAL_Y })}
     >
-      <span
-        className="flex size-[24px] shrink-0 items-center justify-center rounded-[6px]"
-        style={{ background: "rgba(53,116,240,0.2)", color: UI.accent }}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate font-semibold">{title}</span>
-        <span className="block truncate" style={{ color: UI.dim }}>
-          {text}
+      <div className="flex h-8 shrink-0 items-center gap-1 border-b px-1.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="flex h-6 items-center gap-1.5 rounded-md px-2 text-[12px]" style={{ background: "var(--bg-active)" }}>
+          acme
         </span>
-      </span>
+        <span className="flex size-6 items-center justify-center" style={dim}>
+          <Plus size={13} />
+        </span>
+      </div>
+      <div
+        className="m-1.5 mt-0 flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden rounded-[6px] p-2 font-[var(--font-mono)] text-[12px] leading-[18px] whitespace-pre-wrap"
+        style={{ background: "var(--bg-editor)", ...dim }}
+      >
+        <span>
+          {prompt} <span style={{ color: "var(--text)" }}>{step === 3 ? <Typed text={command} ms={1000} /> : command}</span>
+        </span>
+        {step >= 4 && (
+          <>
+            <span className="flux-in">Added HTTP MCP server flux with URL: http://127.0.0.1:4319/mcp to local config</span>
+            <span className="flux-in">
+              {prompt} <span style={{ color: "var(--text)" }}>claude</span>
+            </span>
+            <span
+              className="flux-in mt-1 flex w-fit items-center gap-2 rounded-[6px] px-2.5 py-1"
+              style={{ border: "1px solid var(--border)", color: "var(--text)" }}
+            >
+              <ClaudeIcon size={12} />
+              {step === 4 ? <Typed text="Why are orders failing since 10:40?" ms={900} /> : "Why are orders failing since 10:40?"}
+            </span>
+          </>
+        )}
+        {step >= 5 && (
+          <>
+            <span className="flux-in mt-1">
+              <span style={{ color: "var(--accent)" }}>●</span> <span style={{ color: "var(--text)" }}>flux · search_logs</span>
+              {'(streams: ["orders"], query: "level:ERROR", minutes: 30)'}
+            </span>
+            <span className="flux-in pl-3" style={{ animationDelay: "500ms" }}>
+              ⎿ 42 lines
+            </span>
+            <span className="flux-in" style={{ animationDelay: "1100ms" }}>
+              <span style={{ color: "var(--accent)" }}>●</span> <span style={{ color: "var(--text)" }}>flux · open_query</span>
+              {'(stream: "orders", query: "level:ERROR")'}
+            </span>
+            <span className="flux-in mt-1" style={{ animationDelay: "1900ms", color: "var(--text)" }}>
+              Payments started failing at 10:41. Most are <span style={{ color: "var(--red)" }}>card declined</span> (61%) and{" "}
+              <span style={{ color: "var(--red)" }}>provider timeout</span> (30%) — the timeouts all come from payments-1. I opened the query in Flux
+              for you.
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }
