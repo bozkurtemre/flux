@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.35.0
+
+### Added
+
+- View options on the Connection Explorer's toolbar: icons, request counts, error rates, colour
+  by health, compact rows, and how endpoints are sorted, without opening Settings.
+
 ## 0.34.0
 
 ### Added
