@@ -3,6 +3,27 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.31.0
+
+### Added
+
+- **Deploy radar**: for ten minutes after a pull request is merged into a project's repository,
+  the island compares the project's error rate since the merge with the ten minutes before it.
+  On by default, under Settings › Appearance › Island.
+- The island says when a terminal command that ran for more than ten seconds has finished, and
+  whether it failed (zsh).
+- The island shows Claude Code's MCP calls as they happen, and a waiting update you can install
+  from it.
+- A running query can be stopped from the island, without bringing Flux to the front.
+- The island can be muted for an hour, and asks to be left out of screenshots and screen sharing.
+- Click a button with a shortcut three times and Flux tells you the keys, once.
+
+### Changed
+
+- The tour is drawn as the app itself: the same window, panels, dialogs and colours you use,
+  in your theme.
+- The preview beside the sign-in shows endpoint consoles, GET and POST, as its tabs.
+
 ## 0.30.2
 
 ### Fixed
