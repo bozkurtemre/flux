@@ -288,37 +288,51 @@ function smooth(pts: [number, number][]): string {
  * The panel's background: an aurora of the logo's colours behind streams of light that drift
  * across it, the way lines of logs flow — the flux in the name. Slow enough to be felt rather
  * than watched, and still for anyone who has asked macOS to reduce motion.
+ *
+ * Drawn with care for memory: every animated thing here is a compositing layer of its own, and
+ * WebKit keeps each one's pixels, at Retina scale, for as long as it is on screen. A stream is
+ * therefore laid out as only the band its wave runs in, not the whole panel, and each light is
+ * painted at a quarter of its size and scaled up — a blur has no detail to lose — which keeps
+ * the sign-in screen at a few hundred megabytes rather than over a gigabyte.
  */
 function Streams() {
-  // each stream a gentle wave across the panel, a little apart from the one before
+  // the drawing is 1200 × 900, scaled to cover the panel and centred, as an SVG's "slice" would be
+  const [DW, DH] = [1200, 900];
+  // each stream a gentle wave across the drawing, a little apart from the one before; with it
+  // the band of the drawing it stays inside, stroke and glow included
   const wave = (y: number, amp: number, phase: number) => {
     const pts: [number, number][] = [];
     for (let x = -200; x <= 1400; x += 40) pts.push([x, y + Math.sin(x / 210 + phase) * amp + Math.sin(x / 97 + phase * 1.7) * amp * 0.22]);
-    return smooth(pts);
+    const ys = pts.map((p) => p[1]);
+    const top = Math.floor(Math.min(...ys)) - 10;
+    return { d: smooth(pts), top, height: Math.ceil(Math.max(...ys)) + 10 - top };
   };
   const streams = Array.from({ length: 14 }, (_, i) => ({
-    d: wave(240 + i * 27, 48 + (i % 4) * 10, i * 0.42),
+    ...wave(240 + i * 27, 48 + (i % 4) * 10, i * 0.42),
     width: i % 5 === 2 ? 1.6 : 0.85,
     opacity: 0.12 + (i % 5 === 2 ? 0.32 : (i % 3) * 0.06),
     duration: 11 + (i % 6) * 2.5,
     // every third stream carries a light along it, the way a line of log travels down a stream
     pulse: i % 3 === 1,
   }));
+  const lights = [
+    { className: "-top-1/4 -left-1/4 size-[85%]", color: `${BRAND}66`, blur: 90, delay: "0s" },
+    { className: "top-1/3 -right-1/4 size-[70%]", color: "#3b6cf066", blur: 100, delay: "-9s" },
+    { className: "-bottom-1/3 left-1/5 size-[65%]", color: "#7b4fd655", blur: 110, delay: "-17s" },
+  ];
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* the aurora: three soft lights that never quite settle */}
-      <div
-        className="flux-aurora absolute -top-1/4 -left-1/4 size-[85%] rounded-full blur-[90px]"
-        style={{ background: `radial-gradient(circle, ${BRAND}66, transparent 62%)` }}
-      />
-      <div
-        className="flux-aurora absolute top-1/3 -right-1/4 size-[70%] rounded-full blur-[100px]"
-        style={{ background: "radial-gradient(circle, #3b6cf066, transparent 62%)", animationDelay: "-9s" }}
-      />
-      <div
-        className="flux-aurora absolute -bottom-1/3 left-1/5 size-[65%] rounded-full blur-[110px]"
-        style={{ background: "radial-gradient(circle, #7b4fd655, transparent 62%)", animationDelay: "-17s" }}
-      />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ containerType: "size" }}>
+      {/* the aurora: three soft lights that never quite settle. The drifting box has nothing
+          painted in it; the light inside is a quarter of its size, blurred a quarter as far, and
+          scaled up to fill it, so its layer is one surface rather than a tiled sheet */}
+      {lights.map((l) => (
+        <div key={l.delay} className={`flux-aurora absolute ${l.className}`} style={{ animationDelay: l.delay }}>
+          <div
+            className="size-1/4 origin-top-left scale-[4] rounded-full"
+            style={{ background: `radial-gradient(circle, ${l.color}, transparent 62%)`, filter: `blur(${l.blur / 4}px)` }}
+          />
+        </div>
+      ))}
       {/* the gradient once, for every stream to stroke with */}
       <svg width="0" height="0" className="absolute" aria-hidden>
         <defs>
@@ -330,42 +344,57 @@ function Streams() {
           </linearGradient>
         </defs>
       </svg>
-      {/* each stream its own layer, moved by the compositor: a transform inside one SVG is
-          repainted on the main thread, and stalls whenever React draws the slice beside it.
-          Not clipped to its own box, which moves with it: the waves run past it, and the panel
-          is what cuts them off */}
-      {streams.map((s, i) => (
-        <svg
-          key={i}
-          className="flux-stream absolute inset-0 h-full w-full overflow-visible"
-          viewBox="0 0 1200 900"
-          preserveAspectRatio="xMidYMid slice"
-          style={{ animationDuration: `${s.duration}s`, animationDelay: `${-i * 1.7}s`, willChange: "transform" }}
-        >
-          <path d={s.d} fill="none" stroke="url(#flux-stream)" strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" />
-          {s.pulse &&
-            // the glow is a wider, fainter stroke under the light rather than a filter, which
-            // would be recomputed over the whole stream on every frame
-            [
-              { width: s.width + 4, opacity: 0.14 },
-              { width: s.width + 0.9, opacity: 0.6 },
-            ].map((l) => (
-              <path
-                key={l.width}
-                d={s.d}
-                fill="none"
-                stroke="#8CF7E2"
-                strokeWidth={l.width}
-                strokeLinecap="round"
-                strokeOpacity={l.opacity}
-                pathLength={1000}
-                strokeDasharray="70 930"
-                className="flux-flow"
-                style={{ animationDuration: `${7 + (i % 4) * 1.6}s`, animationDelay: `${-i * 0.9}s` }}
-              />
-            ))}
-        </svg>
-      ))}
+      {/* the drawing's box: as wide as the panel or as wide as its height needs, whichever is
+          more, and centred, which is what "xMidYMid slice" does for one SVG */}
+      <div
+        className="absolute top-1/2 left-1/2"
+        style={{ width: `max(100cqw, calc(100cqh * ${DW} / ${DH}))`, aspectRatio: `${DW} / ${DH}`, transform: "translate(-50%, -50%)" }}
+      >
+        {/* each stream its own layer, moved by the compositor: a transform inside one SVG is
+            repainted on the main thread, and stalls whenever React draws the slice beside it.
+            Its box is its band of the drawing, so its layer holds the wave and nothing more;
+            it runs past the panel's sides, and the panel is what cuts it off */}
+        {streams.map((s, i) => (
+          <svg
+            key={i}
+            className="flux-stream absolute"
+            viewBox={`-200 ${s.top} 1600 ${s.height}`}
+            preserveAspectRatio="none"
+            style={{
+              left: `${(-200 / DW) * 100}%`,
+              width: `${(1600 / DW) * 100}%`,
+              top: `${(s.top / DH) * 100}%`,
+              height: `${(s.height / DH) * 100}%`,
+              animationDuration: `${s.duration}s`,
+              animationDelay: `${-i * 1.7}s`,
+              willChange: "transform",
+            }}
+          >
+            <path d={s.d} fill="none" stroke="url(#flux-stream)" strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" />
+            {s.pulse &&
+              // the glow is a wider, fainter stroke under the light rather than a filter, which
+              // would be recomputed over the whole stream on every frame
+              [
+                { width: s.width + 4, opacity: 0.14 },
+                { width: s.width + 0.9, opacity: 0.6 },
+              ].map((l) => (
+                <path
+                  key={l.width}
+                  d={s.d}
+                  fill="none"
+                  stroke="#8CF7E2"
+                  strokeWidth={l.width}
+                  strokeLinecap="round"
+                  strokeOpacity={l.opacity}
+                  pathLength={1000}
+                  strokeDasharray="70 930"
+                  className="flux-flow"
+                  style={{ animationDuration: `${7 + (i % 4) * 1.6}s`, animationDelay: `${-i * 0.9}s` }}
+                />
+              ))}
+          </svg>
+        ))}
+      </div>
       {/* the bottom and the edge fade to the panel's own dark, so the text sits on calm */}
       <div
         className="absolute inset-0"
