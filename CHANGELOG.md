@@ -3,6 +3,19 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.34.0
+
+### Added
+
+- A splash at launch: Flux's name and version while it starts up and checks for an update.
+- An update is taken before anything else: a newer version opens the update screen at launch
+  and is installed before going on. The sign-in screen checks every hour too.
+
+### Fixed
+
+- Closing the window with its red button quits Flux, rather than leaving it running without a
+  window.
+
 ## 0.33.1
 
 ### Fixed
