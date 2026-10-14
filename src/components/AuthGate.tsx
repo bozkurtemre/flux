@@ -424,12 +424,14 @@ function AppSlice() {
               <span key={c} className="size-[10px] rounded-full" style={{ background: c }} />
             ))}
           </span>
-          <span className="flex h-[22px] items-center gap-1.5 rounded-[6px] px-2.5" style={{ background: UI.tool }}>
-            <span className="size-[7px] rounded-[2px]" style={{ background: UI.key }} />
-            orders/laravel.log
+          {/* endpoint consoles, as the tab strip names them: the method, then the route */}
+          <span className="flex h-[22px] items-center gap-1.5 rounded-[6px] px-2.5 font-[var(--font-mono)]" style={{ background: UI.tool }}>
+            <EndpointGlyph color={UI.dim} />
+            GET /v1/orders
           </span>
-          <span className="flex items-center gap-1.5 px-1" style={{ color: UI.muted }}>
-            gateway/access.jsonl
+          <span className="flex items-center gap-1.5 px-1 font-[var(--font-mono)]" style={{ color: UI.muted }}>
+            <EndpointGlyph color={UI.muted} />
+            POST /v1/payments
           </span>
         </div>
 
@@ -1201,5 +1203,15 @@ function SignIn({
         Your preferences follow you to every Mac you sign in on. Connections, tokens and queries never leave this one.
       </p>
     </>
+  );
+}
+
+/** The tree's endpoint icon, in the slice's own fixed colours rather than the theme's. */
+function EndpointGlyph({ color }: { color: string }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <rect x="3" y="2.5" width="4" height="11" rx="1.2" fill={color} opacity={0.9} />
+      <path d="M9 5.5h4M9 8h4M9 10.5h2.5" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity={0.7} />
+    </svg>
   );
 }
