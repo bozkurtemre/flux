@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "splash",
+  "description": "The splash: shows the version and hears what the main window is doing",
+  "windows": ["splash"],
+  "permissions": ["core:default"]
+}

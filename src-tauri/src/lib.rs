@@ -3,6 +3,7 @@ mod island;
 mod local;
 mod mcp;
 mod secrets;
+mod splash;
 mod terminal;
 mod usage;
 mod workspace;
@@ -20,8 +21,14 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(
+            // the main window's size and place come back, but not its visibility: it starts
+            // hidden behind the splash and is shown once it knows what to draw
             tauri_plugin_window_state::Builder::default()
-                .with_denylist(&[island::LABEL])
+                .with_denylist(&[island::LABEL, splash::LABEL])
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::all()
+                        - tauri_plugin_window_state::StateFlags::VISIBLE,
+                )
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
@@ -50,6 +57,7 @@ pub fn run() {
             mcp::mcp_set_tools,
             mcp::mcp_respond,
             island::island_present,
+            splash::splash_done,
             island::island_open,
             local::local_list,
             local::local_read,
@@ -126,6 +134,8 @@ pub fn run() {
             help.set_as_help_menu_for_nsapp()?;
 
             app.set_menu(menu)?;
+            // first, so it is on screen before the main window has loaded anything
+            splash::create(app.handle())?;
             island::create(app.handle())?;
             Ok(())
         })
@@ -147,6 +157,14 @@ pub fn run() {
                 _ => return,
             };
             let _ = window.emit(name, ());
+        })
+        // Closing the main window is quitting: the island's window is always there, hidden or
+        // not, and would otherwise keep the app running with nothing to show for it. The front
+        // end has already had its say — the terminals' question — by the time it is destroyed.
+        .on_window_event(|window, event| {
+            if window.label() == "main" && matches!(event, tauri::WindowEvent::Destroyed) {
+                window.app_handle().exit(0);
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changelogSection, compareVersions, forced, headline, notesSince, offerable, type Manifest } from "./updates";
+import { available, changelogSection, compareVersions, forced, headline, notesSince, offerable, type Manifest } from "./updates";
 
 const at = (iso: string) => new Date(iso);
 const manifest = (over: Partial<Manifest> = {}): Manifest => ({ version: "0.3.0", pub_date: "2026-09-17T10:00:00Z", ...over });
@@ -77,5 +77,15 @@ describe("the sign-in pill", () => {
   it("falls back to the first clause, and to nothing", () => {
     expect(headline("### Added\n\n- A Monitor tab. It tails.")).toBe("A Monitor tab");
     expect(headline("### Fixed\n\n- x")).toBeNull();
+  });
+});
+
+describe("an update on offer", () => {
+  const now = new Date("2026-10-14T12:00:00Z");
+  it("is a newer version that has soaked, forced or not", () => {
+    expect(available({ version: "1.2.0", pub_date: "2026-10-14T11:00:00Z" }, "1.1.9", now)).toBe(true);
+    expect(available({ version: "1.2.0", pub_date: "2026-10-14T11:55:00Z" }, "1.1.9", now)).toBe(false);
+    expect(available({ version: "1.2.0", pub_date: "2026-10-14T11:00:00Z" }, "1.2.0", now)).toBe(false);
+    expect(available({ version: "1.2.0", pub_date: "2026-10-14T11:00:00Z" }, "1.3.0", now)).toBe(false);
   });
 });

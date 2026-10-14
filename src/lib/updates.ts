@@ -61,6 +61,11 @@ export function forced(manifest: Manifest, running: string, now: Date): boolean 
   return compareVersions(manifest.version, running) > 0 && offerable(manifest, now);
 }
 
+/** Whether a newer version is on offer: newer than the running one, and done soaking. */
+export function available(manifest: Manifest, running: string, now: Date): boolean {
+  return compareVersions(manifest.version, running) > 0 && offerable(manifest, now);
+}
+
 /** What changed between the running version and the one on offer, newest first. */
 export function notesSince(manifest: Manifest, running: string): { version: string; notes: string; forced?: boolean }[] {
   const since = (manifest.history ?? []).filter((h) => compareVersions(h.version, running) > 0);
