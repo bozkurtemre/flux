@@ -1,0 +1,16 @@
+---
+title: Trace an ID
+description: One request id, every service, in order.
+---
+
+<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>I</kbd> takes a request id, a trace id, an order id, a user id or an email, and searches it as text in every stream of a connection at once. The answer opens as a console telling that id's story, oldest first, with lanes above it: one per stream, a dot for every line, the failures in red. Click a dot to read the line.
+
+From a row's context menu, **Follow this request** does the same for the id in that row.
+
+## Investigate
+
+**Investigate** goes further for one error: it gathers the request across services, who else the same failure hit, where in the code the message is logged (through the project's folder) and the commit that last changed that line — then hands the whole case to Claude Code in the terminal with one click.
+
+## The service map
+
+<kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>M</kbd> draws your services as a graph, joined by the ids they already log to each other. No agent, no tracing library, nothing to install on the server.

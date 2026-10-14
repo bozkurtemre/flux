@@ -1,0 +1,26 @@
+---
+title: Search
+description: The console, the result grid, saved queries and Search Everywhere.
+---
+
+Open a stream or an endpoint and it gets a tab of its own: a Lucene console above, the timeline and the result grid below. Nothing closes until you close it, so comparing two endpoints is two tabs.
+
+## The console
+
+Lucene, with syntax colouring and completion over the stream's own field names. <kbd>⌘</kbd> <kbd>⏎</kbd> runs it; the toolbar's range picker chooses the window, or write one into the query. `| group by field` at the end turns the result into counts per value.
+
+## The grid
+
+Virtualised, sortable, resizable columns, a row-number gutter, and severity colouring on level and status cells. Select a row and the **value inspector** shows it as syntax-coloured JSON, with strings that contain JSON expanded into real structure. Right-click a cell to narrow the query to it, exclude it, count by it, or look at the minutes around that one line.
+
+## Saved queries
+
+<kbd>⌘</kbd> <kbd>S</kbd> keeps the query by name in the **Queries** tool window on the right. Saved queries can be [watched](/watch).
+
+## Search Everywhere
+
+<kbd>⇧</kbd> <kbd>⇧</kbd> opens a search over every stream, endpoint, project, past query and action. <kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>O</kbd> opens it on endpoints.
+
+## Workspaces
+
+Open a folder as a workspace and Flux keeps that folder's stream grouping, tabs and layout in a `.flux` directory inside it, the way an IDE keeps `.idea`.

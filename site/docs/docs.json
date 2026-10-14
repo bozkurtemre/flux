@@ -1,0 +1,34 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Flux",
+  "description": "The modern log explorer for macOS",
+  "colors": { "primary": "#22C8B2", "light": "#8CF7E2", "dark": "#109AA0" },
+  "favicon": "/favicon.svg",
+  "logo": { "light": "/favicon.svg", "dark": "/favicon.svg", "href": "https://flux.emreb.dev" },
+  "appearance": { "default": "dark" },
+  "navbar": {
+    "links": [{ "label": "GitHub", "href": "https://github.com/bozkurtemre/flux" }],
+    "primary": { "type": "button", "label": "Download for macOS", "href": "https://flux.emreb.dev/download" }
+  },
+  "navigation": {
+    "groups": [
+      { "group": "Get started", "pages": ["introduction", "install", "connections"] },
+      { "group": "Working with logs", "pages": ["search", "explain", "trace", "watch", "monitor"] },
+      { "group": "Agents", "pages": ["mcp"] },
+      { "group": "Reference", "pages": ["shortcuts", "data"] }
+    ]
+  },
+  "footer": {
+    "socials": { "github": "https://github.com/bozkurtemre/flux" },
+    "links": [
+      {
+        "header": "Legal",
+        "items": [
+          { "label": "Privacy", "href": "https://flux.emreb.dev/privacy" },
+          { "label": "Terms", "href": "https://flux.emreb.dev/terms" }
+        ]
+      }
+    ]
+  }
+}

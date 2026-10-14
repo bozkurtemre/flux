@@ -1,0 +1,25 @@
+---
+title: Introduction
+description: What Flux is, and what it is for.
+---
+
+Flux is a macOS log explorer for Graylog, Elasticsearch (through Kibana) and the log files on your Mac. It looks and works like a JetBrains IDE: your streams and endpoints are a tree on the left, each one opens its own console and result grid, and everything you open stays open while you look elsewhere.
+
+A search box treats logs as one flat river of text. Flux keeps the structure that matters — which connection, which stream, which endpoint — and builds on it:
+
+<CardGroup cols={2}>
+  <Card title="Explain a spike" icon="chart-line" href="/explain">
+    Drag across a spike with ⌥ held and Flux tells you which version, service or host it comes from.
+  </Card>
+  <Card title="Trace an ID" icon="fingerprint" href="/trace">
+    Paste a request, trace or user id and read its story across every stream, in order.
+  </Card>
+  <Card title="Watch a query" icon="bell" href="/watch">
+    Be told when new matches arrive, or when a cron or a webhook goes quiet.
+  </Card>
+  <Card title="Hand it to Claude Code" icon="terminal" href="/mcp">
+    Flux is an MCP server: an agent in your terminal reads your logs with Flux's own tools.
+  </Card>
+</CardGroup>
+
+Flux runs on your Mac and talks to your sources directly. Your logs, connections and tokens never leave it; only your preferences sync with your account. See [Where your data lives](/data).

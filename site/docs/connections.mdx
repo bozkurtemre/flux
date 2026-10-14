@@ -1,0 +1,34 @@
+---
+title: Connections
+description: Graylog, Elasticsearch through Kibana, or files and containers on your Mac.
+---
+
+Open **Settings › Connections** (⌘,) and add a connection. Each one names its kind:
+
+<Tabs>
+  <Tab title="Graylog">
+    The Graylog URL and an access token. Make the token under your Graylog profile › **Edit tokens**. Flux lists the streams the token can read, and derives the endpoints each stream carries from the fields its messages log.
+  </Tab>
+  <Tab title="Kibana">
+    The Kibana URL and an API key — the *encoded* value from **Stack Management › API keys**. Flux lists the data views as streams.
+  </Tab>
+  <Tab title="Local">
+    A folder of log files — every `.log`, `.jsonl` and rotated `.log.1` under it is a stream — or one file. Write `docker` to read the running containers instead.
+  </Tab>
+</Tabs>
+
+**Test** asks the source for its version and its streams before you save.
+
+<Warning>
+  A connection's token is kept in `connections.json` in Flux's settings folder, in the clear, so that macOS does not ask for Keychain permission after every update. Treat the file like an SSH key: it is never synced, exported or put in a link, but anything that can read your home folder can read it.
+</Warning>
+
+## The tree
+
+Connections open to their streams, and streams to their endpoints — `Connection › Project › Stream › Endpoint`. Endpoint rows carry their request count and error rate for the last hour, and are coloured by health. **View options** on the explorer's toolbar chooses what each row shows.
+
+The tree reads from a cache so it opens instantly; **Refresh** asks the source again.
+
+## Projects
+
+A project groups streams that belong to one service, and can name its GitHub repository. With a repository set, the pull requests merged while a query ran are drawn on the timeline, and the island watches the ten minutes after each merge.

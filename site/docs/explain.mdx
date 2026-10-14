@@ -1,0 +1,18 @@
+---
+title: Explain a spike
+description: Which version, service, host or route a spike comes from.
+---
+
+The timeline over a result shows the message count per bucket, and — when the stream logs durations and statuses — the 95th percentile and the failure rate over it.
+
+Hold <kbd>⌥</kbd> and drag across a spike. Flux compares the stretch with the three times as long before it, over fields such as `version`, `service`, `host` and `route`, and lists the values that make up a far larger share of the spike than of the time before:
+
+| field   | value            | in the stretch | before it |
+| ------- | ---------------- | -------------- | --------- |
+| version | v2.4.1           | 92%            | 8%        |
+| host    | payments-2       | 88%            | 31%       |
+| route   | POST /v1/charges | 79%            | 40%       |
+
+Click a row to narrow the console to that value. Dragging without <kbd>⌥</kbd> narrows the range instead.
+
+With a project's GitHub repository set, the pull requests merged during the window are drawn on the timeline, so a spike that starts just after one is a question with half its answer.
