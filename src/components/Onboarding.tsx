@@ -37,6 +37,7 @@ import {
   SearchCode,
   Server,
   Settings2,
+  SlidersHorizontal,
   SquareTerminal,
   Tags,
   TriangleAlert,
@@ -723,7 +724,7 @@ function Explorer({ children, bottom = MAIN_BOTTOM }: { children: ReactNode; bot
           <SquareTerminal size={14} style={dim} />
         </span>
         <span className={btn}>
-          <Settings2 size={14} style={dim} />
+          <SlidersHorizontal size={14} style={dim} />
         </span>
       </div>
       <div className="mx-2 mb-1 flex h-[24px] shrink-0 items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>

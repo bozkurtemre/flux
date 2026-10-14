@@ -10,9 +10,15 @@ import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import {
   ArrowRight,
   Bug,
+  CalendarClock,
   ChevronDown,
+  Download,
   Fingerprint,
   Link2,
+  Play,
+  Radio,
+  Save,
+  Server,
   Lock,
   LogIn,
   Mail,
@@ -35,7 +41,7 @@ import { Logo } from "./Logo";
 import { UI } from "./darkUi";
 import { Onboarding } from "./Onboarding";
 import { Avatar } from "./Avatar";
-import { Spinner } from "./icons";
+import { ClaudeIcon, McpIcon, Spinner } from "./icons";
 import {
   AUTH_CALLBACK,
   avatarsOf,
@@ -499,6 +505,43 @@ function AppSlice() {
         </div>
 
         <div className="mx-1.5 mb-1.5 overflow-hidden rounded-[10px]" style={{ background: UI.editor }}>
+          {/* the console's toolbar, with the app's own icons */}
+          <div className="flex h-[28px] items-center gap-0.5 px-1.5">
+            <span className="flex size-6 items-center justify-center">
+              <Play size={13} style={{ color: UI.green }} fill={UI.green} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <RotateCw size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <Save size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <Radio size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <Download size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <ClaudeIcon size={12} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <Link2 size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="mx-1 h-3.5 w-px" style={{ background: UI.border }} />
+            <span
+              className="flex h-[20px] items-center gap-1 rounded-[4px] px-1.5 text-[10.5px]"
+              style={{ background: UI.hover, border: `1px solid ${UI.border}` }}
+            >
+              Last 1 hour <ChevronDown size={10} style={{ color: UI.dim }} />
+            </span>
+            <span className="flex size-6 items-center justify-center">
+              <CalendarClock size={12} style={{ color: UI.dim }} />
+            </span>
+            <span className="ml-auto pr-1 text-[10px]" style={{ color: UI.muted }}>
+              | group by field · ⌘⏎ to run
+            </span>
+          </div>
           {/* the console line */}
           <div className="flex h-[30px] items-center gap-3 font-[var(--font-mono)] text-[11.5px]" style={{ borderBottom: `1px solid ${UI.border}` }}>
             <span className="w-[26px] text-right" style={{ color: UI.muted }}>
@@ -514,9 +557,6 @@ function AppSlice() {
               <span style={{ color: UI.str }}>WARN</span>
               <span style={{ color: UI.purple }}> | group by </span>
               <span>service</span>
-            </span>
-            <span className="ml-auto mr-3 flex items-center gap-1 rounded-[5px] px-2 py-[2px]" style={{ background: UI.hover, color: UI.green }}>
-              ▶ <span style={{ color: UI.dim }}>Last 1 hour</span>
             </span>
           </div>
 
@@ -587,11 +627,16 @@ function AppSlice() {
 
         {/* the status bar */}
         <div className="flex h-[20px] items-center gap-3 px-3 text-[10px]" style={{ color: UI.muted }}>
+          <span className="flex items-center gap-1">
+            <Server size={9} /> prod
+          </span>
           <span className="flex items-center gap-1.5">
             <span className="size-[6px] rounded-full motion-safe:animate-pulse" style={{ background: UI.green }} />
             Live · {(1238 + tick * 3).toLocaleString("en-US")} rows
           </span>
-          <span className="ml-auto">prod</span>
+          <span className="ml-auto flex items-center gap-1" style={{ color: UI.green }}>
+            <McpIcon size={11} /> MCP
+          </span>
         </div>
       </div>
     </div>
