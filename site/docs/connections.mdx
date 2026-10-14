@@ -7,20 +7,24 @@ Open **Settings › Connections** (⌘,) and add a connection. Each one names it
 
 <Tabs>
   <Tab title="Graylog">
-    The Graylog URL and an access token. Make the token under your Graylog profile › **Edit tokens**. Flux lists the streams the token can read, and derives the endpoints each stream carries from the fields its messages log.
+    The Graylog URL and an access token. Make the token under your Graylog profile › **Edit tokens**. Flux lists the streams the token can read, and
+    derives the endpoints each stream carries from the fields its messages log.
   </Tab>
   <Tab title="Kibana">
     The Kibana URL and an API key — the *encoded* value from **Stack Management › API keys**. Flux lists the data views as streams.
   </Tab>
   <Tab title="Local">
-    A folder of log files — every `.log`, `.jsonl` and rotated `.log.1` under it is a stream — or one file. Write `docker` to read the running containers instead.
+    A folder of log files — every `.log`, `.jsonl` and rotated `.log.1` under it is a stream — or one file. Write `docker` to read the running
+    containers instead.
   </Tab>
 </Tabs>
 
 **Test** asks the source for its version and its streams before you save.
 
 <Warning>
-  A connection's token is kept in `connections.json` in Flux's settings folder, in the clear, so that macOS does not ask for Keychain permission after every update. Treat the file like an SSH key: it is never synced, exported or put in a link, but anything that can read your home folder can read it.
+  A connection's token is kept in `connections.json` in Flux's settings folder, in the clear, so that macOS does not ask for Keychain permission after
+  every update. Treat the file like an SSH key: it is never synced, exported or put in a link, but anything that can read your home folder can read
+  it.
 </Warning>
 
 ## The tree
