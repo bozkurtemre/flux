@@ -3,7 +3,10 @@
 // read the update manifest the app itself reads, so the site never names a version the app
 // would not install.
 const MANIFEST = "https://updates.emreb.dev/updates/latest.json";
-const DOCS = "https://docs.flux.emreb.dev";
+// the documentation, hosted by Mintlify and served here under /docs: these paths are proxied to
+// it with the headers it asks for, so its links come back as flux.emreb.dev/docs/…
+const DOCS_HOST = "flux-702021f8.mintlify.site";
+const DOCS_PATHS = ["/docs", "/mintlify-assets/", "/_mintlify/"];
 
 async function latest() {
   const res = await fetch(MANIFEST, { cf: { cacheTtl: 60 }, headers: { "Cache-Control": "no-cache" } });
@@ -33,8 +36,16 @@ export default {
         return Response.json({ error: "unavailable" }, { status: 503 });
       }
     }
-    if (url.pathname === "/docs" || url.pathname.startsWith("/docs/")) {
-      return Response.redirect(DOCS + url.pathname.slice("/docs".length) + url.search, 302);
+    if (DOCS_PATHS.some((p) => url.pathname === p.replace(/\/$/, "") || url.pathname.startsWith(p.endsWith("/") ? p : p + "/"))) {
+      const upstream = new URL(request.url);
+      upstream.hostname = DOCS_HOST;
+      const headers = new Headers(request.headers);
+      headers.set("Host", DOCS_HOST);
+      headers.set("X-Forwarded-Host", url.hostname);
+      headers.set("X-Forwarded-Proto", "https");
+      const ip = request.headers.get("CF-Connecting-IP");
+      if (ip) headers.set("CF-Connecting-IP", ip);
+      return fetch(new Request(upstream, { method: request.method, headers, body: request.body, redirect: "manual" }));
     }
     return env.ASSETS.fetch(request);
   },

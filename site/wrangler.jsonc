@@ -1,7 +1,7 @@
 // flux.emreb.dev: the static pages in ./public, served by Cloudflare, with a small worker in
 // front for what a page cannot do itself: /download goes to the version on offer, /api/latest
-// says which that is, and /docs goes to the documentation. `make site` deploys it and binds
-// the domain.
+// says which that is, and /docs is the documentation, proxied from Mintlify. `make site`
+// deploys it and binds the domain.
 {
   "name": "flux-site",
   "main": "worker.js",
