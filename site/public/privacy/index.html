@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — Flux</title>
+    <meta
+      name="description"
+      content="What Flux keeps, where, and why: the account that signs you in, the preferences that sync, and the logs and tokens that never leave your Mac."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/site.css" />
+  </head>
+  <body>
+    <div class="sky" aria-hidden="true">
+      <div class="light a"></div>
+      <div class="light b"></div>
+      <div class="fade"></div>
+    </div>
+    <nav class="nav">
+      <div class="wrap">
+        <a class="brand" href="/">
+          <svg width="26" height="26" viewBox="0 0 128 128" aria-hidden="true">
+            <defs>
+              <linearGradient id="teal" x1="6" y1="2" x2="122" y2="126" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#8CF7E2" />
+                <stop offset="0.35" stop-color="#22C8B2" />
+                <stop offset="0.72" stop-color="#109AA0" />
+                <stop offset="1" stop-color="#0A6180" />
+              </linearGradient>
+            </defs>
+            <rect width="128" height="128" rx="29" fill="url(#teal)" />
+            <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
+            <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#ffffff" />
+          </svg>
+          Flux
+        </a>
+        <div class="links"><a href="/#features">Features</a><a href="/docs">Docs</a><a href="https://github.com/bozkurtemre/flux">GitHub</a></div>
+        <a class="button small primary" href="/download">Download for macOS</a>
+      </div>
+    </nav>
+
+    <main class="doc">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated 14 October 2026</p>
+
+      <div class="summary">
+        <p><strong>In short:</strong></p>
+        <ul>
+          <li>Flux runs on your Mac and talks to your log sources directly. Your logs, your connections and their tokens never reach us.</li>
+          <li>
+            An account is required to use Flux. It holds your email address and, if you sign in with Google or GitHub, the name and picture they
+            provide.
+          </li>
+          <li>The only thing synced with your account is your preferences — appearance, keymap, grid settings. Nothing you read, search or save.</li>
+          <li>No analytics, no advertising, no selling of data.</li>
+        </ul>
+      </div>
+
+      <h2>Who we are</h2>
+      <p>
+        Flux is a macOS application made by Emre Bozkurt ("we", "us"). This policy covers the Flux app, this website (flux.emreb.dev) and the services
+        behind signing in and updating. Questions and requests about your data: open an issue or write to us through
+        <a href="https://github.com/bozkurtemre/flux">the Flux repository on GitHub</a>.
+      </p>
+
+      <h2>What Flux does with your logs</h2>
+      <p>
+        Flux reads logs from sources you configure: a Graylog server, an Elasticsearch cluster through Kibana, or files and Docker containers on your
+        Mac. Every request to a source is made from your Mac to that source. There is no server of ours in between, no copy of your logs is made
+        anywhere but on your Mac, and nothing you search or read is sent to us or to anyone else. Flux only reads from your sources; it never writes
+        to them.
+      </p>
+      <p>
+        The connection details you enter — a source's address and its token or API key — are kept in a file on your Mac (<code>connections.json</code>
+        in Flux's settings folder). They are never synced to your account, never included in an export, and never part of a link you share. Projects,
+        saved queries, query history and workspaces stay on your Mac as well.
+      </p>
+
+      <h2>Your account</h2>
+      <p>Signing in is required to use Flux. You can sign in with a link or code sent to your email address, or with a Google or GitHub account.</p>
+      <ul>
+        <li><strong>Email sign-in:</strong> we keep your email address, when the account was created and when it last signed in.</li>
+        <li>
+          <strong>Google or GitHub sign-in:</strong> the provider gives us your email address, your name and your profile picture, which we keep with
+          the account. We request only the scopes needed to identify you (your basic profile and email); we never ask for access to your Google data,
+          your GitHub repositories or your code.
+        </li>
+        <li>
+          <strong>Profile picture:</strong> Flux shows the picture your sign-in provider gave, or — when you signed in by email — asks Gravatar for
+          one using a hash of your email address. Gravatar does not receive your address itself.
+        </li>
+      </ul>
+      <p>
+        Flux's use of information received from Google APIs adheres to the
+        <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited
+        Use requirements.
+      </p>
+
+      <h2>What syncs with your account</h2>
+      <p>
+        Your preferences follow you to every Mac you sign in on: appearance, keymap, console and grid settings, tree options and the like. These are
+        stored with your account and sent a few seconds after you change one. Connections and their tokens, projects, saved queries, query history,
+        workspaces and anything from your logs are never part of it. You can delete the synced copy at any time from Settings › Account; your Mac
+        keeps its own settings.
+      </p>
+
+      <h2>Updates and this website</h2>
+      <p>
+        When Flux starts, and every hour while it runs, it asks our update server (updates.emreb.dev) which version is current, and downloads a new
+        version when there is one. This request carries nothing about you; like any web request it exposes your IP address to our hosting provider
+        while it is served. This website is static and sets no cookies.
+      </p>
+
+      <h2>Services we rely on</h2>
+      <ul>
+        <li><strong>Supabase</strong> — keeps accounts and synced preferences, and handles sign-in.</li>
+        <li><strong>Resend</strong> — delivers the sign-in email.</li>
+        <li><strong>Google and GitHub</strong> — when you choose to sign in with them.</li>
+        <li><strong>Cloudflare</strong> — serves this website and the update files.</li>
+        <li><strong>Gravatar</strong> — a profile picture by the hash of your email, when no provider gave one.</li>
+      </ul>
+      <p>
+        Each receives only what its part needs. We do not use analytics, tracking or advertising services, and we do not sell or share data for any
+        such purpose.
+      </p>
+
+      <h2>Keeping and deleting data</h2>
+      <p>
+        Your account and synced preferences are kept until you ask us to delete the account, which removes both. Synced preferences can be deleted on
+        their own from Settings › Account. Everything on your Mac is yours to delete: removing Flux's settings folder removes it all.
+      </p>
+
+      <h2>Your rights</h2>
+      <p>
+        You can ask us what we hold about you, ask for it to be corrected or deleted, or object to how it is used. Write to us through the repository
+        linked above and we will answer within a month. If you are in the EEA or the UK you also have the right to complain to your data protection
+        authority.
+      </p>
+
+      <h2>Children</h2>
+      <p>Flux is a tool for people who operate software and is not directed at children under 16. We do not knowingly keep data about them.</p>
+
+      <h2>Changes</h2>
+      <p>
+        When this policy changes, the new version is published here with its date. A change that affects what we keep about you is also announced in
+        Flux's release notes.
+      </p>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap">
+        <span>© 2026 Emre Bozkurt</span>
+        <div class="links"><a href="/">Home</a><a href="/docs">Docs</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+      </div>
+    </footer>
+  </body>
+</html>
