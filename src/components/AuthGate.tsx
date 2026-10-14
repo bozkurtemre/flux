@@ -74,6 +74,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     void (import.meta.env.DEV ? Promise.resolve(false) : toured()).then((seen) => (seen ? setReady(true) : setTouring(true)));
   const [booted, setBooted] = useState(false);
   const [expired, setExpired] = useState<string | null>(null);
+  // make dev's skip has no session to ask about
+  const [skipped, setSkipped] = useState(false);
   const [news, setNews] = useState(false);
   const version = useVersion();
 
@@ -95,6 +97,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // make dev only: Vite folds import.meta.env.DEV to false in a release build, so prod never has it
   const skip = import.meta.env.DEV
     ? () => {
+        setSkipped(true);
         setState({ status: "signed-in", email: "dev@localhost" });
         // through the tour too, as make dev always is, so working on it never needs a real sign-in
         afterWelcome();
@@ -145,6 +148,25 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const stop = onOpenUrl(opened);
     return () => void stop.then((unlisten) => unlisten()).catch(() => {});
   }, []);
+
+  // A session can end while the window is open — a ban, a deleted account — and Supabase refuses
+  // its token from then on. It is asked every five minutes, and when Flux comes back to the front
+  // at most once a minute; an unreachable Supabase says nothing either way, as at launch.
+  const watching = ready && state.status === "signed-in" && !expired && !skipped;
+  useEffect(() => {
+    if (!watching) return;
+    let asked = Date.now();
+    const ask = () => {
+      asked = Date.now();
+      void verify().then((now) => now.status === "signed-out" && setExpired(now.error ?? "Your session has ended. Sign in again."));
+    };
+    const every = setInterval(ask, 5 * 60_000);
+    const focus = getCurrentWindow().onFocusChanged(({ payload }) => payload && Date.now() - asked > 60_000 && ask());
+    return () => {
+      clearInterval(every);
+      void focus.then((stop) => stop()).catch(() => {});
+    };
+  }, [watching]);
 
   if (!booted) return <div className="h-full" style={{ background: "var(--bg-window)" }} />;
   if (touring) {
