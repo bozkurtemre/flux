@@ -109,6 +109,47 @@ export async function sendLink(email: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** A way into the account: the email link, or a provider connected to it. */
+export type SignInMethod = { provider: "email" | OAuthProvider; email?: string; since?: string };
+
+/** The ways the signed-in account can be signed in to, as Settings › Account lists them. */
+export async function signInMethods(): Promise<SignInMethod[]> {
+  const { data, error } = await cloud().auth.getUserIdentities();
+  if (error) throw new Error(error.message);
+  return (data?.identities ?? []).map((i) => ({
+    provider: i.provider as SignInMethod["provider"],
+    email: typeof i.identity_data?.email === "string" ? i.identity_data.email : undefined,
+    since: i.created_at,
+  }));
+}
+
+/**
+ * A provider's consent page, for the browser, to connect it to the account signed in here. It
+ * comes back through the same callback as a sign-in, marked `link`, and the window finishes it
+ * in place rather than treating it as a sign-in.
+ */
+export async function linkUrl(provider: OAuthProvider): Promise<string> {
+  const { data, error } = await cloud().auth.linkIdentity({
+    provider,
+    options: { redirectTo: `${OAUTH_CALLBACK}?via=${provider}&link=1`, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) throw new Error(error?.message ?? "Connecting is not available.");
+  return data.url;
+}
+
+/** Whether a callback link ends a connecting rather than a sign-in. */
+export const isLinkCallback = (url: string): boolean => url.startsWith(AUTH_CALLBACK) && /[?&]link=1(&|#|$)/.test(url);
+
+/** Takes a provider off the account; Supabase keeps the last way in, so this never locks anyone out. */
+export async function unlink(provider: OAuthProvider): Promise<void> {
+  const { data, error } = await cloud().auth.getUserIdentities();
+  if (error) throw new Error(error.message);
+  const identity = data?.identities.find((i) => i.provider === provider);
+  if (!identity) return;
+  const gone = await cloud().auth.unlinkIdentity(identity);
+  if (gone.error) throw new Error(gone.error.message);
+}
+
 /**
  * A provider's consent page, for the browser. It comes back to the same callback as the email link,
  * with a code that this machine's PKCE verifier exchanges, so finishing it is `finishSignIn`.
@@ -173,7 +214,44 @@ export async function signedInAs(): Promise<string | null> {
   return data.session?.user.email ?? null;
 }
 
-export type Account = { email: string; createdAt: string; lastSignIn: string | null; syncedAt: string | null };
+export type Account = { email: string; createdAt: string; lastSignIn: string | null; syncedAt: string | null; avatars: string[] };
+
+/** The hex SHA-256 of a text, as Gravatar addresses a picture by. */
+async function sha256(text: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Gravatar's picture for an address, or a 404 when it has none; `at` changes with each sign-in, so a new picture is fetched rather than the one cached. */
+export async function gravatarUrl(email: string, at: string): Promise<string> {
+  return `https://gravatar.com/avatar/${await sha256(email.trim().toLowerCase())}?s=128&d=404&v=${encodeURIComponent(at)}`;
+}
+
+/**
+ * Where the account's picture may be, in order: what GitHub or Google gave at this sign-in —
+ * Supabase refreshes it every time — then Gravatar for the address. Each is tried until one
+ * answers; none answering is no picture. Only https addresses are kept, since they are shown.
+ */
+export function pictureCandidates(user: {
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+  identities?: { identity_data?: Record<string, unknown> }[];
+}): string[] {
+  const sources = [user.user_metadata ?? {}, ...(user.identities ?? []).map((i) => i.identity_data ?? {})];
+  const found = sources.flatMap((d) => [d.avatar_url, d.picture]).filter((u): u is string => typeof u === "string" && /^https:\/\//.test(u));
+  return [...new Set(found)];
+}
+
+/** The account's possible pictures, provider first, Gravatar last. Asked at every sign-in, so a new picture shows. */
+export async function avatarsOf(): Promise<string[]> {
+  if (!SUPABASE_URL) return [];
+  const { data } = await cloud().auth.getSession();
+  const user = data.session?.user;
+  if (!user) return [];
+  const urls = pictureCandidates(user);
+  if (user.email) urls.push(await gravatarUrl(user.email, user.last_sign_in_at ?? ""));
+  return urls;
+}
 
 /**
  * The signed-in account as Settings › Account shows it: who, since when, and when this account's
@@ -199,6 +277,7 @@ export async function accountOf(): Promise<Account | null> {
     createdAt: user.created_at,
     lastSignIn: user.last_sign_in_at ?? null,
     syncedAt: (row?.updated_at as string | undefined) ?? null,
+    avatars: await avatarsOf(),
   };
 }
 

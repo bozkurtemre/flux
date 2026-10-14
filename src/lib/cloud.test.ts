@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { callbackOf, inboxOf, isEmail, preferencesOf, withPreferences } from "./cloud";
+import { callbackOf, gravatarUrl, inboxOf, isEmail, pictureCandidates, preferencesOf, withPreferences } from "./cloud";
 import { DEFAULTS, type Settings } from "./settings";
 
 const mine: Settings = {
@@ -60,5 +60,27 @@ describe("inboxOf", () => {
     expect(inboxOf("a@gmail.com")?.name).toBe("Gmail");
     expect(inboxOf("a@hotmail.co.uk")?.name).toBe("Outlook");
     expect(inboxOf("a@company.com")).toBeNull();
+  });
+});
+
+describe("the account's picture", () => {
+  it("takes the provider's picture first, once, and only over https", () => {
+    const user = {
+      email: "a@b.co",
+      user_metadata: { avatar_url: "https://avatars.githubusercontent.com/u/1", picture: "https://avatars.githubusercontent.com/u/1" },
+      identities: [
+        { identity_data: { picture: "https://lh3.googleusercontent.com/p" } },
+        { identity_data: { avatar_url: "http://plain.example/x" } },
+      ],
+    };
+    expect(pictureCandidates(user)).toEqual(["https://avatars.githubusercontent.com/u/1", "https://lh3.googleusercontent.com/p"]);
+    expect(pictureCandidates({ email: "a@b.co" })).toEqual([]);
+  });
+
+  it("asks Gravatar by the hash of the address, trimmed and lowered, missing as a 404, afresh at each sign-in", async () => {
+    const url = await gravatarUrl("  Emre@Example.com ", "2026-10-14T10:00:00Z");
+    expect(url).toMatch(/^https:\/\/gravatar\.com\/avatar\/[0-9a-f]{64}\?s=128&d=404&v=2026-10-14T10%3A00%3A00Z$/);
+    expect(url).toBe(await gravatarUrl("emre@example.com", "2026-10-14T10:00:00Z"));
+    expect(url).not.toBe(await gravatarUrl("emre@example.com", "2026-10-15T10:00:00Z"));
   });
 });
