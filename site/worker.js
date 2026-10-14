@@ -47,6 +47,12 @@ export default {
       if (ip) headers.set("CF-Connecting-IP", ip);
       return fetch(new Request(upstream, { method: request.method, headers, body: request.body, redirect: "manual" }));
     }
-    return env.ASSETS.fetch(request);
+    // a missing page is never cached: a path that comes to exist later must not keep answering
+    // with the 404 a browser or the edge remembered
+    const page = await env.ASSETS.fetch(request);
+    if (page.status !== 404) return page;
+    const headers = new Headers(page.headers);
+    headers.set("Cache-Control", "no-store");
+    return new Response(page.body, { status: 404, headers });
   },
 };
