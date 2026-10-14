@@ -101,5 +101,7 @@ if gh release view "$tag" >/dev/null 2>&1; then
 else
   gh release create "$tag" --title "$tag" --notes-file "$notes" "$zip" "$dmg"
 fi
+# and, as with the bucket, only the newest two releases keep their installers
+scripts/prune-releases.sh 2
 
 say "$tag is out: $(curl -fsS "https://updates.emreb.dev/updates/latest.json?x=$RANDOM" | node -pe 'JSON.parse(require("fs").readFileSync(0)).version') is on offer"

@@ -140,3 +140,9 @@ jobs:
           files: |
             src-tauri/target/universal-apple-darwin/release/bundle/macos/Flux-*-macos.zip
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+      # as with the bucket: only the newest two releases keep their installers, so an old
+      # version cannot be downloaded and installed from here
+      - name: Prune the installers of older releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/prune-releases.sh 2
