@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/site.css" />
@@ -45,7 +45,7 @@
       <div class="fade"></div>
     </div>
 
-    <!-- the icons: the app's own tree icons, its GitHub mark, and the lucide set the IDE uses -->
+    <!-- the icons: the app's own (icons.tsx), its GitHub mark, and the lucide set it draws its chrome with -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <defs>
         <symbol id="i-conn" viewBox="0 0 16 16">
@@ -61,6 +61,21 @@
         <symbol id="i-ep" viewBox="0 0 16 16">
           <rect x="3" y="2.5" width="4" height="11" rx="1.2" fill="currentColor" opacity=".9" />
           <path d="M9 5.5h4M9 8h4M9 10.5h2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".7" />
+        </symbol>
+        <symbol id="i-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4.5 3 8 6l-3.5 3" />
+        </symbol>
+        <symbol id="i-mcp" viewBox="0 0 180 180" fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round">
+          <path d="M23.6 85.25 86.2 22.65c8.64-8.64 22.66-8.64 31.3 0 8.64 8.64 8.64 22.66 0 31.3L70.23 101.23" />
+          <path
+            d="M70.88 100.58 117.5 53.95c8.64-8.64 22.66-8.64 31.3 0l.33.33c8.64 8.64 8.64 22.66 0 31.3l-56.62 56.62c-2.88 2.88-2.88 7.55 0 10.43l11.63 11.63"
+          />
+          <path d="M101.85 38.3 55.55 84.6c-8.64 8.64-8.64 22.66 0 31.3 8.65 8.64 22.66 8.64 31.3 0l46.3-46.3" />
+        </symbol>
+        <symbol id="i-claude" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="m4.7 15.6 4.7-2.6.1-.2-.1-.1h-.2l-.8-.1-2.7-.1-2.3-.1-2.3-.1-.6-.1-.5-.7.1-.4.5-.3.7.1 1.5.1 2.3.2 1.6.1 2.4.2h.4v-.1l-.3-.3-.3-.2-5.9-4-.6-.4-.3-.5-.1-.4.5-.5.6.1.2.1 1.3 1 2.8 2.2 3.7 2.7.5.4.2-.1.1-.2-.2-.4-1.9-3.4L10 6.3l-.9-1.4-.2-.9c-.1-.3-.1-.6-.1-1l.6-.8.3-.1.7.1.3.3.5 1.1.8 1.7 1.2 2.3.3.7.2.6.1.2h.1v-.1l.1-1.3.2-1.6.2-2 .1-.6.3-.7.6-.4.4.2.4.5-.1.4-.2 1.4-.4 2.2-.3 1.5h.2l.2-.2.7-1 1.2-1.5.5-.6.6-.7.4-.3h.8l.6.8-.3.9-.8 1.1-.7.9-1 1.3-.6 1.1.1.1h.1l2.2-.5 1.2-.2 1.4-.2.6.3.1.3-.3.6-1.5.4-1.8.4-2.7.6-.1.1v.1l1.2.1.5.1h1.3l2.4.2.6.4.4.5-.1.4-1 .5-1.3-.3-3-.7-1-.3h-.1v.1l.9.8 1.6 1.5 2 1.9.1.5-.3.4h-.3l-1.9-1.5-.7-.7-1.5-1.3h-.1v.1l.3.5 1.8 2.8.1.8-.1.3-.5.2-.5-.1-1.1-1.5-1.1-1.7-.9-1.5-.1.1-.5 5.7-.2.3-.6.2-.5-.4-.3-.6.3-1.2.3-1.6.3-1.3.2-1.6.1-.5v-.1h-.1l-1.1 1.5-1.7 2.3-1.3 1.4-.3.1-.5-.3v-.5l.3-.5 1.9-2.4 1.1-1.5.7-.9v-.1h-.1l-5.3 3.5-1 .1-.4-.4.1-.7.2-.2 1.6-1.1z"
+          />
         </symbol>
         <symbol id="i-github" viewBox="0 0 16 16">
           <path
@@ -145,7 +160,7 @@
         <symbol id="i-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
         </symbol>
-        <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <path d="M12 5v14M5 12h14" />
         </symbol>
         <symbol
@@ -196,8 +211,89 @@
         <symbol id="i-filter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 3H2l8 9.46V19l4 2v-8.54z" />
         </symbol>
+        <symbol id="i-chevdown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </symbol>
+        <symbol id="i-chevleft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </symbol>
+        <symbol
+          id="i-chevright"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </symbol>
+        <symbol id="i-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+          />
+        </symbol>
+        <symbol id="i-bug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4"
+          />
+        </symbol>
+        <symbol id="i-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </symbol>
+        <symbol id="i-tags" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19M9.586 5.586A2 2 0 0 0 8.172 5H3a1 1 0 0 0-1 1v5.172a2 2 0 0 0 .586 1.414L8.29 18.29a2.426 2.426 0 0 0 3.42 0l3.58-3.58a2.426 2.426 0 0 0 0-3.42z"
+          />
+          <circle cx="6.5" cy="9.5" r=".5" fill="currentColor" />
+        </symbol>
+        <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 14 4-4M3.34 19a10 10 0 1 1 17.32 0" />
+        </symbol>
+        <symbol
+          id="i-panelright"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M15 3v18" />
+        </symbol>
+        <symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </symbol>
+        <symbol id="i-columns" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 3v18M15 3v18" />
+        </symbol>
+        <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6 9 17l-5-5" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01" />
+        </symbol>
+        <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2" />
+        </symbol>
+        <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"
+          />
+        </symbol>
+        <symbol id="i-chevup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m18 15-6-6-6 6" />
+        </symbol>
       </defs>
     </svg>
+
     <nav class="nav">
       <div class="wrap">
         <a class="brand" href="/">
@@ -234,9 +330,7 @@
     <header class="hero">
       <div class="wrap">
         <div class="halo">
-          <span class="pill"
-            ><span class="tag">New</span><span id="version-pill">Monitor, GitHub and Google sign-in, and an island under the notch</span></span
-          >
+          <span class="pill"><span class="tag">New</span><span>Monitor, GitHub and Google sign-in, and an island under the notch</span></span>
           <h1>Your logs,<br /><em>read like code.</em></h1>
           <p class="lead">
             Graylog, Elasticsearch or the files on your Mac — searched, explained, and traced to the line of code that wrote them. Streams and
@@ -244,18 +338,7 @@
           </p>
           <div class="cta">
             <a class="button primary" href="/download">
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M12 3v12M6 11l6 6 6-6M4 21h16" />
-              </svg>
+              <svg class="li"><use href="#i-download" /></svg>
               Download for macOS
             </a>
             <a class="button" href="/docs">Read the docs</a>
@@ -263,177 +346,248 @@
           <p class="fine"><span id="version-line">Free and open source · macOS 13 or later · Apple silicon and Intel</span></p>
         </div>
 
-        <!-- Flux itself, a second after a spike -->
-        <div class="frame hero-app reveal" style="max-width: 1040px">
+        <!-- Flux itself, a second after a spike: the window as App lays it out -->
+        <div class="frame app hero-app reveal" style="max-width: 1040px">
           <div class="titlebar">
             <span class="lights"><i style="background: #ff5f57"></i><i style="background: #febc2e"></i><i style="background: #28c840"></i></span>
-            <span style="color: var(--text)">Flux</span><span>⌄</span><span>Connections</span><span>⌄</span>
+            <span class="menu"
+              ><svg width="18" height="18" viewBox="0 0 128 128">
+                <rect width="128" height="128" rx="40" fill="url(#teal)" />
+                <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
+                <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#fff" /></svg
+              >Flux<svg class="chevdown"><use href="#i-chevdown" /></svg
+            ></span>
+            <span class="menu dim"
+              >Connections<svg class="chevdown"><use href="#i-chevdown" /></svg
+            ></span>
+            <span class="icons"
+              ><span class="icon"
+                ><svg><use href="#i-wrench" /></svg></span
+              ><span class="icon"
+                ><svg><use href="#i-bug" /></svg></span
+              ><span class="icon"
+                ><svg><use href="#i-search" /></svg></span
+              ><span class="icon"
+                ><svg><use href="#i-more" /></svg></span
+            ></span>
           </div>
-          <div style="display: flex; gap: 6px; padding: 0 6px 6px">
-            <div class="island explorer" style="width: 230px; flex: none">
-              <div style="height: 28px; padding: 0 12px; display: flex; align-items: center; font-weight: 600; font-size: 12px">
-                Connection Explorer
-              </div>
-              <div style="display: flex; align-items: center; gap: 2px; height: 26px; padding: 0 8px">
-                <span class="tool" style="color: var(--accent)"
-                  ><svg><use href="#i-plus" /></svg></span
-                ><span class="tool"
+          <div class="main">
+            <div class="stripe">
+              <span class="sb active"
+                ><svg><use href="#i-server" /></svg
+              ></span>
+              <span class="sb"
+                ><svg><use href="#i-activity" /></svg><b class="beta">BETA</b></span
+              >
+              <span class="grow"></span>
+              <span class="sb"
+                ><svg><use href="#i-terminal" /></svg
+              ></span>
+              <span class="sb"
+                ><svg><use href="#i-tags" /></svg
+              ></span>
+              <span class="sb"
+                ><svg><use href="#i-gauge" /></svg
+              ></span>
+            </div>
+            <div class="island explorer">
+              <div class="phead">Connection Explorer</div>
+              <div class="ptb">
+                <span class="tb22" style="color: var(--accent)"
+                  ><svg style="width: 15px; height: 15px"><use href="#i-plus" /></svg></span
+                ><span class="tb22"
                   ><svg><use href="#i-search-code" /></svg></span
                 ><span class="sep"></span
-                ><span class="tool"
-                  ><svg><use href="#i-refresh" /></svg></span
-                ><span class="tool"
+                ><span class="tb22"
+                  ><svg style="width: 13px; height: 13px"><use href="#i-refresh" /></svg></span
+                ><span class="tb22"
                   ><svg><use href="#i-fold" /></svg></span
                 ><span class="sep"></span
-                ><span class="tool"
+                ><span class="tb22"
                   ><svg><use href="#i-terminal" /></svg></span
-                ><span class="tool"
+                ><span class="tb22"
                   ><svg><use href="#i-sliders" /></svg
                 ></span>
               </div>
-              <div
-                class="muted"
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 6px;
-                  height: 24px;
-                  margin: 0 8px 4px;
-                  padding: 0 8px;
-                  border-radius: 4px;
-                  background: var(--bg-editor);
-                  font-size: 11.5px;
-                "
-              >
-                <svg class="li" style="width: 11px; height: 11px"><use href="#i-filter" /></svg>Filter…
+              <div class="filter">
+                <svg><use href="#i-filter" /></svg>Filter…
               </div>
-              <div class="row">
-                <span class="chev">⌄</span><svg class="ico"><use href="#i-conn" /></svg>acme
-                <span class="muted" style="font-size: 10.5px">graylog.acme.io</span>
+              <div class="row" style="padding-left: 4px">
+                <span class="chev"
+                  ><svg class="open"><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-conn" /></svg></span
+                >acme<span class="sub">graylog.acme.io</span>
               </div>
-              <div class="row" style="padding-left: 22px">
-                <span class="chev">⌄</span><svg class="ico"><use href="#i-stream" /></svg>orders
+              <div class="row" style="padding-left: 18px">
+                <span class="chev"
+                  ><svg class="open"><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-stream" /></svg></span
+                >orders
               </div>
-              <div class="row sel mono" style="padding-left: 36px; font-size: 11px">
-                <span class="chev">›</span><svg class="ico bad"><use href="#i-ep" /></svg>POST /v1/charges <span style="margin-left: auto">41%</span>
+              <div class="row sel" style="padding-left: 32px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico bad"
+                  ><svg><use href="#i-ep" /></svg></span
+                ><span class="method">POST</span><span class="mono ep">/v1/charges</span
+                ><span class="count" style="color: var(--red)">1.2k · 41.0%</span>
               </div>
-              <div class="row mono" style="padding-left: 36px; font-size: 11px">
-                <span class="chev">›</span><svg class="ico"><use href="#i-ep" /></svg>GET /v1/orders
-                <span class="muted" style="margin-left: auto">12k</span>
+              <div class="row" style="padding-left: 32px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-ep" /></svg></span
+                ><span class="method">GET</span><span class="mono ep">/v1/orders</span><span class="count">12k</span>
               </div>
-              <div class="row mono" style="padding-left: 36px; font-size: 11px">
-                <span class="chev">›</span><svg class="ico"><use href="#i-ep" /></svg>POST /v1/orders
-                <span class="muted" style="margin-left: auto">3.1k</span>
+              <div class="row" style="padding-left: 32px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-ep" /></svg></span
+                ><span class="method">POST</span><span class="mono ep">/v1/orders</span><span class="count">3.1k</span>
               </div>
-              <div class="row" style="padding-left: 22px">
-                <span class="chev">›</span><svg class="ico"><use href="#i-stream" /></svg>gateway
+              <div class="row" style="padding-left: 18px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-stream" /></svg></span
+                >gateway
               </div>
-              <div class="row" style="padding-left: 22px">
-                <span class="chev">›</span><svg class="ico"><use href="#i-stream" /></svg>payments
+              <div class="row" style="padding-left: 18px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-stream" /></svg></span
+                >payments
               </div>
-              <div class="row" style="padding-left: 22px">
-                <span class="chev">›</span><svg class="ico"><use href="#i-stream" /></svg>wallet
+              <div class="row" style="padding-left: 18px">
+                <span class="chev"
+                  ><svg><use href="#i-chev" /></svg></span
+                ><span class="ico"
+                  ><svg><use href="#i-stream" /></svg></span
+                >wallet
               </div>
             </div>
-            <div class="island-editor" style="flex: 1; min-width: 0">
-              <div style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 8px">
-                <span class="mono" style="padding: 4px 8px; border-radius: 6px; background: var(--bg-raised); font-size: 11.5px"
-                  ><svg class="ico bad" style="margin-right: 6px"><use href="#i-ep" /></svg>POST /v1/charges</span
+            <div class="island-editor editor">
+              <div class="tabs">
+                <span class="tab active"
+                  ><span class="ico bad"
+                    ><svg><use href="#i-ep" /></svg></span
+                  >POST /v1/charges</span
                 >
-                <span class="mono dim" style="padding: 4px 8px; font-size: 11.5px"
-                  ><svg class="ico" style="margin-right: 6px"><use href="#i-stream" /></svg>orders</span
+                <span class="tab"
+                  ><span class="ico"
+                    ><svg><use href="#i-stream" /></svg></span
+                  >orders</span
                 >
+                <span class="icon more"
+                  ><svg><use href="#i-more" /></svg
+                ></span>
               </div>
-              <div style="display: flex; align-items: center; gap: 2px; height: 30px; padding: 0 8px">
-                <span class="tool" style="color: var(--green)"
-                  ><svg><use href="#i-play" /></svg></span
-                ><span class="tool"
+              <div class="ctb">
+                <span class="tb24" style="color: var(--green)"
+                  ><svg style="width: 14px; height: 14px"><use href="#i-play" /></svg></span
+                ><span class="tb24"
                   ><svg><use href="#i-rotate" /></svg></span
-                ><span class="tool"
+                ><span class="tb24"
                   ><svg><use href="#i-save" /></svg></span
-                ><span class="tool"
+                ><span class="tb24"
                   ><svg><use href="#i-radio" /></svg></span
-                ><span class="tool"
+                ><span class="tb24"
                   ><svg><use href="#i-download" /></svg></span
-                ><span class="tool"
+                ><span class="tb24"
+                  ><svg><use href="#i-claude" /></svg></span
+                ><span class="tb24"
                   ><svg><use href="#i-link" /></svg></span
-                ><span class="sep"></span>
-                <span
-                  style="
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    height: 22px;
-                    padding: 0 8px;
-                    border-radius: 4px;
-                    background: var(--bg-raised);
-                    border: 1px solid var(--border);
-                    font-size: 11.5px;
-                  "
-                  >Last 1 hour <span class="dim">⌄</span></span
-                ><span class="tool"
+                ><span class="sep tall"></span>
+                <span class="select"
+                  >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                ><span class="tb24"
                   ><svg><use href="#i-calendar" /></svg
                 ></span>
-                <span class="muted" style="margin-left: auto; font-size: 11px">| group by field · ⌘⏎ to run</span>
+                <span class="muted right">| group by field · ⌘⏎ to run</span>
               </div>
-              <div
-                class="mono"
-                style="
-                  display: flex;
-                  gap: 10px;
-                  height: 30px;
-                  align-items: center;
-                  padding: 0 10px;
-                  font-size: 12px;
-                  border-bottom: 1px solid var(--border);
-                "
-              >
-                <span class="muted">1</span>
-                <span
-                  ><span style="color: var(--syn-key)">level</span>:<span style="color: var(--syn-str)">ERROR</span> <span class="dim">OR</span>
-                  <span style="color: var(--syn-key)">level</span>:<span style="color: var(--syn-str)">WARN</span>
+              <div class="code">
+                <span class="gutter">1</span
+                ><span class="line"
+                  ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span class="s"
+                    >WARN</span
+                  >
                   <span style="color: var(--purple)">| group by</span> service</span
                 >
               </div>
-              <div style="padding: 8px 10px 6px; border-bottom: 1px solid var(--border)">
-                <div style="display: flex; gap: 8px; font-size: 10.5px; padding-bottom: 6px" class="muted">
-                  <span>1,244 messages</span><span style="color: var(--amber)">— p95 up to 8.9 s</span
-                  ><span style="color: var(--red)">— errors up to 41%</span><span style="margin-left: auto">⌥-drag to explain a spike</span>
+              <div class="timeline-wrap">
+                <div class="tl-head">
+                  <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span>1,244 messages</span
+                  ><span style="color: var(--amber)">— p95 up to 8,900 ms</span><span style="color: var(--red)">— errors up to 41.0%</span
+                  ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
                 </div>
                 <div class="timeline" id="hero-timeline"></div>
               </div>
               <div class="grid">
-                <div class="hd"><span>#</span><span>timestamp</span><span>service</span><span>level</span><span>message</span></div>
+                <div class="hd"><span></span><span>timestamp</span><span>service</span><span>level</span><span>message</span></div>
                 <div class="tr">
-                  <span class="n">8</span><span class="dim">10:42:09.962</span><span>orders</span><span class="lvl-info">INFO</span
+                  <span class="n">1</span><span>2026-10-14 10:42:09</span><span>orders</span><span class="lvl-info">INFO</span
                   ><span>Order shipped ord-10498</span>
                 </div>
                 <div class="tr">
-                  <span class="n">7</span><span class="dim">10:42:09.525</span><span>gateway</span><span class="lvl-info">INFO</span
+                  <span class="n">2</span><span>2026-10-14 10:42:09</span><span>gateway</span><span class="lvl-info">INFO</span
                   ><span>GET /v1/orders 200 in 41 ms</span>
                 </div>
                 <div class="tr">
-                  <span class="n">6</span><span class="dim">10:42:09.088</span><span>payments</span><span class="lvl-error">ERROR</span
+                  <span class="n">3</span><span>2026-10-14 10:42:09</span><span>payments</span><span class="lvl-error">ERROR</span
                   ><span>Charge failed for request 7f3a9c2e: upstream timeout after 8000ms</span>
                 </div>
                 <div class="tr">
-                  <span class="n">5</span><span class="dim">10:42:08.651</span><span>payments</span><span class="lvl-error">ERROR</span
+                  <span class="n">4</span><span>2026-10-14 10:42:08</span><span>payments</span><span class="lvl-error">ERROR</span
                   ><span>Charge failed for request b81d04f6: upstream timeout after 8000ms</span>
                 </div>
                 <div class="tr">
-                  <span class="n">4</span><span class="dim">10:42:08.214</span><span>payments</span><span class="lvl-warn">WARN</span
+                  <span class="n">5</span><span>2026-10-14 10:42:08</span><span>payments</span><span class="lvl-warn">WARN</span
                   ><span>upstream slow: took 2314 ms</span>
                 </div>
                 <div class="tr">
-                  <span class="n">3</span><span class="dim">10:42:07.777</span><span>orders</span><span class="lvl-info">INFO</span
+                  <span class="n">6</span><span>2026-10-14 10:42:07</span><span>orders</span><span class="lvl-info">INFO</span
                   ><span>Order created ord-10531</span>
                 </div>
               </div>
+              <div class="gfoot">
+                <span>Reload</span><span>6 rows</span
+                ><span class="pager"
+                  ><svg><use href="#i-chevleft" /></svg><span>1–6</span><svg><use href="#i-chevright" /></svg></span
+                ><span>total 6</span><span>214 ms</span
+                ><span class="right cols"
+                  ><svg><use href="#i-columns" /></svg>Columns</span
+                >
+              </div>
+            </div>
+            <div class="stripe">
+              <span class="sb"
+                ><svg><use href="#i-bell" /></svg
+              ></span>
+              <span class="sb"
+                ><svg><use href="#i-panelright" /></svg
+              ></span>
+              <span class="sb"
+                ><svg><use href="#i-bookmark" /></svg
+              ></span>
             </div>
           </div>
-          <div style="display: flex; gap: 12px; height: 24px; padding: 0 12px; align-items: center; font-size: 11px" class="muted">
-            <span>acme</span><span>orders</span><span>6 rows · 214 ms</span><span style="margin-left: auto">CPU 0.4% · RAM 0.3%</span
-            ><span>1 connections</span><span style="color: var(--green)">● MCP</span>
+          <div class="status">
+            <span class="with-icon"
+              ><svg style="width: 11px; height: 11px"><use href="#i-server" /></svg>acme</span
+            ><span>POST /v1/charges</span><span>6 rows · 214 ms</span>
+            <span class="right"
+              ><span class="meter"
+                ><b>CPU</b><i><u style="width: 4%"></u></i>0.4%</span
+              ><span class="meter"
+                ><b>RAM</b><i><u style="width: 4%"></u></i>0.3%</span
+              ><span>1 connections</span
+              ><span class="mcp"
+                ><svg><use href="#i-mcp" /></svg></span
+            ></span>
           </div>
         </div>
       </div>
@@ -455,35 +609,43 @@
             <!-- explain -->
             <article class="card wide">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px">
-                  <div style="padding: 10px 12px 6px; border-bottom: 1px solid var(--border)">
-                    <div class="muted" style="display: flex; gap: 8px; font-size: 10.5px; padding-bottom: 6px">
-                      <span>144 messages</span><span style="color: var(--red)">— errors up to 4.2%</span>
+                <div class="frame app" style="height: 240px">
+                  <div class="timeline-wrap">
+                    <div class="tl-head">
+                      <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span>144 messages</span
+                      ><span style="color: var(--red)">— errors up to 4.2%</span
+                      ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
                     </div>
                     <div class="timeline" id="explain-timeline"></div>
                   </div>
-                  <div
-                    style="display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; background: var(--bg-tool); font-size: 11px"
-                    class="dim"
-                  >
-                    <b style="color: var(--purple); font-weight: 500">explain</b> 10:41 – 10:43 against the three times as long before it
+                  <div class="xhead">
+                    <b>explain</b><span>10:41:00.000 – 10:43:00.000 against the three times as long before it, over 6 fields</span
+                    ><svg class="right" style="width: 12px; height: 12px"><use href="#i-x" /></svg>
                   </div>
-                  <div class="mono" style="font-size: 11.5px">
-                    <div style="display: grid; grid-template-columns: 90px 1fr 150px 90px; height: 24px; align-items: center; padding: 0 10px">
-                      <span class="dim">version</span><span>v2.4.1</span
-                      ><span><i style="display: block; height: 6px; width: 92%; border-radius: 3px; background: var(--purple)"></i></span
-                      ><span style="text-align: right"><b>92%</b> <span class="muted">vs 8%</span></span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 90px 1fr 150px 90px; height: 24px; align-items: center; padding: 0 10px">
-                      <span class="dim">host</span><span>payments-2</span
-                      ><span><i style="display: block; height: 6px; width: 88%; border-radius: 3px; background: var(--purple)"></i></span
-                      ><span style="text-align: right"><b>88%</b> <span class="muted">vs 31%</span></span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 90px 1fr 150px 90px; height: 24px; align-items: center; padding: 0 10px">
-                      <span class="dim">route</span><span>POST /v1/charges</span
-                      ><span><i style="display: block; height: 6px; width: 79%; border-radius: 3px; background: var(--purple)"></i></span
-                      ><span style="text-align: right"><b>79%</b> <span class="muted">vs 40%</span></span>
-                    </div>
+                  <div class="xcols"><span>field</span><span class="grow">value</span><span>in the stretch</span><span>before it</span></div>
+                  <div class="xrow">
+                    <span class="mono dim">version</span><span class="mono grow">v2.4.1</span
+                    ><span class="share"
+                      ><i><u style="width: 92%; background: var(--purple)"></u></i>92%</span
+                    ><span class="share"
+                      ><i><u style="width: 8%"></u></i>8%</span
+                    >
+                  </div>
+                  <div class="xrow">
+                    <span class="mono dim">host</span><span class="mono grow">payments-2</span
+                    ><span class="share"
+                      ><i><u style="width: 88%; background: var(--purple)"></u></i>88%</span
+                    ><span class="share"
+                      ><i><u style="width: 31%"></u></i>31%</span
+                    >
+                  </div>
+                  <div class="xrow">
+                    <span class="mono dim">route</span><span class="mono grow">POST /v1/charges</span
+                    ><span class="share"
+                      ><i><u style="width: 79%; background: var(--purple)"></u></i>79%</span
+                    ><span class="share"
+                      ><i><u style="width: 40%"></u></i>40%</span
+                    >
                   </div>
                 </div>
               </div>
@@ -501,63 +663,39 @@
             <!-- trace -->
             <article class="card">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px">
-                  <div
-                    style="
-                      display: flex;
-                      gap: 8px;
-                      align-items: center;
-                      height: 30px;
-                      padding: 0 10px;
-                      border-bottom: 1px solid var(--border);
-                      font-size: 11px;
-                    "
-                  >
-                    <b class="mono" style="font-weight: 500">req_7f3a9c2e</b><span class="muted">3 streams · 8.3 s</span
-                    ><span style="color: var(--red)">1 failed</span>
-                  </div>
-                  <div style="padding: 8px 10px; font-size: 11px">
-                    <div style="display: grid; grid-template-columns: 70px 1fr; align-items: center; height: 20px">
-                      <span>gateway</span
-                      ><span style="position: relative; height: 1px; background: var(--border)"
-                        ><i
-                          style="position: absolute; left: 4%; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent)"
-                        ></i
-                      ></span>
+                <div class="frame app" style="height: 240px">
+                  <div class="lanes">
+                    <div class="lhead">
+                      <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><b class="mono">req_7f3a9c2e</b
+                      ><span>3 streams · 10:42:09 → 10:42:17</span><span style="color: var(--red)">1 failed</span>
                     </div>
-                    <div style="display: grid; grid-template-columns: 70px 1fr; align-items: center; height: 20px">
-                      <span>orders</span
-                      ><span style="position: relative; height: 1px; background: var(--border)"
-                        ><i
-                          style="position: absolute; left: 10%; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent)"
-                        ></i
-                        ><i
-                          style="position: absolute; left: 96%; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent)"
-                        ></i
-                      ></span>
+                    <div class="lane">
+                      <span>gateway</span><span class="cnt">1</span><i><u style="left: 4%"></u></i>
                     </div>
-                    <div style="display: grid; grid-template-columns: 70px 1fr; align-items: center; height: 20px">
-                      <span>payments</span
-                      ><span style="position: relative; height: 1px; background: var(--border)"
-                        ><i
-                          style="position: absolute; left: 36%; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent)"
-                        ></i
-                        ><i style="position: absolute; left: 94%; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--red)"></i
-                      ></span>
+                    <div class="lane">
+                      <span>orders</span><span class="cnt">2</span><i><u style="left: 10%"></u><u style="left: 96%"></u></i>
+                    </div>
+                    <div class="lane">
+                      <span>payments</span><span class="cnt" style="color: var(--red)">2 · 1✕</span
+                      ><i><u style="left: 36%"></u><u class="bad" style="left: 94%"></u></i>
                     </div>
                   </div>
-                  <div class="grid" style="font-size: 11px">
-                    <div class="tr" style="grid-template-columns: 70px 56px 1fr">
-                      <span>gateway</span><span class="lvl-info">INFO</span><span>POST /v1/orders</span>
+                  <div class="grid">
+                    <div class="tr">
+                      <span class="n">1</span><span>10:42:09.104</span><span>gateway</span><span class="lvl-info">INFO</span
+                      ><span>POST /v1/orders</span>
                     </div>
-                    <div class="tr" style="grid-template-columns: 70px 56px 1fr">
-                      <span>orders</span><span class="lvl-info">INFO</span><span>Order ord-10531 created</span>
+                    <div class="tr">
+                      <span class="n">2</span><span>10:42:09.131</span><span>orders</span><span class="lvl-info">INFO</span
+                      ><span>Order ord-10531 created</span>
                     </div>
-                    <div class="tr" style="grid-template-columns: 70px 56px 1fr">
-                      <span>payments</span><span class="lvl-info">INFO</span><span>Charging ord-10531</span>
+                    <div class="tr">
+                      <span class="n">3</span><span>10:42:09.388</span><span>payments</span><span class="lvl-info">INFO</span
+                      ><span>Charging ord-10531</span>
                     </div>
-                    <div class="tr" style="grid-template-columns: 70px 56px 1fr; background: rgba(229, 87, 101, 0.12)">
-                      <span>payments</span><span class="lvl-error">ERROR</span><span>Charge failed: upstream timeout</span>
+                    <div class="tr sel">
+                      <span class="n">4</span><span>10:42:17.391</span><span>payments</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed: upstream timeout</span>
                     </div>
                   </div>
                 </div>
@@ -576,26 +714,31 @@
             <!-- investigate -->
             <article class="card">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px; padding: 12px 14px; font-size: 11.5px">
-                  <div style="font-weight: 600; margin-bottom: 8px">Investigate · Charge failed for request 7f3a9c2e</div>
-                  <div style="display: flex; gap: 8px; align-items: center; height: 24px">
-                    <i style="width: 14px; height: 14px; border-radius: 50%; background: var(--green)"></i>The request, across 3 services
+                <div class="frame app" style="height: 240px; padding: 12px 14px">
+                  <div class="eyebrow-sm">Investigation</div>
+                  <div class="ititle">Charge failed for request 7f3a9c2e: upstream timeout after 8000ms</div>
+                  <div class="isub">payments · 10:42:17 · 41 times in the last hour</div>
+                  <div class="istep">
+                    <span class="ok"
+                      ><svg><use href="#i-check" /></svg></span
+                    >The request, across 3 services
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center; height: 24px">
-                    <i style="width: 14px; height: 14px; border-radius: 50%; background: var(--green)"></i>Who else it hit: 41 requests, 2 hosts
+                  <div class="istep">
+                    <span class="ok"
+                      ><svg><use href="#i-check" /></svg></span
+                    >Who else it hit: 41 requests, 2 hosts
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center; height: 24px">
-                    <i style="width: 14px; height: 14px; border-radius: 50%; background: var(--green)"></i>Where it is logged:
-                    <span class="mono dim">ChargeService.php:237</span>
+                  <div class="istep">
+                    <span class="ok"
+                      ><svg><use href="#i-check" /></svg></span
+                    >Where it is logged: <span class="mono dim">ChargeService.php:237</span>
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center; height: 24px">
-                    <i style="width: 14px; height: 14px; border-radius: 50%; background: var(--green)"></i>The commit behind it:
-                    <span class="mono dim">#412 retry provider calls</span>
+                  <div class="istep">
+                    <span class="ok"
+                      ><svg><use href="#i-check" /></svg></span
+                    >The commit behind it: <span class="mono dim">#412 retry provider calls</span>
                   </div>
-                  <div style="display: flex; gap: 8px; align-items: center; height: 24px">
-                    <i style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); border-top-color: transparent"></i
-                    >Handing the case to Claude Code…
-                  </div>
+                  <div class="istep"><span class="spin"></span>Handing the case to Claude Code…</div>
                 </div>
               </div>
               <div class="body">
@@ -612,7 +755,7 @@
             <!-- service map -->
             <article class="card">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px">
+                <div class="frame app" style="height: 240px">
                   <svg viewBox="0 0 320 220" width="100%" height="100%" font-family="Inter, sans-serif" font-size="11">
                     <defs>
                       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
@@ -653,47 +796,33 @@
             <!-- watch -->
             <article class="card">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px">
-                  <div style="display: flex; align-items: center; height: 28px; padding: 0 12px; font-weight: 600; font-size: 12px">Queries</div>
-                  <div style="padding: 6px 10px">
-                    <div style="color: var(--amber); font-size: 10px"><span class="mono">⚠ 1m</span> Payment errors</div>
-                    <div class="mono muted" style="font-size: 10.5px">level:ERROR · orders</div>
+                <div class="frame app" style="height: 240px">
+                  <div class="phead">
+                    Queries<span class="right seg"><b>Saved</b><span>History</span></span>
                   </div>
-                  <div style="padding: 6px 10px">
-                    <div style="font-size: 12px">Slow checkouts</div>
-                    <div class="mono muted" style="font-size: 10.5px">route:checkout AND took_ms:&gt;2000 · gateway</div>
+                  <div class="filter">
+                    <svg><use href="#i-filter" /></svg>Filter…
                   </div>
-                  <div
-                    style="
-                      position: absolute;
-                      right: 14px;
-                      bottom: 14px;
-                      width: 230px;
-                      padding: 12px 14px;
-                      border-radius: 10px;
-                      background: var(--bg-tool);
-                      border: 1px solid var(--border);
-                      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
-                    "
-                  >
-                    <div style="display: flex; gap: 8px">
-                      <span style="color: var(--amber)">⚠</span>
-                      <div>
-                        <div style="font-weight: 600">Payment errors</div>
-                        <div class="dim">3 new matches on orders</div>
-                        <span
-                          style="
-                            display: inline-block;
-                            margin-top: 8px;
-                            padding: 2px 10px;
-                            border-radius: 4px;
-                            background: var(--accent);
-                            color: #fff;
-                            font-size: 11px;
-                          "
-                          >Open</span
-                        >
-                      </div>
+                  <div class="q">
+                    <div class="qt">
+                      <span class="watch"
+                        ><svg><use href="#i-alert" /></svg>1m</span
+                      >Payment errors
+                    </div>
+                    <div class="qq">level:ERROR</div>
+                    <div class="qs">orders</div>
+                  </div>
+                  <div class="q">
+                    <div class="qt">Slow checkouts</div>
+                    <div class="qq">route:checkout AND took_ms:&gt;2000</div>
+                    <div class="qs">gateway</div>
+                  </div>
+                  <div class="balloon">
+                    <svg class="bi" style="color: var(--amber)"><use href="#i-alert" /></svg>
+                    <div>
+                      <div class="bt">Payment errors</div>
+                      <div class="bm">3 new matches on orders</div>
+                      <span class="bb">Open</span>
                     </div>
                   </div>
                 </div>
@@ -713,29 +842,19 @@
             <article class="card">
               <div class="preview reveal">
                 <div
-                  class="frame"
+                  class="frame app"
                   style="height: 240px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-content: start"
                 >
-                  <div class="island" style="padding: 10px">
-                    <div class="muted" style="font-size: 10px">Throughput</div>
-                    <div style="font-size: 18px; font-weight: 600">1.2k<span class="muted" style="font-size: 11px">/min</span></div>
+                  <div class="island tile">
+                    <b>Throughput</b><span>1.2k<small>/min</small></span
+                    ><em>over the last 5 minutes</em>
                   </div>
-                  <div class="island" style="padding: 10px">
-                    <div class="muted" style="font-size: 10px">Error rate</div>
-                    <div style="font-size: 18px; font-weight: 600; color: var(--red)">4.2%</div>
-                  </div>
-                  <div class="island" style="padding: 10px">
-                    <div class="muted" style="font-size: 10px">p95</div>
-                    <div style="font-size: 18px; font-weight: 600; color: var(--amber)">8.9 s</div>
-                  </div>
-                  <div class="island" style="grid-column: span 3; padding: 10px">
-                    <div class="muted" style="font-size: 10px; margin-bottom: 6px">Failures that repeat</div>
-                    <div class="mono" style="font-size: 11px; display: flex; justify-content: space-between">
-                      <span>Charge failed … upstream timeout</span><span class="dim">61%</span>
-                    </div>
-                    <div class="mono" style="font-size: 11px; display: flex; justify-content: space-between">
-                      <span>card declined</span><span class="dim">30%</span>
-                    </div>
+                  <div class="island tile"><b>Error rate</b><span style="color: var(--red)">4.2%</span><em>52 of 1,244</em></div>
+                  <div class="island tile"><b>p95</b><span style="color: var(--amber)">8.9 s</span><em>took_ms</em></div>
+                  <div class="island tile" style="grid-column: span 3">
+                    <b>Failures that repeat</b>
+                    <div class="rep"><span class="mono">Charge failed for request … upstream timeout</span><span class="dim">61%</span></div>
+                    <div class="rep"><span class="mono">card declined</span><span class="dim">30%</span></div>
                   </div>
                 </div>
               </div>
@@ -750,57 +869,33 @@
               </div>
             </article>
 
-            <!-- console -->
+            <!-- search everywhere -->
             <article class="card wide">
               <div class="preview reveal">
-                <div class="frame" style="height: 240px">
-                  <div style="display: flex; align-items: center; height: 34px; padding: 0 8px; gap: 2px; border-bottom: 1px solid var(--border)">
-                    <span style="padding: 3px 8px; border-radius: 5px; background: var(--bg-raised); font-size: 12px">All</span
-                    ><span class="dim" style="padding: 3px 8px; font-size: 12px">Streams</span
-                    ><span class="dim" style="padding: 3px 8px; font-size: 12px">Endpoints</span
-                    ><span class="dim" style="padding: 3px 8px; font-size: 12px">Queries</span
-                    ><span class="dim" style="padding: 3px 8px; font-size: 12px">Actions</span>
+                <div class="frame app" style="height: 240px">
+                  <div class="stabs">
+                    <span class="active">All</span><span>Streams</span><span>Endpoints</span><span>Projects</span><span>Queries</span
+                    ><span>Actions</span>
                   </div>
-                  <div
-                    style="
-                      display: flex;
-                      align-items: center;
-                      height: 40px;
-                      padding: 0 14px;
-                      gap: 10px;
-                      border-bottom: 1px solid var(--border);
-                      font-size: 15px;
-                    "
-                  >
-                    <span class="muted">⌕</span><span class="typed">charg</span><span class="caret"></span>
+                  <div class="sinput">
+                    <svg><use href="#i-search" /></svg><span class="typed">charg</span><span class="caret"></span>
                   </div>
-                  <div style="padding: 6px 0; font-size: 12px">
-                    <div class="muted" style="padding: 4px 14px; font-size: 10.5px">Endpoints</div>
-                    <div
-                      style="
-                        display: flex;
-                        gap: 8px;
-                        align-items: center;
-                        height: 26px;
-                        margin: 0 6px;
-                        padding: 0 8px;
-                        border-radius: 5px;
-                        background: var(--sel);
-                        color: #fff;
-                      "
-                      class="mono"
-                    >
-                      <svg class="ico bad"><use href="#i-ep" /></svg>POST /v1/charges <span style="margin-left: auto; font-size: 11px">acme</span>
-                    </div>
-                    <div style="display: flex; gap: 8px; align-items: center; height: 26px; margin: 0 6px; padding: 0 8px" class="mono">
-                      <svg class="ico"><use href="#i-ep" /></svg>GET /v1/charges/{id}
-                      <span class="muted" style="margin-left: auto; font-size: 11px">acme</span>
-                    </div>
-                    <div class="muted" style="padding: 4px 14px; font-size: 10.5px">Queries</div>
-                    <div style="display: flex; gap: 8px; align-items: center; height: 26px; margin: 0 6px; padding: 0 8px" class="mono">
-                      <span class="muted">⟲</span>message:"Charge failed"
-                      <span class="muted" style="margin-left: auto; font-size: 11px">42 rows</span>
-                    </div>
+                  <div class="sgroup">Endpoints</div>
+                  <div class="srow sel">
+                    <span class="ico bad"
+                      ><svg><use href="#i-ep" /></svg></span
+                    ><span class="mono">POST /v1/charges</span><span class="ssub">orders</span><span class="right">acme</span>
+                  </div>
+                  <div class="srow">
+                    <span class="ico"
+                      ><svg><use href="#i-ep" /></svg></span
+                    ><span class="mono">GET /v1/charges/{id}</span><span class="ssub">orders</span><span class="right">acme</span>
+                  </div>
+                  <div class="sgroup">Queries</div>
+                  <div class="srow">
+                    <span class="ico"
+                      ><svg class="li" style="width: 13px; height: 13px"><use href="#i-history" /></svg></span
+                    ><span class="mono">message:"Charge failed"</span><span class="ssub">orders</span><span class="right">42 rows</span>
                   </div>
                 </div>
               </div>
@@ -832,27 +927,33 @@
           <div class="cards" style="grid-template-columns: 1fr 1fr">
             <article class="card">
               <div class="preview reveal">
-                <div class="frame mono prose" style="height: 240px; padding: 14px; font-size: 11.5px; line-height: 1.7; color: var(--text-dim)">
-                  <div>
-                    <span style="color: var(--green)">~/acme %</span>
-                    <span style="color: var(--text)">claude mcp add --transport http flux http://127.0.0.1:4319/mcp …</span>
+                <div class="frame app prose" style="height: 240px">
+                  <div class="ttabs">
+                    <span class="active">acme</span
+                    ><span class="icon"
+                      ><svg style="width: 13px; height: 13px"><use href="#i-plus" /></svg
+                    ></span>
                   </div>
-                  <div>Added HTTP MCP server flux</div>
-                  <div><span style="color: var(--green)">~/acme %</span> <span style="color: var(--text)">claude</span></div>
-                  <div style="margin-top: 6px; color: var(--text)">› Why are orders failing since 10:40?</div>
-                  <div style="margin-top: 6px">
-                    <span style="color: var(--accent)">●</span> <span style="color: var(--text)">flux · search_logs</span>(streams: ["orders"], query:
-                    "level:ERROR", minutes: 30)
-                  </div>
-                  <div style="padding-left: 12px">⎿ 42 lines</div>
-                  <div>
-                    <span style="color: var(--accent)">●</span> <span style="color: var(--text)">flux · open_query</span>(stream: "orders", query:
-                    "level:ERROR")
-                  </div>
-                  <div style="margin-top: 6px; color: var(--text)">
-                    Payments started failing at 10:41. Most are <span style="color: var(--red)">card declined</span> (61%) and
-                    <span style="color: var(--red)">provider timeout</span> (30%) — the timeouts all come from payments-1. I opened the query in Flux
-                    for you.
+                  <div class="term">
+                    <div>
+                      <span class="prompt">~/acme %</span> <span class="t">claude mcp add --transport http flux http://127.0.0.1:4319/mcp …</span>
+                    </div>
+                    <div>Added HTTP MCP server flux to local config</div>
+                    <div><span class="prompt">~/acme %</span> <span class="t">claude</span></div>
+                    <div class="t" style="margin-top: 4px">› Why are orders failing since 10:40?</div>
+                    <div style="margin-top: 4px">
+                      <span style="color: var(--accent)">●</span> <span class="t">flux · search_logs</span>(streams: ["orders"], query: "level:ERROR",
+                      minutes: 30)
+                    </div>
+                    <div style="padding-left: 12px">⎿ 42 lines</div>
+                    <div>
+                      <span style="color: var(--accent)">●</span> <span class="t">flux · open_query</span>(stream: "orders", query: "level:ERROR")
+                    </div>
+                    <div class="t" style="margin-top: 4px">
+                      Payments started failing at 10:41. Most are <span style="color: var(--red)">card declined</span> (61%) and
+                      <span style="color: var(--red)">provider timeout</span> (30%) — the timeouts all come from payments-1. I opened the query in
+                      Flux for you.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -865,81 +966,43 @@
             </article>
             <article class="card">
               <div class="preview reveal">
-                <div class="frame prose" style="height: 240px; padding: 14px">
-                  <div style="display: flex; justify-content: center">
-                    <div
-                      style="
-                        width: 300px;
-                        border-radius: 0 0 22px 22px;
-                        background: #000;
-                        padding: 34px 14px 12px;
-                        color: #ececee;
-                        font-family: -apple-system, sans-serif;
-                      "
-                    >
-                      <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600">
-                        <i style="width: 8px; height: 8px; border-radius: 50%; background: #e5534b"></i>1 with new matches · 2 running
+                <div class="frame app prose" style="height: 240px; padding: 14px; background: #1a1b1e">
+                  <div class="islandcard">
+                    <div class="ih">
+                      <i class="dot" style="background: #e5534b"></i>
+                      <div>
+                        <div class="it">1 with new matches · 2 running</div>
+                        <div class="is">3 things going on in Flux</div>
                       </div>
-                      <div
-                        style="
-                          margin-top: 10px;
-                          display: flex;
-                          gap: 10px;
-                          align-items: center;
-                          padding: 8px 10px;
-                          border-radius: 12px;
-                          background: #141416;
-                          border: 1px solid #232326;
-                          font-size: 12px;
-                        "
-                      >
-                        <i style="width: 3px; height: 26px; border-radius: 2px; background: #e5534b"></i>
-                        <div>
-                          <div>Payment errors</div>
-                          <div style="color: #8e8e93; font-family: var(--font-mono); font-size: 10.5px">3 new on the last round</div>
-                        </div>
-                        <span
-                          style="
-                            margin-left: auto;
-                            padding: 2px 8px;
-                            border-radius: 999px;
-                            background: rgba(229, 83, 75, 0.18);
-                            color: #e5534b;
-                            font-size: 10.5px;
-                          "
-                          >new matches</span
-                        >
+                      <span class="ib"
+                        ><svg><use href="#i-pin" /></svg></span
+                      ><span class="ib"
+                        ><svg><use href="#i-chevup" /></svg
+                      ></span>
+                    </div>
+                    <div class="ir">
+                      <i style="background: #e5534b"></i>
+                      <div>
+                        <div>Payment errors</div>
+                        <div class="mono">3 new on the last round</div>
                       </div>
-                      <div
-                        style="
-                          margin-top: 6px;
-                          display: flex;
-                          gap: 10px;
-                          align-items: center;
-                          padding: 8px 10px;
-                          border-radius: 12px;
-                          background: #141416;
-                          border: 1px solid #232326;
-                          font-size: 12px;
-                        "
-                      >
-                        <i style="width: 3px; height: 26px; border-radius: 2px; background: #d97757"></i>
-                        <div>
-                          <div>search_logs</div>
-                          <div style="color: #8e8e93; font-family: var(--font-mono); font-size: 10.5px">query: level:ERROR · minutes: 30</div>
-                        </div>
-                        <span
-                          style="
-                            margin-left: auto;
-                            padding: 2px 8px;
-                            border-radius: 999px;
-                            background: rgba(217, 119, 87, 0.18);
-                            color: #d97757;
-                            font-size: 10.5px;
-                          "
-                          >MCP call</span
-                        >
+                      <span class="chip" style="color: #e5534b; background: rgba(229, 83, 75, 0.18)">new matches</span><span class="ago">4s</span>
+                    </div>
+                    <div class="ir">
+                      <i style="background: #d97757"></i>
+                      <div>
+                        <div>search_logs</div>
+                        <div class="mono">query: level:ERROR · minutes: 30</div>
                       </div>
+                      <span class="chip" style="color: #d97757; background: rgba(217, 119, 87, 0.18)">MCP call</span><span class="ago">now</span>
+                    </div>
+                    <div class="ir">
+                      <i style="background: #e5a33a"></i>
+                      <div>
+                        <div>POST /v1/charges</div>
+                        <div class="mono">level:ERROR</div>
+                      </div>
+                      <span class="chip" style="color: #e5a33a; background: rgba(229, 163, 58, 0.18)">running</span><span class="ago">2s</span>
                     </div>
                   </div>
                 </div>
@@ -1045,8 +1108,12 @@
           <h2>Download Flux for macOS</h2>
           <p>Free and open source. Apple silicon and Intel, macOS 13 or later. Updates install themselves.</p>
           <div class="cta">
-            <a class="button primary" href="/download">Download <span id="download-version"></span>.dmg</a>
-            <a class="button" href="https://github.com/bozkurtemre/flux/releases">All releases</a>
+            <a class="button primary" href="/download"
+              ><svg class="li"><use href="#i-download" /></svg>Download <span id="download-version"></span>.dmg</a
+            >
+            <a class="button" href="https://github.com/bozkurtemre/flux/releases"
+              ><svg class="li"><use href="#i-github" /></svg>All releases</a
+            >
           </div>
           <pre>xattr -dr com.apple.quarantine /Applications/Flux.app</pre>
           <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 10px">
@@ -1126,7 +1193,7 @@
         const peak = Math.max(...counts);
         counts.forEach((c, i) => {
           const bar = document.createElement("i");
-          bar.style.height = `${Math.max(3, (c / peak) * 56)}px`;
+          bar.style.height = `${Math.max(2, (c / peak) * 56)}px`;
           bar.style.setProperty("--i", i);
           if (spike && i >= spike[0] && i <= spike[1]) bar.className = "spike";
           el.append(bar);
