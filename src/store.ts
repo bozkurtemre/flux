@@ -200,6 +200,15 @@ interface State {
   notices: Notice[];
   /** The version waiting to be installed, once it has soaked. */
   update?: Manifest;
+  /** The MCP tool call just answered, for the island to show for a moment. */
+  mcpCall?: { tool: string; detail: string; failed: boolean; at: number };
+  noteMcpCall: (tool: string, detail: string, failed: boolean) => void;
+  /** Until when the island stays off the screen, asked for from the island itself. */
+  islandMutedUntil?: number;
+  /** The last long command a terminal finished, for the island to say for a while. */
+  commandDone?: { terminal: string; command: string; code: number; ms: number; at: number };
+  noteCommand: (terminal: string, command: string, code: number, ms: number) => void;
+  muteIsland: (minutes: number | null) => void;
   showUpdateNotes: boolean;
   showAbout: boolean;
   /** The folder open as a workspace, if any. Its settings live in `.flux` inside it. */
@@ -315,6 +324,8 @@ interface State {
   setProjectFolder: (projectId: string, folder: string) => void;
   setProjectFolders: (folders: Record<string, string>) => void;
   setTmuxMissing: () => void;
+  /** Stops the query running in a tab, as the task's own cancel would. */
+  cancelQuery: (tabId: string) => void;
   startTask: (title: string, cancel?: () => void) => string;
   setTaskProgress: (id: string, progress: number) => void;
   endTask: (id: string) => void;
@@ -354,6 +365,8 @@ export function defaultColumns(conn: Connection | undefined): string[] {
 }
 
 const clients = new Map<string, DataSource>();
+/** The query running in each tab, so that it can be stopped from outside the tab: the island. */
+const running = new Map<string, AbortController>();
 /** The adapter for a connection's kind of source. Everything that asks a source goes through here. */
 export function clientFor(conn: Connection): DataSource {
   const key = `${conn.id}:${conn.kind}:${conn.url}:${conn.token}`;
@@ -1256,6 +1269,27 @@ export const useApp = create<State>((set, get) => ({
   },
 
   setTmuxMissing: () => set({ tmuxMissing: true }),
+  cancelQuery: (tabId) => running.get(tabId)?.abort(),
+
+  noteCommand: (terminal, command, code, ms) => {
+    const at = Date.now();
+    set({ commandDone: { terminal, command, code, ms, at } });
+    setTimeout(() => get().commandDone?.at === at && set({ commandDone: undefined }), 15_000);
+  },
+
+  muteIsland: (minutes) => {
+    if (minutes === null) return set({ islandMutedUntil: undefined });
+    const until = Date.now() + minutes * 60_000;
+    set({ islandMutedUntil: until });
+    setTimeout(() => get().islandMutedUntil === until && set({ islandMutedUntil: undefined }), minutes * 60_000);
+    get().notify("info", "The island is muted", `It comes back in ${minutes} minutes.`, [{ label: "Unmute", run: () => get().muteIsland(null) }]);
+  },
+
+  noteMcpCall: (tool, detail, failed) => {
+    const at = Date.now();
+    set({ mcpCall: { tool, detail, failed, at } });
+    setTimeout(() => get().mcpCall?.at === at && set({ mcpCall: undefined }), 8000);
+  },
 
   startTask: (title, cancel) => {
     const id = crypto.randomUUID();
@@ -1627,6 +1661,7 @@ export const useApp = create<State>((set, get) => ({
     if (!tab || !conn) return;
     patchTab(id, { running: true, error: undefined, startedAt: Date.now(), zero: undefined });
     const stop = new AbortController();
+    running.set(id, stop);
     const task = get().startTask(`Running the query on ${tab.streamLabel}`, () => stop.abort());
     const started = performance.now();
     try {
@@ -1745,6 +1780,7 @@ export const useApp = create<State>((set, get) => ({
         get().notify("error", conn.name || conn.url, `Query failed: ${failureReason(e)}`);
       }
     } finally {
+      if (running.get(id) === stop) running.delete(id);
       get().endTask(task);
     }
   },

@@ -53,6 +53,14 @@ export function AppearancePage({ s, patch }: { s: Settings; patch: Patch }) {
             hint="What is running, being followed or being watched, in one place. It stays out of the way when nothing is."
           />
         </Row>
+        <Row>
+          <Checkbox
+            checked={a.deployRadar !== false}
+            onChange={(v) => set("deployRadar", v)}
+            label="Deploy radar"
+            hint="For ten minutes after a pull request is merged into a project's repository, the island compares the project's error rate since the merge with the ten minutes before it. Needs gh signed in."
+          />
+        </Row>
       </Section>
       <Section title="Status Bar">
         <Row>

@@ -8,7 +8,7 @@ import { Terminal } from "@xterm/xterm";
 import { Plus, X } from "lucide-react";
 import { ProjectIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { openCommand, pasteSequence } from "@/lib/terminal";
+import { commandName, LONG_COMMAND_MS, openCommand, pasteSequence } from "@/lib/terminal";
 import { useApp } from "@/store";
 import "@xterm/xterm/css/xterm.css";
 
@@ -166,6 +166,18 @@ function TerminalView({ id, projectId, hidden }: { id: string; projectId: string
       },
     });
     const fit = new FitAddon();
+    // the marks our zsh startup file adds: where a command starts, and its status when it ends
+    let started: { command: string; at: number } | null = null;
+    term.parser.registerOscHandler(133, (data) => {
+      const [mark, ...rest] = data.split(";");
+      if (mark === "C") started = { command: commandName(rest.join(";")), at: Date.now() };
+      if (mark === "D" && started) {
+        const ms = Date.now() - started.at;
+        if (ms >= LONG_COMMAND_MS && started.command) useApp.getState().noteCommand(id, started.command, Number(rest[0]) || 0, ms);
+        started = null;
+      }
+      return true;
+    });
     term.loadAddon(fit);
     term.open(host.current);
     fit.fit();

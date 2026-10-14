@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { emitTo, listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { cursorPosition, getCurrentWindow, LogicalPosition, LogicalSize, primaryMonitor } from "@tauri-apps/api/window";
-import { ChevronUp, Pin, PinOff } from "lucide-react";
+import { BellOff, ChevronUp, Pin, PinOff, X } from "lucide-react";
 import { ago, CHIP, headline, lead, placement, type IslandItem } from "@/lib/island";
 
 // the pill is wider than the notch, so what it says shows either side of the camera; it grows
@@ -194,6 +194,15 @@ export function IslandWindow() {
               </div>
             </div>
             <button
+              onClick={() => void emitTo("main", "island-mute")}
+              title="Mute for an hour"
+              aria-label="Mute for an hour"
+              className="flex size-7 items-center justify-center rounded-full hover:bg-white/10"
+              style={{ color: "#8e8e93" }}
+            >
+              <BellOff size={13} />
+            </button>
+            <button
               onClick={() => setPinned((p) => !p)}
               className="flex size-7 items-center justify-center rounded-full hover:bg-white/10"
               style={{ color: pinned ? "#4b8ef0" : "#8e8e93" }}
@@ -232,8 +241,24 @@ export function IslandWindow() {
                   {CHIP[i.state].label}
                 </span>
                 <span className="w-9 shrink-0 text-right text-[11px] tabular-nums" style={{ color: "#8e8e93" }}>
-                  {i.at ? ago(now - i.at) : "now"}
+                  {i.at ? ago(now - i.at) : i.state === "update" ? "" : "now"}
                 </span>
+                {i.state === "running" && (
+                  // a span, since the row is a button already; the click stays here and Flux stays behind
+                  <span
+                    role="button"
+                    aria-label="Stop the query"
+                    title="Stop the query"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void emitTo("main", "island-cancel", i.key.slice("run:".length));
+                    }}
+                    className="-mr-1 flex size-6 shrink-0 items-center justify-center rounded-full hover:bg-white/15"
+                    style={{ color: "#8e8e93" }}
+                  >
+                    <X size={12} />
+                  </span>
+                )}
               </button>
             ))}
           </div>

@@ -30,6 +30,8 @@ export const TAIL_FIELDS = [
 
 const LEVELS = ["level", "level_name", "log.level", "severity"];
 const STATUSES = ["httpStatusCode", "http_status", "status"];
+/** The fields `errorQueryFrom` reads: a sample need carry no others. */
+export const ERROR_FIELDS = [...LEVELS, ...STATUSES];
 const DURATIONS = ["responseTime", "took_ms", "duration_ms", "elapsed"];
 
 /**

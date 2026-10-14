@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize};
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 pub struct Session {
     /// Behind its own lock, so a blocked write holds nothing but its own terminal.
@@ -36,6 +36,27 @@ pub struct Spawn {
     cwd: String,
     cols: u16,
     rows: u16,
+}
+
+/// zsh is pointed at a startup file of ours that hands straight back to the user's own and adds
+/// the command marks; any other shell starts as it always did. Under tmux the marks stay inside
+/// tmux, since the shell that reads this file only starts tmux.
+fn integrate(app: &AppHandle, cmd: &mut CommandBuilder, shell: &str) {
+    if !shell.ends_with("/zsh") && shell != "zsh" {
+        return;
+    }
+    let Ok(dir) = app.path().app_cache_dir().map(|d| d.join("zsh")) else {
+        return;
+    };
+    let written = std::fs::create_dir_all(&dir)
+        .and_then(|_| std::fs::write(dir.join(".zshenv"), include_str!("../shell/zshenv")));
+    if written.is_err() {
+        return;
+    }
+    if let Ok(own) = std::env::var("ZDOTDIR") {
+        cmd.env("FLUX_USER_ZDOTDIR", own);
+    }
+    cmd.env("ZDOTDIR", dir);
 }
 
 #[tauri::command]
@@ -71,6 +92,7 @@ pub async fn terminal_open(
     }
     // tmux and every curses program refuse to run without knowing what they are drawing on
     cmd.env("TERM", "xterm-256color");
+    integrate(&app, &mut cmd, &shell(&program));
 
     let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     let writer = Arc::new(Mutex::new(

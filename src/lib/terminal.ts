@@ -78,3 +78,20 @@ export function killTabCommand(settings: TerminalSettings, projectId: string, ta
  * offering a choice that does not exist.
  */
 export const quitAction = (onQuit: OnQuit, liveTabs: number, persists: boolean): OnQuit => (liveTabs === 0 || !persists ? "leave" : onQuit);
+
+/** How long a command has to run before its end is worth saying on the island. */
+export const LONG_COMMAND_MS = 10_000;
+
+/**
+ * A command line as the island names it: the program and, when it is a plain word, what it was
+ * asked to do — `make test`, `docker build`. Never more, since the island sits over every app
+ * and the rest of a line is where tokens get typed; leading `NAME=value` settings are skipped.
+ */
+export function commandName(line: string): string {
+  const words = line
+    .trim()
+    .split(/\s+/)
+    .filter((w) => !/^\w+=/.test(w));
+  const [program = "", next] = words;
+  return next && /^\w[\w.:-]*$/.test(next) ? `${program} ${next}` : program;
+}

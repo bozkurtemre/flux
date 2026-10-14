@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import capability from "../../src-tauri/capabilities/default.json";
-import { killTabCommand, openCommand, pasteSequence, quitAction, sessionName } from "./terminal";
+import { commandName, killTabCommand, openCommand, pasteSequence, quitAction, sessionName } from "./terminal";
 import { DEFAULTS, type TerminalSettings } from "./settings";
 
 // these are tmux's own commands, and tmux is no longer the default engine, so the base
@@ -106,5 +106,14 @@ describe("the permission the quit flow depends on", () => {
     // the prompt answers by destroying the window; without this in the capability the call
     // is refused by the ACL and the app simply refuses to quit, silently
     expect(capability.permissions).toContain("core:window:allow-destroy");
+  });
+});
+
+describe("a command as the island names it", () => {
+  it("keeps the program and a plain subcommand, nothing that could be a secret", () => {
+    expect(commandName("make test")).toBe("make test");
+    expect(commandName("TOKEN=abc docker build -t x .")).toBe("docker build");
+    expect(commandName('curl -H "Authorization: Bearer x" https://a')).toBe("curl");
+    expect(commandName("  ")).toBe("");
   });
 });

@@ -1,0 +1,13 @@
+# Written by Flux for its terminal tabs. It puts ZDOTDIR back as it was, so the startup files
+# read are your own, and marks where each command starts and ends (OSC 133, the marks other
+# terminals use), which is how the island hears that a long command has finished.
+if [[ -n ${FLUX_USER_ZDOTDIR-} ]]; then ZDOTDIR=$FLUX_USER_ZDOTDIR; else unset ZDOTDIR; fi
+unset FLUX_USER_ZDOTDIR
+[[ -r ${ZDOTDIR:-$HOME}/.zshenv ]] && builtin source ${ZDOTDIR:-$HOME}/.zshenv
+if [[ -o interactive ]]; then
+  autoload -Uz add-zsh-hook
+  _flux_preexec() { _flux_ran=1; builtin print -rn -- $'\e]133;C;'"${${1//[[:cntrl:]]/ }[1,200]}"$'\a'; }
+  _flux_precmd() { local s=$?; (( ${_flux_ran:-0} )) && builtin print -rn -- $'\e]133;D;'"$s"$'\a'; _flux_ran=0; }
+  add-zsh-hook preexec _flux_preexec
+  add-zsh-hook precmd _flux_precmd
+fi

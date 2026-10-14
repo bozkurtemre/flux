@@ -10,6 +10,11 @@ describe("what the pill says", () => {
     );
   });
 
+  it("names an MCP call and a waiting update among the rest", () => {
+    expect(headline([item("update"), item("mcp"), item("running")])).toBe("1 running · 1 MCP call · update ready");
+    expect(lead([item("update"), item("following")])).toBe("update");
+  });
+
   it("leads with the colour of whatever most needs looking at", () => {
     expect(lead([item("watching"), item("following")])).toBe("following");
     expect(lead([item("watching"), item("alert")])).toBe("alert");

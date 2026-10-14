@@ -38,6 +38,8 @@ export interface Appearance {
   island: boolean;
   /** Flux's own CPU and memory, in the status bar. */
   usage: boolean;
+  /** The island's ten minutes after a merge: the project's error rate before it and since. */
+  deployRadar: boolean;
   uiFontSize: number; // px, chrome
   density: "compact" | "default" | "comfortable";
   accent: string; // hex
@@ -146,7 +148,7 @@ export interface Settings {
 export const DEFAULTS: Settings = {
   connections: [],
   projects: [],
-  appearance: { island: true, usage: true, theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
+  appearance: { island: true, usage: true, deployRadar: true, theme: "dark", uiFontSize: 13, density: "default", accent: "#3574f0" },
   tree: {
     rowHeight: 24,
     indent: 14,
@@ -279,6 +281,15 @@ export async function lastEmail(): Promise<string> {
 
 export async function rememberEmail(email: string): Promise<void> {
   await writeFile(FILES.device, "lastEmail", email).catch(() => {});
+}
+
+/** The shortcuts this Mac has been told about once, so the tip is never given twice. Per Mac. */
+export async function toldShortcuts(): Promise<string[]> {
+  return (await readFile<string[]>(FILES.device, "toldShortcuts").catch(() => undefined)) ?? [];
+}
+
+export async function tellShortcut(told: string[]): Promise<void> {
+  await writeFile(FILES.device, "toldShortcuts", told).catch(() => {});
 }
 
 /** Pre-split installs kept everything under one key; read it once so nothing is lost. */

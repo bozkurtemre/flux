@@ -36,6 +36,8 @@ import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { AUTH_CALLBACK } from "@/lib/cloud";
 import { failureReason } from "@/lib/progress";
 import { watchEvery } from "@/lib/queries";
+import { promoter } from "@/lib/promoter";
+import { tellShortcut, toldShortcuts } from "@/lib/settings";
 import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
@@ -275,6 +277,28 @@ export default function App() {
     return () => clearInterval(hourly);
   }, [settings.updates.checkOnStartup]);
 
+  // A shortcut clicked with the mouse a third time is named once, in a tip. `detail` is 0 for a
+  // button pressed from the keyboard, which needs no telling.
+  useEffect(() => {
+    let click: ((keys: string) => boolean) | undefined;
+    let told: string[] = [];
+    void toldShortcuts().then((t) => {
+      told = t;
+      click = promoter(t);
+    });
+    const onClick = (e: MouseEvent) => {
+      const el = e.detail > 0 ? (e.target as Element | null)?.closest<HTMLElement>("[data-tip-key]") : null;
+      const keys = el?.dataset.tipKey;
+      if (!keys || !click?.(keys)) return;
+      told = [...told, keys];
+      void tellShortcut(told);
+      const what = el.dataset.tip?.split(" — ")[0] ?? "This";
+      useApp.getState().notify("info", `Tip: ${keys}`, `${what} has a shortcut: ${keys}.`);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+
   // The MCP server runs in Rust and the tools run here, where Graylog is understood: a call
   // arrives as an event, is answered against the same client the window uses, and is handed
   // back by id. The server is started and stopped by the setting alone.
@@ -292,6 +316,11 @@ export default function App() {
         content: [{ type: "text" as const, text: e instanceof Error ? e.message : String(e) }],
         isError: true,
       }));
+      // what was asked, never what came back: the island is on screen over every other app
+      const detail = Object.entries(event.payload.arguments ?? {})
+        .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
+        .join(" · ");
+      useApp.getState().noteMcpCall(event.payload.name, detail, !!result.isError);
       await invoke("mcp_respond", { id: event.payload.id, result });
     });
 

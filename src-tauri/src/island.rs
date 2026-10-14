@@ -33,7 +33,7 @@ pub fn island_present(app: AppHandle, visible: bool) -> Result<(), String> {
         let ns = window.ns_window().map_err(|e| e.to_string())? as usize;
         window
             .run_on_main_thread(move || {
-                use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior};
+                use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior, NSWindowSharingType};
                 // SAFETY: Tauri hands over the window's own NSWindow, and this runs on the main
                 // thread, the only one AppKit takes calls on.
                 let ns = unsafe { &*(ns as *const NSWindow) };
@@ -45,6 +45,9 @@ pub fn island_present(app: AppHandle, visible: bool) -> Result<(), String> {
                             | NSWindowCollectionBehavior::Stationary
                             | NSWindowCollectionBehavior::FullScreenAuxiliary,
                     );
+                    // left out of screenshots and of what a screen share sends, as far as the
+                    // capturing app honours it: the island names queries and what they found
+                    ns.setSharingType(NSWindowSharingType::None);
                     ns.orderFrontRegardless();
                 } else {
                     ns.orderOut(None);
