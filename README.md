@@ -245,4 +245,4 @@ searches and aggregations, and never writes to Graylog, Kibana or Elasticsearch.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). How to contribute is in [CONTRIBUTING.md](CONTRIBUTING.md), and how to report a vulnerability in [SECURITY.md](SECURITY.md).
