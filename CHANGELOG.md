@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.32.1
+
+### Fixed
+
+- The sign-in screen used over a gigabyte of memory on a Retina display; it now uses less
+  than half of that, and looks the same.
+
 ## 0.32.0
 
 ### Added
