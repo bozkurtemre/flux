@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.33.1
+
+### Fixed
+
+- Search Everywhere no longer freezes its list while typing; the results count moved on, the
+  rows did not.
+
 ## 0.33.0
 
 ### Added
