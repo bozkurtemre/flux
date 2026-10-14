@@ -62,5 +62,5 @@ A security problem is not an issue: see [SECURITY.md](SECURITY.md).
 
 ## Licence
 
-Flux is licensed under the [MIT License](LICENSE). Anything you submit for inclusion is licensed
-under the same terms.
+Flux is licensed under the [Apache License 2.0](LICENSE). Anything you submit for inclusion is
+licensed under the same terms, as section 5 of the licence says, unless you state otherwise.
