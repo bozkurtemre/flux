@@ -274,8 +274,11 @@ export function SearchEverywhere() {
               {indexing ? "Indexing connections…" : query ? `Nothing matches “${query}”` : "Type to search"}
             </p>
           ) : (
+            // a group can appear more than once, scores interleaving them, so a section is keyed
+            // by its first hit rather than its group: two sections with one key left React
+            // drawing a stale list under a count that had moved on
             sections.map((sec) => (
-              <div key={sec.group}>
+              <div key={sec.items[0].key}>
                 <div className="px-4 pt-2 pb-1 text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
                   {sec.group}
                 </div>
