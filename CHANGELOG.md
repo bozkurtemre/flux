@@ -3,6 +3,15 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.32.0
+
+### Added
+
+- Sign in with GitHub or Google, under the email button. The browser comes back to a page that
+  hands the sign-in to Flux and says it is done, rather than staying on the consent screen.
+- A session that ends while Flux is open — an account banned or deleted — signs Flux out within
+  five minutes, without waiting for the next launch.
+
 ## 0.31.0
 
 ### Added
