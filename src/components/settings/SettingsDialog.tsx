@@ -47,7 +47,7 @@ const PAGES: PageDef[] = [
     id: "tree",
     label: "Connection Explorer",
     parent: "Appearance & Behavior",
-    keywords: "tree row height indent endpoints sort counts error rate lookback",
+    keywords: "tree row height indent icons endpoints sort counts error rate lookback view options",
     render: ({ s, patch }) => <TreePageLazy s={s} patch={patch} />,
   },
   { id: "keymap", label: "Keymap", keywords: "shortcut keys binding", render: () => <KeymapPage /> },

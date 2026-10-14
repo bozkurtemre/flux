@@ -11,6 +11,8 @@ import {
   RefreshCw,
   SearchCode,
   Settings2,
+  SlidersHorizontal,
+  Check,
   SquareTerminal,
   Terminal,
   Trash2,
@@ -176,7 +178,32 @@ function PanelHeader() {
 }
 
 function PanelToolbar() {
-  const { refresh, selectedNode, setShowSettings, nodes, expanded } = useApp();
+  const { refresh, selectedNode, setShowSettings, nodes, expanded, settings, setSettings } = useApp();
+  const [options, setOptions] = useState<{ x: number; y: number } | null>(null);
+  const t = settings.tree;
+  const tree = (patch: Partial<typeof t>) => void setSettings({ ...settings, tree: { ...t, ...patch } });
+  const tick = (on: boolean) => (on ? <Check size={12} /> : undefined);
+  // what the tree shows on each row, as the IDE keeps under its own view-options gear
+  const viewOptions: MenuItem[] = [
+    { label: "Show icons", icon: tick(t.showIcons !== false), onClick: () => tree({ showIcons: t.showIcons === false }) },
+    { label: "Show request counts", icon: tick(t.showCounts), onClick: () => tree({ showCounts: !t.showCounts }) },
+    { label: "Show error rates", icon: tick(t.showErrorRate), onClick: () => tree({ showErrorRate: !t.showErrorRate }) },
+    { label: "Colour endpoints by health", icon: tick(t.colorByHealth), onClick: () => tree({ colorByHealth: !t.colorByHealth }) },
+    { label: "Compact rows", icon: tick(t.rowHeight <= 20), onClick: () => tree({ rowHeight: t.rowHeight <= 20 ? 24 : 20 }) },
+    { separator: true },
+    {
+      label: "Sort endpoints by",
+      items: (
+        [
+          ["traffic", "Traffic"],
+          ["name", "Name"],
+          ["errors", "Errors"],
+        ] as const
+      ).map(([by, label]) => ({ label, icon: tick(t.sortEndpointsBy === by), onClick: () => tree({ sortEndpointsBy: by }) })),
+    },
+    { separator: true },
+    { label: "More in Settings…", icon: <Settings2 size={12} />, onClick: () => setShowSettings(true, "tree") },
+  ];
   const btn = "flex size-[22px] items-center justify-center rounded";
   const style = { color: "var(--text-dim)" } as const;
   const hover = {
@@ -212,9 +239,18 @@ function PanelToolbar() {
       >
         <SquareTerminal size={14} style={style} />
       </button>
-      <button className={btn} {...hover} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
-        <Settings2 size={14} style={style} />
+      <button
+        className={btn}
+        {...hover}
+        data-tip="View options"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setOptions({ x: r.left, y: r.bottom + 4 });
+        }}
+      >
+        <SlidersHorizontal size={14} style={style} />
       </button>
+      {options && <ContextMenu x={options.x} y={options.y} items={viewOptions} onClose={() => setOptions(null)} />}
       <span className="ml-auto pr-1 text-[10px] tabular-nums" style={{ color: "var(--text-muted)" }}>
         {Object.values(expanded).filter(Boolean).length ? "" : ""}
       </span>
@@ -306,17 +342,19 @@ function Row({ node, onMenu }: { node: TreeNode; onMenu: (x: number, y: number, 
       >
         {busy ? <Spinner /> : expandable ? <Chevron open={open} /> : null}
       </span>
-      <span className="flex size-4 shrink-0 items-center justify-center">
-        {node.kind === "connection" ? (
-          <ConnectionIcon live={health?.up || (!!node.childrenIds && !node.error)} failed={!!node.error || health?.up === false} />
-        ) : node.kind === "project" ? (
-          <ProjectIcon />
-        ) : node.kind === "stream" ? (
-          <StreamIcon />
-        ) : (
-          <EndpointIcon tone={tone} />
-        )}
-      </span>
+      {t.showIcons !== false && (
+        <span className="flex size-4 shrink-0 items-center justify-center">
+          {node.kind === "connection" ? (
+            <ConnectionIcon live={health?.up || (!!node.childrenIds && !node.error)} failed={!!node.error || health?.up === false} />
+          ) : node.kind === "project" ? (
+            <ProjectIcon />
+          ) : node.kind === "stream" ? (
+            <StreamIcon />
+          ) : (
+            <EndpointIcon tone={tone} />
+          )}
+        </span>
+      )}
       {node.kind === "endpoint" && node.endpoint?.method && (
         <span className="shrink-0 font-[var(--font-mono)] text-[10px] font-semibold" style={{ color: "var(--text-muted)", width: 30 }}>
           {node.endpoint.method}

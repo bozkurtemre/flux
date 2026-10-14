@@ -48,6 +48,8 @@ export interface Appearance {
 export interface TreeSettings {
   rowHeight: number;
   indent: number;
+  /** The icon before each row: a rack, a box, a grid, a bar. */
+  showIcons: boolean;
   showCounts: boolean;
   showErrorRate: boolean;
   colorByHealth: boolean;
@@ -152,6 +154,7 @@ export const DEFAULTS: Settings = {
   tree: {
     rowHeight: 24,
     indent: 14,
+    showIcons: true,
     showCounts: true,
     showErrorRate: true,
     colorByHealth: true,

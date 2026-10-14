@@ -117,6 +117,9 @@ export function TreePage({ s, patch }: { s: Settings; patch: Patch }) {
         <Row label="Indent per level">
           <Num value={t.indent} onChange={(v) => set("indent", v)} min={8} max={32} suffix="px" />
         </Row>
+        <Row>
+          <Checkbox checked={t.showIcons !== false} onChange={(v) => set("showIcons", v)} label="Show icons" />
+        </Row>
       </Section>
       <Section title="Endpoint rows">
         <Row>
