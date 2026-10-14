@@ -564,8 +564,11 @@
 
       // which provider it was, as Flux named it in the address it asked to come back to
       const provider = { github: "GitHub", google: "Google" }[query.get("via")];
+      // connecting a provider to an account from Settings › Account comes back the same way
+      const linking = query.get("link") === "1";
       if (provider) {
-        $("title").textContent = `Signed in with ${provider}`;
+        $("title").textContent = linking ? `${provider} connected` : `Signed in with ${provider}`;
+        if (linking) $("message").textContent = "Flux is adding it to your account.";
         $("confirmed").textContent = `${provider} confirmed your account`;
         $("said").textContent = `${provider} said`;
       }

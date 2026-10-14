@@ -16,7 +16,20 @@ import { open as openFolder, save as saveDialog } from "@tauri-apps/plugin-dialo
 import { bundleName, makeBundle, mergeBundle, readBundle } from "@/lib/bundle";
 import { IDES } from "@/lib/source";
 import { ConfirmDialog } from "../ContextMenu";
-import { accountOf, deleteCloudData, pushPreferences, signOut, type Account } from "@/lib/cloud";
+import { Avatar } from "../Avatar";
+import {
+  accountOf,
+  deleteCloudData,
+  linkUrl,
+  pushPreferences,
+  signInMethods,
+  signOut,
+  unlink,
+  type Account,
+  type OAuthProvider,
+  type SignInMethod,
+} from "@/lib/cloud";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 export type Patch = (p: (s: Settings) => Settings) => void;
 
@@ -309,10 +322,53 @@ export function AccountPage({ s }: { s: Settings }) {
   const [leaving, setLeaving] = useState(false);
   const notify = useApp((x) => x.notify);
 
-  const load = () => void accountOf().then(setAccount);
+  const [methods, setMethods] = useState<SignInMethod[] | null>(null);
+  const [connecting, setConnecting] = useState<OAuthProvider | null>(null);
+  const load = () => {
+    void accountOf().then(setAccount);
+    void signInMethods()
+      .then(setMethods)
+      .catch(() => setMethods(null));
+  };
   useEffect(() => {
     if (!indexing) load();
   }, [indexing]);
+
+  // the browser comes back through the window, which says whether the provider was connected
+  useEffect(() => {
+    const linked = (e: Event) => {
+      const problem = (e as CustomEvent<string | null>).detail;
+      setConnecting(null);
+      if (problem) notify("error", "Could not connect", problem);
+      else notify("info", "Connected", "You can sign in to this account with it from now on.");
+      load();
+    };
+    window.addEventListener("flux-linked", linked);
+    return () => window.removeEventListener("flux-linked", linked);
+  }, [notify]);
+
+  const connect = async (provider: OAuthProvider) => {
+    setConnecting(provider);
+    try {
+      await openUrl(await linkUrl(provider));
+    } catch (e) {
+      setConnecting(null);
+      notify("error", "Could not connect", failureReason(e));
+    }
+  };
+  const disconnect = async (provider: OAuthProvider) => {
+    try {
+      await unlink(provider);
+      load();
+    } catch (e) {
+      notify("error", "Could not disconnect", failureReason(e));
+    }
+  };
+  const PROVIDERS: { id: OAuthProvider; name: string }[] = [
+    { id: "github", name: "GitHub" },
+    { id: "google", name: "Google" },
+  ];
+  const names = { email: "an email link", github: "GitHub", google: "Google" } as const;
 
   const syncNow = async () => {
     setSyncing(true);
@@ -341,16 +397,11 @@ export function AccountPage({ s }: { s: Settings }) {
     <>
       <Section title="Profile">
         <div className="flex items-center gap-3 py-2">
-          <span
-            className="flex size-11 shrink-0 items-center justify-center rounded-full text-[18px] font-semibold uppercase"
-            style={{ background: "color-mix(in srgb, var(--accent) 22%, transparent)", color: "var(--accent)" }}
-          >
-            {account?.email.charAt(0) || "?"}
-          </span>
+          <Avatar urls={account?.avatars} letter={account?.email.charAt(0) ?? ""} size={44} />
           <span className="min-w-0">
             <span className="block truncate text-[14px] font-medium">{account?.email ?? "Not signed in"}</span>
             <span className="block text-[12px]" style={{ color: "var(--text-muted)" }}>
-              Signed in with an email link
+              {methods?.length ? `Signs in with ${methods.map((m) => names[m.provider] ?? m.provider).join(", ")}` : "Signed in"}
             </span>
           </span>
         </div>
@@ -360,6 +411,38 @@ export function AccountPage({ s }: { s: Settings }) {
         <Row label="Last signed in">
           <span className="text-[13px]">{when(account?.lastSignIn ?? null)}</span>
         </Row>
+      </Section>
+
+      <Section title="Sign-in methods">
+        <Row label="Email link" hint="The link and code sent to your address. Always on: it is how the account was made.">
+          <span className="text-[13px]">{account?.email ?? "—"}</span>
+        </Row>
+        {PROVIDERS.map((p) => {
+          const linked = methods?.find((m) => m.provider === p.id);
+          // the last way in cannot be taken off: Supabase refuses, and so does the button
+          const last = !!linked && (methods?.length ?? 0) <= 1;
+          return (
+            <Row
+              key={p.id}
+              label={p.name}
+              hint={
+                linked
+                  ? `Connected${linked.email ? ` as ${linked.email}` : ""}. Signing in with ${p.name} opens this account.`
+                  : `Connect it to sign in with ${p.name} as well. Your browser opens; Flux comes back by itself.`
+              }
+            >
+              {linked ? (
+                <Button onClick={() => void disconnect(p.id)} disabled={last} tip={last ? "The only way into the account stays" : undefined}>
+                  Disconnect
+                </Button>
+              ) : (
+                <Button onClick={() => void connect(p.id)} disabled={!account || connecting === p.id}>
+                  {connecting === p.id ? "Finish in your browser…" : `Connect ${p.name}…`}
+                </Button>
+              )}
+            </Row>
+          );
+        })}
       </Section>
 
       <Section title="Sync">

@@ -34,12 +34,15 @@ import { Notes } from "./UpdateNotes";
 import { Logo } from "./Logo";
 import { UI } from "./darkUi";
 import { Onboarding } from "./Onboarding";
+import { Avatar } from "./Avatar";
 import { Spinner } from "./icons";
 import {
   AUTH_CALLBACK,
+  avatarsOf,
   finishSignIn,
   oauthSignInUrl,
   inboxOf,
+  isLinkCallback,
   isEmail,
   pullPreferences,
   sendLink,
@@ -134,11 +137,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
       const url = urls?.find((u) => u.startsWith(AUTH_CALLBACK));
       if (!url) return;
       // a link opened while this Mac is already signed in only brings Flux forward: exchanging
-      // it again fails, used or not, and would put the sign-in screen over a working session
+      // it again fails, used or not, and would put the sign-in screen over a working session.
+      // Unless it ends a connecting started in Settings › Account, which is finished in place
+      // and told of there.
       void signedInAs()
         .catch(() => null)
-        .then((who) => {
+        .then(async (who) => {
           if (!who) return finishSignIn(url).then((s) => s && enter(s, true));
+          if (isLinkCallback(url)) {
+            const done = await finishSignIn(url);
+            const problem = done?.status === "signed-in" ? null : done && "error" in done && done.error ? done.error : "The link did not finish.";
+            window.dispatchEvent(new CustomEvent("flux-linked", { detail: problem }));
+          }
           const win = getCurrentWindow();
           return Promise.all([win.unminimize(), win.show(), win.setFocus()]).then(() => {});
         })
@@ -871,6 +881,13 @@ const QUIPS = [
 /** Step three: in. A moment to say so, then the window opens on its own. */
 function Welcome({ email, onIn }: { email: string; onIn: () => void }) {
   const [quip] = useState(() => QUIPS[Math.floor(Math.random() * QUIPS.length)]);
+  // the picture GitHub, Google or Gravatar has for the account, fetched at this sign-in
+  const [avatars, setAvatars] = useState<string[]>();
+  useEffect(() => {
+    void avatarsOf()
+      .then(setAvatars)
+      .catch(() => {});
+  }, []);
   useEffect(() => {
     const go = setTimeout(onIn, 4200);
     return () => clearTimeout(go);
@@ -915,7 +932,8 @@ function Welcome({ email, onIn }: { email: string; onIn: () => void }) {
         {quip}
       </p>
       {email && (
-        <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>
+        <p className="mt-2 flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}>
+          <Avatar urls={avatars} letter={email.charAt(0)} size={22} />
           Signed in as {email}
         </p>
       )}
