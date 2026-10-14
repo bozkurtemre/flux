@@ -6,6 +6,13 @@
   "name": "flux-site",
   "main": "worker.js",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public", "binding": "ASSETS", "html_handling": "auto-trailing-slash", "not_found_handling": "404-page" },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    // these never go through the asset layer, nor its cache: the worker answers them itself
+    "run_worker_first": ["/docs", "/docs/*", "/mintlify-assets/*", "/_mintlify/*", "/download", "/api/*"],
+  },
   "routes": [{ "pattern": "flux.emreb.dev", "custom_domain": true }],
 }
