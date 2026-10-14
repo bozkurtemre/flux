@@ -3,6 +3,14 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.33.0
+
+### Added
+
+- Settings › Account lists the ways into your account, and connects GitHub or Google to it —
+  or disconnects one — from there.
+- Your picture, from GitHub, Google or Gravatar, on the welcome step and in Settings › Account.
+
 ## 0.32.1
 
 ### Fixed
