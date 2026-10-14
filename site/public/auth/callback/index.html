@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
-  Where Google sign-in comes back to. Supabase sends the browser here with the PKCE code, and the
+  Where GitHub and Google sign-in come back to. Supabase sends the browser here with the PKCE code, and the
   page hands it to Flux at flux://auth/callback with the same query, so the browser lands on a page
-  that says what happened rather than staying on Google's consent screen. It keeps nothing: the
+  that says what happened rather than staying on the provider's consent screen. It keeps nothing: the
   code is only good with the verifier on the Mac that asked for it.
 
   The answer is a dialog as the app draws its dialogs, over the background of the sign-in screen's
@@ -412,14 +412,14 @@
             <circle cx="12" cy="12" r="9.5" />
             <path d="m15 9-6 6M9 9l6 6" />
           </svg>
-          <span id="title">Signed in with Google</span>
+          <span id="title">Signed in</span>
         </p>
         <p class="message" id="message">Flux is opening to finish signing you in.</p>
 
         <div class="steps">
           <div class="step" data-state="done">
             <span class="mark"></span>
-            <span class="label">Google confirmed your account</span>
+            <span class="label" id="confirmed">Your account was confirmed</span>
             <span class="value">oauth</span>
           </div>
           <div class="step" data-state="working" id="handoff">
@@ -448,7 +448,7 @@
             <path d="M12 9v4M12 17h.01" />
             <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
           </svg>
-          <span>Google said: <code id="reason"></code></span>
+          <span><span id="said">The provider said</span>: <code id="reason"></code></span>
         </div>
 
         <div class="buttons">
@@ -562,6 +562,14 @@
         );
       }
 
+      // which provider it was, as Flux named it in the address it asked to come back to
+      const provider = { github: "GitHub", google: "Google" }[query.get("via")];
+      if (provider) {
+        $("title").textContent = `Signed in with ${provider}`;
+        $("confirmed").textContent = `${provider} confirmed your account`;
+        $("said").textContent = `${provider} said`;
+      }
+
       $("open").href = target;
       $("close").onclick = () => {
         window.close();
@@ -582,7 +590,7 @@
         document.body.classList.add("idle");
         document.title = "Flux";
         $("title").textContent = "Nothing to finish here";
-        $("message").textContent = "This page completes a Google sign-in started in Flux. Start one from its sign-in screen.";
+        $("message").textContent = "This page completes a GitHub or Google sign-in started in Flux. Start one from its sign-in screen.";
       }
 
       if (code || failed) location.href = target;

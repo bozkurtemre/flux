@@ -14,10 +14,13 @@ export const SUPABASE_KEY = "sb_publishable_hAVUwYmnRfEMYdKhAqzfTA_UYm4qIrn";
 /** Where the sign-in link brings the browser back to: this app, by its own URL scheme. */
 export const AUTH_CALLBACK = "flux://auth/callback";
 /**
- * Where Google sends the browser back to: a page that passes the code on to AUTH_CALLBACK, so the
- * tab ends on a page saying so instead of on Google's consent screen. It lives in `site/`.
+ * Where GitHub and Google send the browser back to: a page that passes the code on to
+ * AUTH_CALLBACK, so the tab ends on a page saying so instead of on the provider's consent screen.
+ * It lives in `site/`, and `via` tells it which provider to name.
  */
-export const GOOGLE_CALLBACK = "https://flux.emreb.dev/auth/callback";
+export const OAUTH_CALLBACK = "https://flux.emreb.dev/auth/callback";
+
+export type OAuthProvider = "github" | "google";
 
 export type AuthState =
   | { status: "checking" }
@@ -107,15 +110,15 @@ export async function sendLink(email: string): Promise<void> {
 }
 
 /**
- * Google's consent page, for the browser. It comes back to the same callback as the email link,
+ * A provider's consent page, for the browser. It comes back to the same callback as the email link,
  * with a code that this machine's PKCE verifier exchanges, so finishing it is `finishSignIn`.
  */
-export async function googleSignInUrl(): Promise<string> {
+export async function oauthSignInUrl(provider: OAuthProvider): Promise<string> {
   const { data, error } = await cloud().auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: GOOGLE_CALLBACK, skipBrowserRedirect: true },
+    provider,
+    options: { redirectTo: `${OAUTH_CALLBACK}?via=${provider}`, skipBrowserRedirect: true },
   });
-  if (error || !data.url) throw new Error(error?.message ?? "Google sign-in is not available.");
+  if (error || !data.url) throw new Error(error?.message ?? "This sign-in is not available.");
   return data.url;
 }
 

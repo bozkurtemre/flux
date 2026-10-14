@@ -38,7 +38,7 @@ import { Spinner } from "./icons";
 import {
   AUTH_CALLBACK,
   finishSignIn,
-  googleSignInUrl,
+  oauthSignInUrl,
   inboxOf,
   isEmail,
   pullPreferences,
@@ -47,6 +47,7 @@ import {
   signInWithCode,
   verify,
   type AuthState,
+  type OAuthProvider,
 } from "@/lib/cloud";
 import { lastEmail, markToured, rememberEmail, toured } from "@/lib/settings";
 import { failureReason } from "@/lib/progress";
@@ -1000,17 +1001,17 @@ function SignIn({
   const [wait, setWait] = useState(0);
   const [pasting, setPasting] = useState(false);
   const [pasted, setPasted] = useState("");
-  // Google is finished in the browser; Flux hears of it through the callback link
-  const [google, setGoogle] = useState<"opening" | "waiting" | null>(null);
+  // GitHub and Google are finished in the browser; Flux hears of it through the callback link
+  const [oauth, setOauth] = useState<{ provider: OAuthProvider; opening: boolean } | null>(null);
 
-  const withGoogle = async () => {
-    setGoogle("opening");
+  const withProvider = async (provider: OAuthProvider) => {
+    setOauth({ provider, opening: true });
     try {
-      await openUrl(await googleSignInUrl());
-      setGoogle("waiting");
+      await openUrl(await oauthSignInUrl(provider));
+      setOauth({ provider, opening: false });
       onError(undefined);
     } catch (e) {
-      setGoogle(null);
+      setOauth(null);
       onError(failureReason(e));
     }
   };
@@ -1228,17 +1229,25 @@ function SignIn({
           or
           <span className="h-px flex-1" style={{ background: "var(--border)" }} />
         </div>
-        <button
-          type="button"
-          onClick={() => void withGoogle()}
-          disabled={google === "opening"}
-          className="flex h-[42px] items-center justify-center gap-2.5 rounded-[8px] text-[13.5px] font-medium hover:bg-[var(--bg-hover)] disabled:opacity-60"
-          style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
-        >
-          {google === "opening" ? <Spinner /> : <GoogleMark />}
-          Continue with Google
-        </button>
-        {google === "waiting" && (
+        {(
+          [
+            ["github", "GitHub", <GitHubMark key="mark" size={16} />],
+            ["google", "Google", <GoogleMark key="mark" />],
+          ] as const
+        ).map(([provider, name, mark]) => (
+          <button
+            key={provider}
+            type="button"
+            onClick={() => void withProvider(provider)}
+            disabled={!!oauth?.opening}
+            className="flex h-[42px] items-center justify-center gap-2.5 rounded-[8px] text-[13.5px] font-medium hover:bg-[var(--bg-hover)] disabled:opacity-60"
+            style={{ background: "var(--bg-raised)", border: "1px solid var(--border)", color: "var(--text)" }}
+          >
+            {oauth?.provider === provider && oauth.opening ? <Spinner /> : mark}
+            Continue with {name}
+          </button>
+        ))}
+        {oauth && !oauth.opening && (
           <p className="flux-in text-center text-[12px]" style={{ color: "var(--text-dim)" }}>
             Finish in your browser — Flux comes back by itself.
           </p>
