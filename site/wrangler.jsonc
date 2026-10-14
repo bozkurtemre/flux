@@ -1,0 +1,8 @@
+// flux.emreb.dev: static pages only, served by Cloudflare from ./public. Today that is the page
+// Google sign-in comes back to. `make site` deploys it and binds the domain.
+{
+  "name": "flux-site",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./public", "html_handling": "auto-trailing-slash", "not_found_handling": "404-page" },
+  "routes": [{ "pattern": "flux.emreb.dev", "custom_domain": true }],
+}

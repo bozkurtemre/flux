@@ -112,6 +112,10 @@ release-local: ## Build and publish this version from this machine, for when Act
 	@scripts/release-local.sh
 
 .PHONY: clean
+.PHONY: site
+site: ## Deploy flux.emreb.dev (site/) to Cloudflare, binding the domain
+	cd site && npx wrangler@4.150.0 deploy
+
 clean: ## Remove build output
 	rm -rf dist
 	cd $(CARGO_DIR) && cargo clean

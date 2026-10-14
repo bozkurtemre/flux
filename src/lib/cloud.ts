@@ -13,6 +13,11 @@ export const SUPABASE_KEY = "sb_publishable_hAVUwYmnRfEMYdKhAqzfTA_UYm4qIrn";
 
 /** Where the sign-in link brings the browser back to: this app, by its own URL scheme. */
 export const AUTH_CALLBACK = "flux://auth/callback";
+/**
+ * Where Google sends the browser back to: a page that passes the code on to AUTH_CALLBACK, so the
+ * tab ends on a page saying so instead of on Google's consent screen. It lives in `site/`.
+ */
+export const GOOGLE_CALLBACK = "https://flux.emreb.dev/auth/callback";
 
 export type AuthState =
   | { status: "checking" }
@@ -99,6 +104,19 @@ export async function verify(): Promise<AuthState> {
 export async function sendLink(email: string): Promise<void> {
   const { error } = await cloud().auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: AUTH_CALLBACK } });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Google's consent page, for the browser. It comes back to the same callback as the email link,
+ * with a code that this machine's PKCE verifier exchanges, so finishing it is `finishSignIn`.
+ */
+export async function googleSignInUrl(): Promise<string> {
+  const { data, error } = await cloud().auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: GOOGLE_CALLBACK, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) throw new Error(error?.message ?? "Google sign-in is not available.");
+  return data.url;
 }
 
 /** Where an address's mail is read on the web, when its domain says; a work domain does not. */
