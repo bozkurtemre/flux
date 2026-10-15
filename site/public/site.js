@@ -1553,7 +1553,7 @@
       ],
     ],
     ["Queries", [["#i-history", "ico", "mono", 'message:"Charge failed"', "payments", "42 rows"]]],
-    ["Actions", [["#i-zap", "ico", "", "Trace “charg” across every stream", "", ""]]],
+    ["Actions", [["#i-zap", "ico", "", "Trace “charge” across every stream", "", ""]]],
   ];
   const srow = ([icon, ico, mono, title, sub, right, sel]) => {
     const r = h("div", sel ? "srow sel" : "srow");
@@ -1574,7 +1574,10 @@
     for (const t of ["All", "Projects", "Streams", "Endpoints", "Queries", "Actions"]) stabs.append(h("span", t === "All" ? "active" : "", t));
     const sinput = h("div", "sinput");
     const typed = h("span", "typed");
-    sinput.append(svgUse("#i-search"), typed, h("span", "caret"));
+    // the caret rides on the last letter: the input's flex gap must not come between them
+    const field = h("span", "");
+    field.append(typed, h("span", "caret"));
+    sinput.append(svgUse("#i-search"), field);
     const res = h("div", "hero-sres");
     const foot = h("div", "hero-sfoot");
     const found = h("span", "right");
@@ -1598,7 +1601,7 @@
   const start = () => {
     const { typed, res, found } = overlay();
     cancels.push(
-      F.typewriter(typed, "charg", {
+      F.typewriter(typed, "charge", {
         cps: 12,
         done: () => {
           let n = 0;
