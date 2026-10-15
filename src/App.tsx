@@ -41,6 +41,12 @@ import { tellShortcut, toldShortcuts } from "@/lib/settings";
 import { clientFor } from "@/store";
 import { useApp } from "@/store";
 
+/** A dialog or a menu is in front and has the keyboard: Settings, About, a confirmation, a window. */
+function modalInFront() {
+  const app = useApp.getState();
+  return app.showSettings || app.showAbout || app.showUpdateNotes || !!document.querySelector("[data-menu],[data-modal]");
+}
+
 /** The tab in front, as the agent sees it through current_view: what it asks, and what is picked. */
 function currentView(): View | null {
   const { tabs, activeTab, settings, nodes } = useApp.getState();
@@ -142,12 +148,7 @@ export default function App() {
       // Escape closes the inspector, but only when it is the frontmost thing open
       if (e.key === "Escape" && !typing) {
         const app = useApp.getState();
-        const covered =
-          app.showSettings ||
-          app.showSearch ||
-          app.showAbout ||
-          app.showUpdateNotes ||
-          document.querySelector("[data-menu],[data-modal],[data-find]");
+        const covered = modalInFront() || app.showSearch || document.querySelector("[data-find]");
         const open = app.tabs.find((t) => t.id === app.activeTab);
         if (!covered && open?.selectedRow != null) app.patchTab(open.id, { selectedRow: undefined });
       }
@@ -161,7 +162,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
-        useApp.getState().setShowSearch(true);
+        if (!modalInFront()) useApp.getState().setShowSearch(true);
       }
       // ⌥F12, the shortcut the modelled IDE gives its terminal
       if (e.altKey && e.key === "F12") {
@@ -181,7 +182,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") {
         e.preventDefault();
-        useApp.getState().setShowSearch(true, "endpoints");
+        if (!modalInFront()) useApp.getState().setShowSearch(true, "endpoints");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -380,7 +381,7 @@ export default function App() {
     return () => window.removeEventListener("contextmenu", onMenu);
   }, []);
 
-  // double-Shift opens Search Everywhere, as in the IDE
+  // double-Shift opens Search Everywhere, as in the IDE, and as there not from behind a dialog
   useEffect(() => {
     let last = 0;
     const onKeyUp = (e: KeyboardEvent) => {
@@ -388,7 +389,7 @@ export default function App() {
       const now = Date.now();
       if (now - last < 400) {
         last = 0;
-        useApp.getState().setShowSearch(true);
+        if (!modalInFront()) useApp.getState().setShowSearch(true);
       } else last = now;
     };
     window.addEventListener("keyup", onKeyUp);
