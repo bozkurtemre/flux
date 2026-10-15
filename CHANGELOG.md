@@ -3,6 +3,29 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.36.0
+
+This update is required: every older copy installs it before it can be used again, so every Mac
+moves to the signed build.
+
+### Added
+
+- Flux is signed with an Apple Developer ID and notarized by Apple. A downloaded Flux opens like
+  any other Mac app; there is no quarantine flag to clear any more.
+- `save_query` for agents: after a deploy, Claude Code can leave a saved query behind in the
+  Queries panel, watched for new matches or for silence, so the change is followed without
+  anyone setting it up by hand.
+
+### Changed
+
+- Connection tokens and API keys are kept in the macOS keychain again, one entry per connection
+  under the name Flux, instead of in `connections.json`. They move there by themselves on the
+  first launch; nothing has to be entered again.
+- A Graylog connection shows Graylog's own mark, and the sign-in screen and the tour draw the
+  app's own icons.
+- macOS may ask once more for access it gave the unsigned build, such as a folder of logs: the
+  signature it remembers has changed.
+
 ## 0.35.0
 
 ### Added
