@@ -1620,10 +1620,12 @@
   };
 
   // ---- S2 run → S3 result
+  // a one-shot flash that fades by itself: nothing is left lit if the chapter's timers are cancelled
   const lit = (n) => {
     if (F.reduced) return;
+    n.classList.remove("hero-lit");
+    void n.offsetWidth;
     n.classList.add("hero-lit");
-    later(300, () => n.classList.remove("hero-lit"));
   };
   const setFoot = (n, total, ms) => {
     gfoot[1].textContent = `${n} rows`;
@@ -1644,7 +1646,6 @@
     closeOverlay();
     restore();
     lit(run);
-    lit(tab);
     lit(code);
     F.island?.set("run:charges", {
       title: "POST /v1/charges",

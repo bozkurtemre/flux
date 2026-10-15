@@ -3377,13 +3377,20 @@ main.doc {
   color: var(--text);
 }
 .scene[data-scene="spike"] .run.hero-lit {
-  background: rgba(95, 173, 101, 0.22);
-}
-.scene[data-scene="spike"] .tab.hero-lit {
-  box-shadow: inset 0 -2px var(--green);
+  animation: hero-lit-run 300ms ease-out 1;
 }
 .scene[data-scene="spike"] .code.hero-lit {
-  background: rgba(95, 173, 101, 0.08);
+  animation: hero-lit-code 300ms ease-out 1;
+}
+@keyframes hero-lit-run {
+  from {
+    background: rgba(95, 173, 101, 0.22);
+  }
+}
+@keyframes hero-lit-code {
+  from {
+    background: rgba(95, 173, 101, 0.08);
+  }
 }
 /* the row's ⋯, at its right edge, shown on hover and focus */
 .scene[data-scene="spike"] .hero-more {
