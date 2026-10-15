@@ -162,7 +162,14 @@ site_url = "flux://auth/callback"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["flux://auth/callback", "https://flux.emreb.dev/auth/callback"]
+# They are matched as globs against the whole URL, query included: GitHub and Google sign-in come
+# back as /auth/callback?via=…, which only the `**` entry admits. Without it Auth falls back to
+# site_url and the browser tab is left hanging on the provider's page.
+additional_redirect_urls = [
+  "flux://auth/callback",
+  "https://flux.emreb.dev/auth/callback",
+  "https://flux.emreb.dev/auth/callback**",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
