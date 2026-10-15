@@ -40,7 +40,8 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
   in a `.flux` directory inside it, the way an IDE keeps `.idea`.
 - **MCP server** — while Flux is open, an agent in your terminal can read the same logs
   through the same connections: connections, streams, searches, counts and endpoints, as
-  JSON. Loopback only, behind a token, read-only.
+  JSON. After a deploy it can leave a saved query behind for Flux to watch. Loopback only,
+  behind a token, and it never writes to a source.
 - **Settings** — ten pages covering appearance, the tree, the console, the grid, the
   terminal, updates, the workspace, connections, the keymap and advanced network options.
 

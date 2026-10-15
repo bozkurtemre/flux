@@ -1782,8 +1782,8 @@
           <h2 id="claude-h" tabindex="-1">Handed to the terminal</h2>
           <p class="body">
             The case lands in the terminal where Claude Code runs, with a brief: find the cause, fix it on a branch with a test that fails without it,
-            open a draft pull request. While it works, the agent reads your logs back through Flux — Flux is an MCP server with seven read-only tools,
-            listening on 127.0.0.1 behind a token it makes for you. One line adds it to Claude Code.
+            open a draft pull request. While it works, the agent reads your logs back through Flux — Flux is an MCP server with eight tools that read
+            your sources and never write to them, listening on 127.0.0.1 behind a token it makes for you. One line adds it to Claude Code.
           </p>
           <ol class="claude-steps">
             <li>
@@ -1854,10 +1854,13 @@
             <button type="button" class="claude-chip" data-tool="open_query" title="opens a query in Flux">
               <svg><use href="#i-mcp" /></svg>open_query
             </button>
+            <button type="button" class="claude-chip" data-tool="save_query" title="saves a query in Flux, watched unless told otherwise">
+              <svg><use href="#i-mcp" /></svg>save_query
+            </button>
           </div>
           <p class="note claude-note">
             The run above is made up; the tools and their arguments are real. The agent's reasoning is the agent's, not Flux's. Loopback only, behind
-            a token, read-only.
+            a token, and nothing is ever written to a source.
           </p>
           <div class="done" aria-live="polite"></div>
           <div class="margin">
@@ -1867,7 +1870,10 @@
             </div>
             <div>
               <h4>From the docs</h4>
-              <p>Everything is read-only, and tokens are never part of an answer. open_query opens the query in Flux in front of you.</p>
+              <p>
+                Tokens are never part of an answer. open_query opens the query in Flux in front of you; save_query leaves one behind, watched, after a
+                deploy.
+              </p>
             </div>
           </div>
         </section>
@@ -2335,7 +2341,7 @@
               Copy command
             </button>
           </div>
-          <p class="muted">Read-only: connections, streams, searches and endpoints. Tokens are never part of an answer.</p>
+          <p class="muted">Reads connections, streams, searches and endpoints, and saves queries to watch. Never writes to a source.</p>
           <p class="muted page">This is the page's own status bar; in Flux the same switch starts the server.</p>
         </div>
       </div>

@@ -408,7 +408,7 @@ function McpPopover({ onClose }: { onClose: () => void }) {
       </div>
 
       <p className="mt-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
-        Read-only: connections, streams, searches and endpoints. Tokens are never part of an answer.
+        Reads connections, streams, searches and endpoints, and saves queries to watch. Never writes to a source; tokens are never part of an answer.
       </p>
     </div>
   );

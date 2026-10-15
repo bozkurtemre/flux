@@ -310,6 +310,8 @@ interface State {
   /** Watch a saved query: new matches are reported while the window is open. */
   toggleWatch: (id: string) => void;
   /** How often this one looks, in seconds; undefined hands it back to the setting. */
+  /** Keep a saved query whole, new or replacing the one with its id: what an agent's save_query lands in. */
+  keepSavedQuery: (entry: SavedQuery) => void;
   setWatchInterval: (id: string, seconds?: number) => void;
   /** How loudly a watched query reports: info, warning or error. */
   setWatchLevel: (id: string, level: NoticeKind) => void;
@@ -1152,6 +1154,15 @@ export const useApp = create<State>((set, get) => ({
     set({ savedQueries: watched });
     // a watch starts now: what happened before it was turned on is not news
     watching.set(id, Date.now());
+    void saveQueries(get().savedQueries, get().workspaceFolder);
+  },
+
+  keepSavedQuery: (entry) => {
+    const { [entry.id]: _was, ...rest } = get().watchLog;
+    void _was;
+    set({ savedQueries: upsert(get().savedQueries, entry), rightTool: "queries", watchLog: rest });
+    // a watch starts now: what happened before it was set is not news
+    if (entry.watch) watching.set(entry.id, Date.now());
     void saveQueries(get().savedQueries, get().workspaceFolder);
   },
 

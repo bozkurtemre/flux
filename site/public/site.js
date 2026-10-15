@@ -3437,6 +3437,7 @@
     list_endpoints: "which endpoints are failing?",
     current_view: "what is open in Flux?",
     open_query: "open level:ERROR on payments",
+    save_query: "watch charge errors on payments after the deploy",
   };
 
   // ---- the terminal prints text nodes, never HTML ----
@@ -3589,6 +3590,13 @@
   };
   const route = (text) => {
     const q = text.toLowerCase();
+    if (/\bwatch\b|\bsave\b|\bdeploy/.test(q)) {
+      return [
+        "save_query",
+        { connection: CONN, streams: PAYMENTS, query: "level:ERROR AND route:/v1/charges", name: "Charge errors after #418" },
+        "saved · watched for new matches",
+      ];
+    }
     if (/\bcount\b|how many/.test(q)) return ["count_logs", { connection: CONN, streams: PAYMENTS, query: "upstream timeout", minutes: 30 }, "41"];
     if (/\bstreams?\b/.test(q)) return ["list_streams", { connection: CONN }, "gateway · orders · payments · wallet"];
     if (/\bendpoints?\b|\broutes?\b/.test(q)) {

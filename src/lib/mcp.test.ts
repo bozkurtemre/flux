@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clientConfig, findConnection, runTool, TOOLS, type ToolContext } from "./mcp";
+import type { SavedQuery } from "./queries";
 import type { DataSource } from "./datasource";
 import type { Connection } from "./settings";
 
@@ -28,6 +29,7 @@ describe("the tools an agent is offered", () => {
       "list_endpoints",
       "current_view",
       "open_query",
+      "save_query",
     ]);
     for (const tool of TOOLS) {
       expect(tool.description.length).toBeGreaterThan(20);
@@ -149,5 +151,92 @@ describe("the window, from the agent's side", () => {
     const result = await runTool("open_query", { connection: "nope", stream: "s1", query: "*" }, { ...context(), open: () => (opened = true) });
     expect(result.isError).toBe(true);
     expect(opened).toBe(false);
+  });
+});
+
+describe("saving a query to watch", () => {
+  const streams = async () => [
+    { id: "s-pay", title: "payments", description: "", disabled: false },
+    { id: "s-gw", title: "gateway", description: "", disabled: false },
+  ];
+  const saving = (savedQueries: SavedQuery[] = []) => {
+    const kept: SavedQuery[] = [];
+    const ctx: ToolContext = { ...context({ streams }), savedQueries, save: (e) => kept.push(e) };
+    return { ctx, kept };
+  };
+
+  it("keeps the query watched, on the streams it names, by their titles", async () => {
+    const { ctx, kept } = saving();
+    const result = await runTool("save_query", { connection: "prod", streams: ["s-pay"], query: "level:ERROR AND route:/v1/charges" }, ctx);
+    expect(result.isError).toBeUndefined();
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toMatchObject({
+      name: "level:ERROR AND route:/v1/charges",
+      connId: "11111111-1111-1111-1111-111111111111",
+      streamIds: ["s-pay"],
+      streamLabel: "payments",
+      rangeSeconds: 3600,
+      watch: true,
+    });
+    expect(kept[0].watchSeconds).toBeUndefined();
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ saved: "level:ERROR AND route:/v1/charges", updated: false });
+  });
+
+  it("names it, watches it for silence and keeps the interval inside its bounds", async () => {
+    const { ctx, kept } = saving();
+    await runTool(
+      "save_query",
+      { connection: "prod", streams: ["s-gw"], query: "route:/v1/webhook", name: "  Webhook  ", every: 2, quiet_below: 1.7 },
+      ctx,
+    );
+    expect(kept[0]).toMatchObject({ name: "Webhook", watchSeconds: 15, quietBelow: 1 });
+    await runTool("save_query", { connection: "prod", streams: ["s-gw"], query: "x", every: 86_400 }, ctx);
+    expect(kept[1].watchSeconds).toBe(3600);
+  });
+
+  it("can save without watching", async () => {
+    const { ctx, kept } = saving();
+    await runTool("save_query", { connection: "prod", streams: ["s-pay"], query: "level:WARN", watch: false }, ctx);
+    expect(kept[0].watch).toBe(false);
+  });
+
+  it("updates the same query on the same streams instead of adding a second", async () => {
+    const before: SavedQuery = {
+      id: "q-1",
+      name: "Charge errors",
+      query: "level:ERROR",
+      connId: "11111111-1111-1111-1111-111111111111",
+      streamIds: ["s-pay", "s-gw"],
+      streamLabel: "payments, gateway",
+      rangeSeconds: 3600,
+      savedAt: 1,
+      watch: false,
+      level: "error",
+    };
+    const { ctx, kept } = saving([before]);
+    const result = await runTool("save_query", { connection: "prod", streams: ["s-gw", "s-pay"], query: " level:ERROR " }, ctx);
+    expect(kept[0]).toMatchObject({ id: "q-1", name: "Charge errors", watch: true, level: "error" });
+    expect(JSON.parse(result.content[0].text).updated).toBe(true);
+  });
+
+  it("refuses what cannot be watched, before keeping anything", async () => {
+    const { ctx, kept } = saving();
+    const unknown = await runTool("save_query", { connection: "prod", streams: ["s-nope"], query: "level:ERROR" }, ctx);
+    expect(unknown.isError).toBe(true);
+    expect(unknown.content[0].text).toContain("s-nope");
+    const fixed = await runTool(
+      "save_query",
+      { connection: "prod", streams: ["s-pay"], query: "level:ERROR | between 2026-10-14T10:00:00Z and 2026-10-14T11:00:00Z" },
+      ctx,
+    );
+    expect(fixed.isError).toBe(true);
+    const empty = await runTool("save_query", { connection: "prod", streams: [], query: "level:ERROR" }, ctx);
+    expect(empty.isError).toBe(true);
+    expect(kept).toHaveLength(0);
+  });
+
+  it("says so when this Flux cannot save", async () => {
+    const result = await runTool("save_query", { connection: "prod", streams: ["s-pay"], query: "level:ERROR" }, context({ streams }));
+    expect(result.isError).toBe(true);
   });
 });

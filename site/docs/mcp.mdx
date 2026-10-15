@@ -33,5 +33,17 @@ While Flux is open it can run an MCP server, so an agent in your terminal — Cl
 | `list_endpoints`   | a stream's endpoints with request counts and error rates |
 | `current_view`     | what is open in Flux right now                           |
 | `open_query`       | opens a query in Flux                                    |
+| `save_query`       | saves a query in Flux, watched unless told otherwise     |
 
-Everything is read-only, and tokens are never part of an answer.
+Every tool reads; only `save_query` writes, and only to Flux's own saved queries, never to a source. Tokens are never part of an answer.
+
+## Leave a watch behind
+
+After a deploy, ask the agent to keep an eye on what the change could break. It calls `save_query` with the connection, the streams and a Lucene query, and the query appears in the **Queries** tool window, watched: while Flux is open it is asked every round and new matches are announced on the island and as a notification, exactly as a watch you set yourself.
+
+```sh
+› I just deployed the retry change to payments. Watch for charge errors for me.
+● flux · save_query(connection: "acme", streams: ["payments"], query: "level:ERROR AND route:/v1/charges", name: "Charge errors after #418")
+```
+
+`every` sets how often it asks, between 15 seconds and an hour; `quiet_below` turns it into a silence watch, for a cron or a webhook that should keep arriving; `watch: false` saves it without watching. Saving the same query on the same streams again updates it rather than adding a second.

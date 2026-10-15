@@ -312,6 +312,8 @@ export default function App() {
         defaults: { minutes: 60, limit: current.results.pageSize },
         view: currentView,
         open: (o) => useApp.getState().openQuery(o),
+        savedQueries: useApp.getState().savedQueries,
+        save: (entry) => useApp.getState().keepSavedQuery(entry),
       }).catch((e: unknown) => ({
         content: [{ type: "text" as const, text: e instanceof Error ? e.message : String(e) }],
         isError: true,
