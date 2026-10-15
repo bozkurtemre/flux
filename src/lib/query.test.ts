@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldClause, parseQuery, withBetween, withClause, withGroupBy, withoutBetween, withSearch } from "./query";
+import { fieldClause, parseQuery, quotedValue, valueAt, withBetween, withClause, withGroupBy, withoutBetween, withSearch } from "./query";
 
 describe("reading the console line", () => {
   it("takes the whole line as the query when nothing is grouped", () => {
@@ -152,5 +152,35 @@ describe("replacing the query of a line", () => {
   it("keeps the clauses after it, and reads everything as an empty query, which needs no leading |", () => {
     expect(withSearch("a:1 AND b:2 | group by route", "b:2")).toBe("b:2 | group by route");
     expect(withSearch("a:1 | patterns", "*")).toBe("patterns");
+  });
+});
+
+describe("where a value is being typed", () => {
+  it("is inside the quotes after a field, from just after the quote", () => {
+    expect(valueAt('route:"/use')).toEqual({ field: "route", from: 7, quoted: true, typed: "/use" });
+    expect(valueAt('level:ERROR AND route:"')).toEqual({ field: "route", from: 23, quoted: true, typed: "" });
+    expect(valueAt('message:"said \\"no')).toMatchObject({ field: "message", quoted: true, typed: 'said \\"no' });
+  });
+
+  it("is right after the colon when there are no quotes, and under a negation too", () => {
+    expect(valueAt("os:we")).toEqual({ field: "os", from: 3, quoted: false, typed: "we" });
+    expect(valueAt("response:")).toEqual({ field: "response", from: 9, quoted: false, typed: "" });
+    expect(valueAt("NOT host:pay")).toMatchObject({ field: "host", typed: "pay" });
+    expect(valueAt("-host:pay")).toMatchObject({ field: "host", typed: "pay" });
+    expect(valueAt("(context.os:i")).toMatchObject({ field: "context.os", typed: "i" });
+  });
+
+  it("is nowhere while a field name, a keyword, a range or a clause is being typed", () => {
+    expect(valueAt("rou")).toBeNull();
+    expect(valueAt('route:"/user" AN')).toBeNull();
+    expect(valueAt('route:"/user" ')).toBeNull();
+    expect(valueAt("took_ms:[100 TO")).toBeNull();
+    expect(valueAt("level:ERROR | between 2026-10-15T05:52")).toBeNull();
+    expect(valueAt("level:ERROR | group by ro")).toBeNull();
+  });
+
+  it("is written back in quotes, escaped", () => {
+    expect(quotedValue("/user/scenario/package")).toBe('"/user/scenario/package"');
+    expect(quotedValue('say "hi"\\')).toBe('"say \\"hi\\"\\\\"');
   });
 });

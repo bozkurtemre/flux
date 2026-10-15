@@ -8,20 +8,21 @@ import { Prec } from "@codemirror/state";
 import { StreamLanguage } from "@codemirror/language";
 // Graylog speaks Lucene; the solr mode covers the same field:value, range and boolean syntax
 import { solr } from "@codemirror/legacy-modes/mode/solr";
-import { autocompletion, type CompletionContext } from "@codemirror/autocomplete";
+import { autocompletion } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { CalendarClock, Download, Link2, Play, Radio, RotateCw, Save } from "lucide-react";
-import { QUICK_RANGES } from "@/lib/datasource";
+import { QUICK_RANGES, absolute } from "@/lib/datasource";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
+import { consoleCompletion } from "@/lib/complete";
 import { linkFor } from "@/lib/link";
 import { RangePicker, openingRange } from "./RangePicker";
 import { ClaudeIcon } from "./icons";
 import { sendToClaude } from "./TerminalPanel";
 import { failureReason } from "@/lib/progress";
 import { unsaved } from "@/lib/queries";
-import { useApp, type Tab } from "@/store";
+import { clientFor, useApp, type Tab } from "@/store";
 
 /** The calendar behind the toolbar's date button, and what it writes. */
 function CustomRange({ tab }: { tab: Tab }) {
@@ -139,6 +140,41 @@ const clauses = ViewPlugin.fromClass(
   { decorations: (v) => v.decorations },
 );
 
+/** How long a field's values are reused before the source is asked again, and how many it gives. */
+const VALUES_FOR_MS = 60_000;
+const VALUES = 200;
+const valueCache = new Map<string, { at: number; values: Promise<{ value: string; count: number }[]> }>();
+
+/**
+ * A field's values as the source counts them over the tab's streams and window: what a search on
+ * that field can match. A field the source cannot group by (a long text field, unindexed) has
+ * none, and the console then offers nothing rather than field names where a value goes.
+ */
+function fieldValues(tabId: string, field: string): Promise<{ value: string; count: number }[]> {
+  const { tabs, settings } = useApp.getState();
+  const tab = tabs.find((t) => t.id === tabId);
+  const conn = settings.connections.find((c) => c.id === tab?.connId);
+  if (!tab || !conn) return Promise.resolve([]);
+  const between = parseQuery(tab.query).between;
+  const key = [conn.id, tab.streamIds.join(","), field, between ? `${between.from}-${between.to}` : tab.rangeSeconds].join("|");
+  const cached = valueCache.get(key);
+  if (cached && Date.now() - cached.at < VALUES_FOR_MS) return cached.values;
+  const to = new Date();
+  const values = clientFor(conn)
+    .aggregate({
+      query: "*",
+      streams: tab.streamIds,
+      timerange: between ? absolute(new Date(between.from), new Date(between.to)) : absolute(new Date(to.getTime() - tab.rangeSeconds * 1000), to),
+      groupBy: [{ field, limit: VALUES }],
+      metrics: [{ function: "count" }],
+      signal: AbortSignal.timeout(10_000),
+    })
+    .then((r) => r.rows.map((row) => ({ value: String(row[0] ?? ""), count: Number(row[row.length - 1]) || 0 })).filter((v) => v.value !== ""))
+    .catch(() => []);
+  valueCache.set(key, { at: Date.now(), values });
+  return values;
+}
+
 export function QueryConsole({ tab }: { tab: Tab }) {
   const { patchTab, runQuery, settings, saveActiveQuery, savedQueries, toggleFollow } = useApp();
   const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
@@ -149,20 +185,7 @@ export function QueryConsole({ tab }: { tab: Tab }) {
 
   const extensions = useMemo(() => {
     const fieldNames = tab.fields.map((f) => f.name);
-    const complete = (ctx: CompletionContext) => {
-      const word = ctx.matchBefore(/[\w.]*/);
-      if (!word || (word.from === word.to && !ctx.explicit)) return null;
-      return {
-        from: word.from,
-        options: [
-          ...fieldNames.map((name) => ({ label: name, type: "property", apply: `${name}:` })),
-          ...["AND", "OR", "NOT", "TO", "_exists_"].map((label) => ({ label, type: "keyword" })),
-          { label: "group by", type: "keyword", apply: "group by " },
-          { label: "between", type: "keyword", apply: "between " },
-          { label: "patterns", type: "keyword", apply: "patterns" },
-        ],
-      };
-    };
+    const complete = consoleCompletion(fieldNames, (field) => fieldValues(tab.id, field));
     return [
       StreamLanguage.define(solr),
       syntaxHighlighting(highlight),

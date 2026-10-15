@@ -70,8 +70,27 @@ export function parseQuery(text: string): ParsedQuery {
 
 /** A Lucene clause for one field of one row. Quoted, because a log value is not a term. */
 export function fieldClause(field: string, value: unknown, negate = false): string {
-  const quoted = `"${String(value ?? "").replace(/(["\\])/g, "\\$1")}"`;
-  return `${negate ? "NOT " : ""}${field}:${quoted}`;
+  return `${negate ? "NOT " : ""}${field}:${quotedValue(value)}`;
+}
+
+/** A field's value as the console writes it: in quotes, with the quote and the backslash escaped. */
+export function quotedValue(value: unknown): string {
+  return `"${String(value ?? "").replace(/(["\\])/g, "\\$1")}"`;
+}
+
+/**
+ * The value being typed at the end of `before`, the line up to the cursor: the field it is a
+ * value of, where it starts (after the quote when it has one) and what has been typed of it.
+ * Null where something other than a value is being typed: a field name, a keyword, a range, or
+ * anything after the first pipe, where the clauses are and `between`'s times have colons too.
+ */
+export function valueAt(before: string): { field: string; from: number; quoted: boolean; typed: string } | null {
+  if (before.includes("|")) return null;
+  const quoted = /(?:^|[\s(!+-])([\w.@][\w.@-]*):"((?:[^"\\]|\\.)*)$/.exec(before);
+  if (quoted) return { field: quoted[1], from: before.length - quoted[2].length, quoted: true, typed: quoted[2] };
+  const bare = /(?:^|[\s(!+-])([\w.@][\w.@-]*):([^\s"()[\]{}]*)$/.exec(before);
+  if (bare) return { field: bare[1], from: before.length - bare[2].length, quoted: false, typed: bare[2] };
+  return null;
 }
 
 /** The clauses of a parsed line, written back in the order they are read in. */

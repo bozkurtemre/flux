@@ -217,6 +217,17 @@ button {
   background: var(--accent) !important;
   color: var(--accent-text) !important;
 }
+/* how often a suggested value occurs, quietly at the end of its row */
+.cm-tooltip-autocomplete .cm-completionDetail {
+  float: right;
+  margin-left: 2em;
+  font-style: normal;
+  color: var(--text-muted);
+}
+.cm-tooltip-autocomplete ul li[aria-selected] .cm-completionDetail {
+  color: inherit;
+  opacity: 0.8;
+}
 
 /* JetBrains splitters */
 /* The gap between islands is the splitter; it only tints while actually dragging. */

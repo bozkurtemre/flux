@@ -30,7 +30,8 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 - **Explorer tree** — `Connection › Project › Stream › Endpoint`, loaded lazily.
   Endpoint rows carry their request count and error rate.
 - **Query console** — Lucene with syntax colouring and completion over the stream's
-  own field names. `⌘⏎` runs it.
+  own field names, and after `field:` over the values that field holds, most frequent first.
+  `⌘⏎` runs it.
 - **Result grid** — virtualised, sortable, resizable columns, a row-number gutter,
   and severity colouring on level and status cells.
 - **Value inspector** — the selected row as syntax-coloured JSON, with strings that
