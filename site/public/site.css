@@ -2676,11 +2676,16 @@ main.doc {
   animation: pulse 2s ease-in-out infinite;
   transition:
     width var(--d-morph) var(--spring),
-    height var(--d-morph) var(--spring);
+    margin var(--d-morph) var(--spring),
+    opacity 160ms ease;
 }
-.top-island[data-state="near"] .island-dot {
-  width: 9px;
-  height: 9px;
+/* grown or open, the island says it in words: the dot is for the closed pill only. It folds to nothing,
+   gap included, so the readout slides to the centre instead of jumping there. */
+.top-island:is([data-state="near"], [data-state="open"]) .island-dot {
+  width: 0;
+  margin-right: -10px;
+  opacity: 0;
+  animation: none;
 }
 .island-readout {
   display: flex;
