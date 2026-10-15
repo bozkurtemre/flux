@@ -2679,9 +2679,14 @@ main.doc {
     margin var(--d-morph) var(--spring),
     opacity 160ms ease;
 }
-/* grown or open, the island says it in words: the dot is for the closed pill only. It folds to nothing,
-   gap included, so the readout slides to the centre instead of jumping there. */
-.top-island:is([data-state="near"], [data-state="open"]) .island-dot {
+.top-island[data-state="near"] .island-dot {
+  width: 9px;
+  height: 9px;
+}
+/* opened, the island says it in words: the dot stays on the pill, grown under the pointer too, and
+   leaves only when the card opens. It folds to nothing, gap included, so the readout slides to the
+   centre instead of jumping there. */
+.top-island[data-state="open"] .island-dot {
   width: 0;
   margin-right: -10px;
   opacity: 0;
