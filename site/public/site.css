@@ -2355,8 +2355,8 @@ kbd {
 }
 /* the reading lane: a feathered dark band behind the chapters' column, over the sky and under the
    words, so a stream line passing under a sentence never runs through it. It follows the scroll
-   (site.js writes --lane, 0 to 1): nothing over the hero at the top, rising as the hero leaves,
-   falling as the last chapter does. A gradient, never a blur, so it costs nothing to composite. */
+   (site.js writes --lane, 0 to 1): nothing at the very top, over the hero too from the first
+   scroll, falling as the last chapter leaves. A gradient, never a blur, so it costs nothing to composite. */
 .story::before {
   --story-w: min(1280px, 100vw - 48px);
   --col-end: calc((100vw - var(--story-w)) / 2 + (var(--story-w) - 48px) * 5 / 12);

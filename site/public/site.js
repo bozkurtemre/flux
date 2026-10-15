@@ -1,17 +1,16 @@
-// the reading lane (site.css): how far into the chapters the page is, as --lane from 0 to 1. It rises
-// while the hero's bottom climbs from 85% to 40% of the window, and falls while the story's bottom does
-// the same, so it comes in with the first chapter and goes out with the last, as slowly as the scroll.
+// the reading lane (site.css): how far into the chapters the page is, as --lane from 0 to 1. Nothing at the
+// top of the page; it rises over the first 140px of scroll, so the hero is covered as soon as the reader
+// moves, and falls while the story's bottom climbs from 85% to 40% of the window, going out with the last.
 (() => {
   const root = document.documentElement;
-  const hero = document.getElementById("hero");
   const story = document.getElementById("story");
-  if (!hero || !story) return;
+  if (!story) return;
   const ramp = (edge, h) => Math.min(1, Math.max(0, (h * 0.85 - edge) / (h * 0.45)));
   let queued = false;
   const update = () => {
     queued = false;
     const h = innerHeight;
-    const lane = ramp(hero.getBoundingClientRect().bottom, h) * (1 - ramp(story.getBoundingClientRect().bottom, h));
+    const lane = Math.min(1, scrollY / 140) * (1 - ramp(story.getBoundingClientRect().bottom, h));
     root.style.setProperty("--lane", lane.toFixed(3));
   };
   const queue = () => {
