@@ -148,8 +148,18 @@
           next = entry;
         }
       }
-      // a gap between two chapters (or the stage passing through the band on a phone) keeps the last one:
-      // only another chapter or the footer takes over
+      // a gap between two chapters (or the stage passing through the band on a phone): the chapter the
+      // reader has scrolled past last is still the current one, also after a jump over several of them
+      if (!next) {
+        let top = -Infinity;
+        for (const entry of chapters.values()) {
+          const at = entry.el.getBoundingClientRect().top;
+          if (at < innerHeight / 2 && at > top) {
+            top = at;
+            next = entry;
+          }
+        }
+      }
       if (next) change(next);
     },
     { rootMargin: "-45% 0px -45% 0px", threshold: 0 },
@@ -3976,6 +3986,15 @@
   });
   flux.chapters.register(el, { clock: "10:58", label: "Keep an eye on it", scene: "watch", enter, leave });
   render();
+})();
+
+// ==== line ====
+// the interstitial plays once, when it is first seen: Flux first, then the sources beside it, then the sentence
+(() => {
+  const el = document.getElementById("line");
+  if (!el || !window.flux || flux.reduced) return;
+  el.classList.add("pending");
+  flux.reveal(el, () => requestAnimationFrame(() => el.classList.remove("pending")));
 })();
 
 // ==== ran ====
