@@ -11,6 +11,12 @@
 #   flux.key       the updater's private key, as `tauri signer generate` printed it
 #   password.txt   its password
 #   r2.env         R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and BUCKET
+#   notary.env     APPLE_API_ISSUER and APPLE_API_KEY: an App Store Connect API key, to notarize
+#   AuthKey_<APPLE_API_KEY>.p8   that key's private half, as App Store Connect gave it
+#
+# and a "Developer ID Application" certificate in the login keychain. A release is signed with it
+# and notarized, the app and the disk image both, or it is not released: nothing tells anyone to
+# clear the quarantine flag any more, so an unsigned build would be one nobody can open.
 #
 # It releases the commit it is run on, which has to be the one the version was tagged at, so a
 # release can never be built from something other than what its tag names. Running it again for
@@ -34,7 +40,7 @@ say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
   echo "HEAD is not $tag; run 'make bump-*' first, or check out the commit it tagged" >&2
   exit 1
 }
-for f in flux.key password.txt r2.env; do
+for f in flux.key password.txt r2.env notary.env; do
   [ -s "$KEYS/$f" ] || { echo "missing $KEYS/$f (set KEYS= to the folder that holds the keys)" >&2; exit 1; }
 done
 # shellcheck disable=SC1091
@@ -42,6 +48,17 @@ source "$KEYS/r2.env"
 for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY BUCKET; do
   [ -n "${!v:-}" ] || { echo "$KEYS/r2.env does not set $v" >&2; exit 1; }
 done
+# shellcheck disable=SC1091
+source "$KEYS/notary.env"
+for v in APPLE_API_ISSUER APPLE_API_KEY; do
+  [ -n "${!v:-}" ] || { echo "$KEYS/notary.env does not set $v" >&2; exit 1; }
+done
+APPLE_API_KEY_PATH="$KEYS/AuthKey_$APPLE_API_KEY.p8"
+[ -s "$APPLE_API_KEY_PATH" ] || { echo "missing $APPLE_API_KEY_PATH, the API key's .p8" >&2; exit 1; }
+identity="$(security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application:/ {print $2; exit}')"
+[ -n "$identity" ] || { echo 'no "Developer ID Application" certificate in the keychain' >&2; exit 1; }
+export APPLE_API_ISSUER APPLE_API_KEY APPLE_API_KEY_PATH
+notary() { xcrun notarytool "$@" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY" --issuer "$APPLE_API_ISSUER"; }
 
 say "releasing $tag from this machine"
 
@@ -55,16 +72,37 @@ say "quality gate"
 make --no-print-directory check
 
 # --------------------------------------------------------------------------------- the build
-say "building (universal, updater signed)"
-# unsigned for Apple, as the workflow is without a certificate: the Apple Development identity on
-# this machine would sign it with something no other machine can verify
-TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEYS/flux.key")" \
+say "building (universal, signed with $identity, notarized, updater signed)"
+# with the identity and the API key in the environment, Tauri signs the app with the hardened
+# runtime, has Apple notarize it and staples the ticket to it before it packs the update
+APPLE_SIGNING_IDENTITY="$identity" \
+  TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEYS/flux.key")" \
   TAURI_SIGNING_PRIVATE_KEY_PASSWORD="$(cat "$KEYS/password.txt")" \
   pnpm tauri build --target universal-apple-darwin --bundles app,dmg \
   --config '{"bundle":{"createUpdaterArtifacts":true}}'
 
+app="$out/macos/Flux.app"
 zip="$out/macos/Flux-$tag-macos.zip"
 dmg="$out/dmg/Flux_${version}_universal.dmg"
+
+# the disk image is what a browser downloads and quarantines: it is signed, notarized and stapled
+# on its own, so it opens without a word too
+say "notarizing the disk image"
+codesign --force --sign "$identity" --timestamp "$dmg"
+notary submit "$dmg" --wait
+xcrun stapler staple "$dmg"
+
+# and nothing goes out that Gatekeeper would refuse
+say "checking what Gatekeeper will see"
+codesign --verify --deep --strict "$app"
+spctl --assess --type execute "$app"
+xcrun stapler validate "$app"
+xcrun stapler validate "$dmg"
+spctl --assess --type open --context context:primary-signature "$dmg"
+checked="$(mktemp -d)"
+tar -xzf "$out/macos/Flux.app.tar.gz" -C "$checked"
+xcrun stapler validate "$checked/Flux.app"
+rm -rf "$checked"
 rm -f "$out"/macos/Flux-v*-macos.zip
 (cd "$out/macos" && ditto -c -k --keepParent Flux.app "Flux-$tag-macos.zip")
 
