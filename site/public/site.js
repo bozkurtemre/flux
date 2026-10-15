@@ -1,3 +1,29 @@
+// the reading lane (site.css): how far into the chapters the page is, as --lane from 0 to 1. It rises
+// while the hero's bottom climbs from 85% to 40% of the window, and falls while the story's bottom does
+// the same, so it comes in with the first chapter and goes out with the last, as slowly as the scroll.
+(() => {
+  const root = document.documentElement;
+  const hero = document.getElementById("hero");
+  const story = document.getElementById("story");
+  if (!hero || !story) return;
+  const ramp = (edge, h) => Math.min(1, Math.max(0, (h * 0.85 - edge) / (h * 0.45)));
+  let queued = false;
+  const update = () => {
+    queued = false;
+    const h = innerHeight;
+    const lane = ramp(hero.getBoundingClientRect().bottom, h) * (1 - ramp(story.getBoundingClientRect().bottom, h));
+    root.style.setProperty("--lane", lane.toFixed(3));
+  };
+  const queue = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(update);
+  };
+  addEventListener("scroll", queue, { passive: true });
+  addEventListener("resize", queue);
+  update();
+})();
+
 // the sky's streams: the sign-in panel's waves, more of them and taller, across the whole sky
 (() => {
   const NS = "http://www.w3.org/2000/svg";
