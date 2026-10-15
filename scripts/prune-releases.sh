@@ -1,13 +1,14 @@
 #!/bin/sh
 # Takes the installers off every GitHub release but the newest N, so that an old version cannot
-# be downloaded and installed from there — the same rule the update bucket keeps (scripts/r2.mjs
-# prune). The releases themselves stay, with their notes; only their files go. Run after a
-# release is published, by the release workflow and by scripts/release-local.sh alike.
+# be downloaded and installed from there. The releases call it with 1: the update bucket keeps the
+# version before too (scripts/r2.mjs prune), for pointing the manifest back, which GitHub has no
+# part in. The releases themselves stay, with their notes; only their files go. Run after a release
+# is published, by the release workflow and by scripts/release-local.sh alike.
 #
-#   scripts/prune-releases.sh [keep-newest=2] [--dry-run]
+#   scripts/prune-releases.sh [keep-newest=1] [--dry-run]
 set -eu
 
-keep=2
+keep=1
 dry=
 for arg in "$@"; do
   case "$arg" in

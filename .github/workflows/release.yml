@@ -145,4 +145,4 @@ jobs:
       - name: Prune the installers of older releases
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/prune-releases.sh 2
+        run: scripts/prune-releases.sh 1
