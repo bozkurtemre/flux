@@ -15,7 +15,7 @@
     "groups": [
       { "group": "Get started", "pages": ["introduction", "install", "connections"] },
       { "group": "Working with logs", "pages": ["search", "explain", "trace", "watch", "monitor"] },
-      { "group": "Agents", "pages": ["mcp"] },
+      { "group": "Agents", "pages": ["claude-code"] },
       { "group": "Reference", "pages": ["shortcuts", "data"] }
     ]
   },

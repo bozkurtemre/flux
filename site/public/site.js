@@ -1261,7 +1261,7 @@
     ["trace", "Trace an ID", "One request id, every service, in order."],
     ["watch", "Watch", "Be told when new matches arrive, or when they stop."],
     ["monitor", "Monitor", "A live dashboard of a connection's logs."],
-    ["mcp", "Claude Code and MCP", "Let an agent read your logs with Flux's own tools."],
+    ["claude-code", "Claude Code and MCP", "Let an agent read your logs with Flux's own tools."],
     ["shortcuts", "Keyboard shortcuts", "The keys, as an IDE has them."],
     ["data", "Where your data lives", "What stays on your Mac, what syncs, and what reaches whom."],
   ].map(([slug, title, sub]) => ({ title, sub, href: `/docs/${slug}` }));
