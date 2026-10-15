@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Flux — the modern log explorer for macOS</title>
+    <title>Flux — an IDE for logs on your Mac</title>
     <meta
       name="description"
-      content="Flux is a macOS log explorer for Graylog, Elasticsearch and local files: streams and endpoints as objects, an IDE's console and grid, spikes explained, ids traced across services, and an MCP server for Claude Code."
+      content="Flux is a macOS log explorer for Graylog, Elasticsearch through Kibana and local files: streams and endpoints as a tree, a console and grid per tab, spikes explained, ids traced across services, watches on the island, and an MCP server for Claude Code."
     />
     <meta property="og:title" content="Flux — your logs, read like code." />
     <meta
       property="og:description"
-      content="A macOS log explorer for Graylog, Elasticsearch and local files. Explain a spike, trace an id across services, watch a query, hand it to Claude Code."
+      content="An IDE for logs on your Mac. Explain a spike, trace an id across services, watch a query, hand the case to Claude Code. Nothing you read leaves your Mac."
     />
     <meta property="og:url" content="https://flux.emreb.dev" />
     <meta property="og:type" content="website" />
@@ -44,7 +44,6 @@
       </svg>
       <div class="fade"></div>
     </div>
-
     <!-- the icons: the app's own (icons.tsx), its GitHub mark, and the lucide set it draws its chrome with -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
       <defs>
@@ -291,12 +290,133 @@
         <symbol id="i-chevup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m18 15-6-6-6 6" />
         </symbol>
+        <!-- added for the landing: more of lucide, in the same style -->
+        <symbol id="i-bell-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.268 21a2 2 0 0 0 3.464 0" />
+          <path d="M17 17H4a1 1 0 0 1-.74-1.673C4.59 13.956 6 12.499 6 8a6 6 0 0 1 .258-1.742" />
+          <path d="m2 2 20 20" />
+          <path d="M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05" />
+        </symbol>
+        <symbol id="i-pin-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 17v5" />
+          <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89" />
+          <path d="m2 2 20 20" />
+          <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11" />
+        </symbol>
+        <symbol
+          id="i-clipboard"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+          <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v4" />
+          <path d="M21 14H11" />
+          <path d="m15 10-4 4 4 4" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+        </symbol>
+        <symbol
+          id="i-file-code"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M10 12.5 8 15l2 2.5" />
+          <path d="m14 12.5 2 2.5-2 2.5" />
+          <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
+        </symbol>
+        <symbol id="i-git-pr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="18" r="3" />
+          <circle cx="6" cy="6" r="3" />
+          <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+          <path d="M6 9v12" />
+        </symbol>
+        <symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="19" r="3" />
+          <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+          <circle cx="18" cy="5" r="3" />
+        </symbol>
+        <symbol id="i-filter-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13.013 3H2l8 9.46V19l4 2v-8.54l.9-1.055" />
+          <path d="m22 3-5 5" />
+          <path d="m17 3 5 5" />
+        </symbol>
+        <symbol id="i-rows" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+          <path d="M21 9H3" />
+          <path d="M21 15H3" />
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </symbol>
+        <symbol
+          id="i-square-terminal"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="m7 11 2-2-2-2" />
+          <path d="M11 13h4" />
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+        </symbol>
+        <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"
+          />
+          <path d="m15 5 4 4" />
+        </symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18" />
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+          <path d="M10 11v6" />
+          <path d="M14 11v6" />
+        </symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 7h-9" />
+          <path d="M14 17H5" />
+          <circle cx="17" cy="17" r="3" />
+          <circle cx="7" cy="7" r="3" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
+        </symbol>
+        <symbol id="i-cursor" viewBox="0 0 24 24" fill="#000" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12.586 12.586 19 19" />
+          <path
+            d="M3.688 3.037a.497.497 0 0 0-.651.651l6.5 15.999a.501.501 0 0 0 .947-.062l1.569-6.083a2 2 0 0 1 1.448-1.479l6.124-1.579a.5.5 0 0 0 .063-.947z"
+          />
+        </symbol>
       </defs>
     </svg>
-
-    <nav class="nav">
-      <div class="wrap">
-        <a class="brand" href="/">
+    <header class="top" id="top">
+      <div class="top-wrap">
+        <a class="brand" href="/" aria-label="Flux, home">
           <svg width="26" height="26" viewBox="0 0 128 128" aria-hidden="true">
             <defs>
               <linearGradient id="teal" x1="6" y1="2" x2="122" y2="126" gradientUnits="userSpaceOnUse">
@@ -310,908 +430,1986 @@
             <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
             <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#ffffff" />
           </svg>
-          Flux
+          <span class="brand-word">Flux</span>
         </a>
-        <div class="links">
-          <a href="#features">Features</a>
-          <a href="#how" class="hide-sm">How it works</a>
-          <a href="#agents" class="hide-sm">Claude Code</a>
+        <nav class="top-links" aria-label="Site">
+          <a href="/#explain">Story</a>
           <a href="/docs/introduction"
             ><svg class="li"><use href="#i-book" /></svg>Docs</a
           >
           <a href="https://github.com/bozkurtemre/flux"
             ><svg class="li"><use href="#i-github" /></svg>GitHub</a
           >
-        </div>
-        <a class="button small primary" href="/download">Download for macOS</a>
-      </div>
-    </nav>
-
-    <header class="hero">
-      <div class="wrap">
-        <div class="halo">
-          <span class="pill"><span class="tag">New</span><span>Monitor, GitHub and Google sign-in, and an island under the notch</span></span>
-          <h1>Your logs,<br /><em>read like code.</em></h1>
-          <p class="lead">
-            Graylog, Elasticsearch or the files on your Mac — searched, explained, and traced to the line of code that wrote them. Streams and
-            endpoints are objects you open, not strings you retype.
-          </p>
-          <div class="cta">
-            <a class="button primary" href="/download">
-              <svg class="li"><use href="#i-download" /></svg>
-              Download for macOS
-            </a>
-            <a class="button" href="/docs/introduction">Read the docs</a>
-          </div>
-          <p class="fine"><span id="version-line">Free and open source · macOS 13 or later · Apple silicon and Intel</span></p>
-        </div>
-
-        <!-- Flux itself, a second after a spike: the window as App lays it out -->
-        <div class="frame app hero-app reveal" style="max-width: 1040px">
-          <div class="titlebar">
-            <span class="lights"><i style="background: #ff5f57"></i><i style="background: #febc2e"></i><i style="background: #28c840"></i></span>
-            <span class="menu"
-              ><svg width="18" height="18" viewBox="0 0 128 128">
-                <rect width="128" height="128" rx="40" fill="url(#teal)" />
-                <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
-                <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#fff" /></svg
-              >Flux<svg class="chevdown"><use href="#i-chevdown" /></svg
+        </nav>
+        <div class="top-island" id="island" data-state="pill">
+          <button
+            class="island-pill"
+            id="island-pill"
+            type="button"
+            aria-expanded="false"
+            aria-controls="island-card"
+            aria-label="What is going on in Flux"
+          >
+            <i class="island-dot" aria-hidden="true"></i>
+            <span class="island-readout"
+              ><span class="island-clock" aria-hidden="true"><span class="digits"></span></span><span class="island-sr sr"></span
+              ><span class="island-sep"> · </span><span class="island-label"></span
             ></span>
-            <span class="menu dim"
-              >Connections<svg class="chevdown"><use href="#i-chevdown" /></svg
-            ></span>
-            <span class="icons"
-              ><span class="icon"
-                ><svg><use href="#i-wrench" /></svg></span
-              ><span class="icon"
-                ><svg><use href="#i-bug" /></svg></span
-              ><span class="icon"
-                ><svg><use href="#i-search" /></svg></span
-              ><span class="icon"
-                ><svg><use href="#i-more" /></svg></span
-            ></span>
-          </div>
-          <div class="main">
-            <div class="stripe">
-              <span class="sb active"
-                ><svg><use href="#i-server" /></svg
-              ></span>
-              <span class="sb"
-                ><svg><use href="#i-activity" /></svg><b class="beta">BETA</b></span
-              >
-              <span class="grow"></span>
-              <span class="sb"
-                ><svg><use href="#i-terminal" /></svg
-              ></span>
-              <span class="sb"
-                ><svg><use href="#i-tags" /></svg
-              ></span>
-              <span class="sb"
-                ><svg><use href="#i-gauge" /></svg
-              ></span>
+            <span class="island-count" aria-hidden="true">0</span>
+          </button>
+          <span class="sr" id="island-live" aria-live="polite"></span>
+          <div class="island-card" id="island-card" hidden>
+            <div class="ih">
+              <i class="dot" aria-hidden="true"></i>
+              <div class="grow">
+                <div class="it" id="island-headline">Nothing going on</div>
+                <div class="is" id="island-sub">0 things going on in Flux</div>
+              </div>
+              <button class="ib" id="island-mute" type="button" title="Mute for an hour" aria-label="Mute for an hour">
+                <svg><use href="#i-bell-off" /></svg>
+              </button>
+              <button class="ib" id="island-pin" type="button" aria-pressed="false" aria-label="Keep the island open">
+                <svg><use href="#i-pin" /></svg>
+              </button>
+              <button class="ib" id="island-fold" type="button" aria-label="Fold the island">
+                <svg><use href="#i-chevup" /></svg>
+              </button>
             </div>
-            <div class="island explorer">
-              <div class="phead">Connection Explorer</div>
-              <div class="ptb">
-                <span class="tb22" style="color: var(--accent)"
-                  ><svg style="width: 15px; height: 15px"><use href="#i-plus" /></svg></span
-                ><span class="tb22"
-                  ><svg><use href="#i-search-code" /></svg></span
-                ><span class="sep"></span
-                ><span class="tb22"
-                  ><svg style="width: 13px; height: 13px"><use href="#i-refresh" /></svg></span
-                ><span class="tb22"
-                  ><svg><use href="#i-fold" /></svg></span
-                ><span class="sep"></span
-                ><span class="tb22"
-                  ><svg><use href="#i-terminal" /></svg></span
-                ><span class="tb22"
-                  ><svg><use href="#i-sliders" /></svg
-                ></span>
-              </div>
-              <div class="filter">
-                <svg><use href="#i-filter" /></svg>Filter…
-              </div>
-              <div class="row" style="padding-left: 4px">
-                <span class="chev"
-                  ><svg class="open"><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-conn" /></svg></span
-                >acme<span class="sub">graylog.acme.io</span>
-              </div>
-              <div class="row" style="padding-left: 18px">
-                <span class="chev"
-                  ><svg class="open"><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-stream" /></svg></span
-                >orders
-              </div>
-              <div class="row sel" style="padding-left: 32px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico bad"
-                  ><svg><use href="#i-ep" /></svg></span
-                ><span class="method">POST</span><span class="mono ep">/v1/charges</span
-                ><span class="count" style="color: var(--red)">1.2k · 41.0%</span>
-              </div>
-              <div class="row" style="padding-left: 32px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-ep" /></svg></span
-                ><span class="method">GET</span><span class="mono ep">/v1/orders</span><span class="count">12k</span>
-              </div>
-              <div class="row" style="padding-left: 32px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-ep" /></svg></span
-                ><span class="method">POST</span><span class="mono ep">/v1/orders</span><span class="count">3.1k</span>
-              </div>
-              <div class="row" style="padding-left: 18px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-stream" /></svg></span
-                >gateway
-              </div>
-              <div class="row" style="padding-left: 18px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-stream" /></svg></span
-                >payments
-              </div>
-              <div class="row" style="padding-left: 18px">
-                <span class="chev"
-                  ><svg><use href="#i-chev" /></svg></span
-                ><span class="ico"
-                  ><svg><use href="#i-stream" /></svg></span
-                >wallet
-              </div>
+            <div class="island-muted" id="island-muted" hidden>
+              <div class="it">The island is muted</div>
+              <div class="is">It comes back in 60 minutes.</div>
+              <button class="btn" id="island-unmute" type="button">Unmute</button>
             </div>
-            <div class="island-editor editor">
-              <div class="tabs">
-                <span class="tab active"
-                  ><span class="ico bad"
-                    ><svg><use href="#i-ep" /></svg></span
-                  >POST /v1/charges</span
-                >
-                <span class="tab"
-                  ><span class="ico"
-                    ><svg><use href="#i-stream" /></svg></span
-                  >orders</span
-                >
-                <span class="icon more"
-                  ><svg><use href="#i-more" /></svg
-                ></span>
-              </div>
-              <div class="ctb">
-                <span class="tb24" style="color: var(--green)"
-                  ><svg style="width: 14px; height: 14px"><use href="#i-play" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-rotate" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-save" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-radio" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-download" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-claude" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-link" /></svg></span
-                ><span class="sep tall"></span>
-                <span class="select"
-                  >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
-                ><span class="tb24"
-                  ><svg><use href="#i-calendar" /></svg
-                ></span>
-                <span class="muted right">| group by field · ⌘⏎ to run</span>
-              </div>
-              <div class="code">
-                <span class="gutter">1</span
-                ><span class="line"
-                  ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span class="s"
-                    >WARN</span
-                  >
-                  <span style="color: var(--purple)">| group by</span> service</span
-                >
-              </div>
-              <div class="timeline-wrap">
-                <div class="tl-head">
-                  <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span>1,244 messages</span
-                  ><span style="color: var(--amber)">— p95 up to 8,900 ms</span><span style="color: var(--red)">— errors up to 41.0%</span
-                  ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
-                </div>
-                <div class="timeline" id="hero-timeline"></div>
-              </div>
-              <div class="grid">
-                <div class="hd"><span></span><span>timestamp</span><span>service</span><span>level</span><span>message</span></div>
-                <div class="tr">
-                  <span class="n">1</span><span>2026-10-14 10:42:09</span><span>orders</span><span class="lvl-info">INFO</span
-                  ><span>Order shipped ord-10498</span>
-                </div>
-                <div class="tr">
-                  <span class="n">2</span><span>2026-10-14 10:42:09</span><span>gateway</span><span class="lvl-info">INFO</span
-                  ><span>GET /v1/orders 200 in 41 ms</span>
-                </div>
-                <div class="tr">
-                  <span class="n">3</span><span>2026-10-14 10:42:09</span><span>payments</span><span class="lvl-error">ERROR</span
-                  ><span>Charge failed for request 7f3a9c2e: upstream timeout after 8000ms</span>
-                </div>
-                <div class="tr">
-                  <span class="n">4</span><span>2026-10-14 10:42:08</span><span>payments</span><span class="lvl-error">ERROR</span
-                  ><span>Charge failed for request b81d04f6: upstream timeout after 8000ms</span>
-                </div>
-                <div class="tr">
-                  <span class="n">5</span><span>2026-10-14 10:42:08</span><span>payments</span><span class="lvl-warn">WARN</span
-                  ><span>upstream slow: took 2314 ms</span>
-                </div>
-                <div class="tr">
-                  <span class="n">6</span><span>2026-10-14 10:42:07</span><span>orders</span><span class="lvl-info">INFO</span
-                  ><span>Order created ord-10531</span>
-                </div>
-              </div>
-              <div class="gfoot">
-                <span>Reload</span><span>6 rows</span
-                ><span class="pager"
-                  ><svg><use href="#i-chevleft" /></svg><span>1–6</span><svg><use href="#i-chevright" /></svg></span
-                ><span>total 6</span><span>214 ms</span
-                ><span class="right cols"
-                  ><svg><use href="#i-columns" /></svg>Columns</span
-                >
-              </div>
+            <div class="island-rows" id="island-rows" role="list"></div>
+            <div class="island-index" id="island-index">
+              <div class="island-ix-head">On this page</div>
+              <a class="ix" href="/#hero"><b>10:41</b>The spike</a>
+              <a class="ix" href="/#explain"><b>10:43</b>Why this stretch?</a>
+              <a class="ix" href="/#trace"><b>10:44</b>One request, every service</a>
+              <a class="ix" href="/#case"><b>10:46</b>The case</a>
+              <a class="ix" href="/#claude"><b>10:51</b>Handed to the terminal</a>
+              <a class="ix" href="/#watch"><b>10:58</b>Keep an eye on it</a>
+              <a class="ix" href="/#ran"><b>11:02</b>Where this ran</a>
+              <a class="ix" href="/#download"><b>11:02</b>All clear</a>
             </div>
-            <div class="stripe">
-              <span class="sb"
-                ><svg><use href="#i-bell" /></svg
-              ></span>
-              <span class="sb"
-                ><svg><use href="#i-panelright" /></svg
-              ></span>
-              <span class="sb"
-                ><svg><use href="#i-bookmark" /></svg
-              ></span>
+            <div class="island-links">
+              <a href="/docs/introduction">Docs</a><a href="https://github.com/bozkurtemre/flux">GitHub</a
+              ><a href="https://github.com/bozkurtemre/flux/releases">Changelog</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a
+              ><button type="button" id="island-search">Search Everywhere <kbd>⇧</kbd><kbd>⇧</kbd></button>
             </div>
-          </div>
-          <div class="status">
-            <span class="with-icon"
-              ><svg style="width: 11px; height: 11px"><use href="#i-server" /></svg>acme</span
-            ><span>POST /v1/charges</span><span>6 rows · 214 ms</span>
-            <span class="right"
-              ><span class="meter"
-                ><b>CPU</b><i><u style="width: 4%"></u></i>0.4%</span
-              ><span class="meter"
-                ><b>RAM</b><i><u style="width: 4%"></u></i>0.3%</span
-              ><span>1 connections</span
-              ><span class="mcp"
-                ><svg><use href="#i-mcp" /></svg></span
-            ></span>
           </div>
         </div>
+        <a class="button small primary top-download" href="/download" id="top-download"
+          ><span>Download<span class="top-download-rest"> for macOS</span></span></a
+        >
       </div>
     </header>
-
+    <div class="top-sentinel" id="top-sentinel" aria-hidden="true"></div>
+    <dialog class="se" id="se" aria-label="Search Everywhere">
+      <div class="stabs" role="tablist" aria-label="Search in">
+        <button type="button" role="tab" class="active" aria-selected="true" data-tab="all">All</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="chapters">Chapters</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="docs">Docs</button>
+        <button type="button" role="tab" aria-selected="false" data-tab="actions">Actions</button>
+      </div>
+      <div class="sinput">
+        <svg aria-hidden="true"><use href="#i-search" /></svg>
+        <input
+          id="se-input"
+          type="text"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="Search this page, the docs and actions"
+          aria-label="Search this page, the docs and actions"
+          role="combobox"
+          aria-expanded="true"
+          aria-autocomplete="list"
+          aria-controls="se-list"
+        />
+      </div>
+      <div class="se-list" id="se-list" role="listbox" aria-label="Results"></div>
+      <div class="se-foot">
+        <span>↑↓ navigate</span><span>↵ open</span><span>⇥ switch tab</span><span>esc close</span><span class="right" id="se-count">0 results</span>
+      </div>
+    </dialog>
     <main>
-      <section class="section" id="features">
-        <div class="wrap">
-          <header class="halo">
-            <p class="eyebrow">What it does</p>
-            <h2>The parts of an incident, each a click away.</h2>
-            <p>
-              Flux keeps the structure a search box throws away. Every feature below works on your own logs, from your own Mac, with nothing to
-              install on the server.
-            </p>
-          </header>
+      <div class="story" id="story">
+        <section id="hero" class="hero" aria-labelledby="hero-h">
+          <p class="eyebrow"><b>10:41</b><span>One incident, played forward</span></p>
+          <h1 id="hero-h" class="hero-h1">
+            <span class="hero-ln"><span class="hero-g" aria-hidden="true">1</span><span class="hero-tx">Your logs,</span></span>
+            <span class="hero-ln hero-caret"
+              ><span class="hero-g" aria-hidden="true">2</span><span class="hero-tx"><em>read like code.</em></span></span
+            >
+          </h1>
+          <p class="hero-ln hero-lead">
+            <span class="hero-g" aria-hidden="true">3</span
+            ><span class="lead hero-tx"
+              >Flux is an IDE for logs on your Mac — Graylog, Elasticsearch through Kibana, or the log files and containers you already have. Streams
+              and endpoints are a tree you open; each gets its own console, timeline and grid. At 10:41, charges at a shop called acme start failing.
+              This page plays that hour forward. Scroll, or do each step yourself.</span
+            >
+          </p>
+          <div class="hero-ln hero-cta">
+            <span class="hero-g" aria-hidden="true">4</span>
+            <div class="hero-act hero-tx">
+              <a class="button primary" href="/download" id="hero-download"
+                ><svg class="li" aria-hidden="true"><use href="#i-download" /></svg><span>Download for macOS</span></a
+              >
+              <button type="button" class="button" id="hero-play">Play it forward ↓</button>
+            </div>
+          </div>
+          <p class="hero-fine note"><span id="hero-version"></span>Free and open source · macOS 13 or later · Apple silicon and Intel</p>
+          <div class="hero-hints" role="group" aria-label="Things to try">
+            <button type="button" class="hero-hint" data-se-open data-hint="search">Search Everywhere <kbd>⇧</kbd><kbd>⇧</kbd></button>
+            <button type="button" class="hero-hint" data-hint="trace">Trace an ID <kbd>⇧</kbd><kbd>⌘</kbd><kbd>I</kbd></button>
+            <button type="button" class="hero-hint" data-hint="map">Service map <kbd>⇧</kbd><kbd>⌘</kbd><kbd>M</kbd></button>
+            <button type="button" class="hero-hint" data-hint="explain">Explain a spike <kbd>⌥</kbd>-drag</button>
+            <button type="button" class="hero-hint" data-hint="menu">right-click a line</button>
+          </div>
+        </section>
 
-          <div class="cards">
-            <!-- explain -->
-            <article class="card wide">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 240px">
+        <aside id="stage" class="stage" data-scene="spike" aria-label="Flux, drawn: the incident's window">
+          <div class="frame app">
+            <div class="titlebar">
+              <span class="lights" aria-hidden="true"
+                ><i style="background: #ff5f57"></i><i style="background: #febc2e"></i><i style="background: #28c840"></i
+              ></span>
+              <span class="menu"
+                ><svg width="18" height="18" viewBox="0 0 128 128" aria-hidden="true">
+                  <rect width="128" height="128" rx="40" fill="url(#teal)" />
+                  <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
+                  <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#fff" /></svg
+                >Flux<svg class="chevdown" aria-hidden="true"><use href="#i-chevdown" /></svg
+              ></span>
+              <span class="menu dim"
+                >Connections<svg class="chevdown" aria-hidden="true"><use href="#i-chevdown" /></svg
+              ></span>
+              <span class="icons">
+                <span class="icon"
+                  ><svg aria-hidden="true"><use href="#i-wrench" /></svg
+                ></span>
+                <span class="icon"
+                  ><svg aria-hidden="true"><use href="#i-bug" /></svg
+                ></span>
+                <button
+                  type="button"
+                  class="icon"
+                  id="stage-search"
+                  data-se-open
+                  data-tip-key="⇧⇧"
+                  data-tip-what="Search Everywhere"
+                  aria-label="Search Everywhere"
+                >
+                  <svg aria-hidden="true"><use href="#i-search" /></svg>
+                </button>
+                <span class="icon"
+                  ><svg aria-hidden="true"><use href="#i-more" /></svg
+                ></span>
+              </span>
+            </div>
+            <div class="main">
+              <div class="stripe" aria-hidden="true">
+                <span class="sb active"
+                  ><svg><use href="#i-server" /></svg
+                ></span>
+                <span class="sb"
+                  ><svg><use href="#i-activity" /></svg><b class="beta">BETA</b></span
+                >
+                <span class="grow"></span>
+                <span class="sb"
+                  ><svg><use href="#i-terminal" /></svg
+                ></span>
+                <span class="sb"
+                  ><svg><use href="#i-tags" /></svg
+                ></span>
+                <span class="sb"
+                  ><svg><use href="#i-gauge" /></svg
+                ></span>
+              </div>
+              <div class="island explorer" id="stage-explorer">
+                <div class="phead">Connection Explorer</div>
+                <div class="ptb" aria-hidden="true">
+                  <span class="tb22" style="color: var(--accent)"
+                    ><svg style="width: 15px; height: 15px"><use href="#i-plus" /></svg
+                  ></span>
+                  <span class="tb22"
+                    ><svg><use href="#i-search-code" /></svg
+                  ></span>
+                  <span class="sep"></span>
+                  <span class="tb22"
+                    ><svg style="width: 13px; height: 13px"><use href="#i-refresh" /></svg
+                  ></span>
+                  <span class="tb22"
+                    ><svg><use href="#i-fold" /></svg
+                  ></span>
+                  <span class="sep"></span>
+                  <span class="tb22"
+                    ><svg><use href="#i-terminal" /></svg
+                  ></span>
+                  <span class="tb22"
+                    ><svg><use href="#i-sliders" /></svg
+                  ></span>
+                </div>
+                <div class="filter" aria-hidden="true">
+                  <svg><use href="#i-filter" /></svg>Filter…
+                </div>
+                <div class="hero-tree" role="group" aria-label="Connection Explorer">
+                  <button type="button" class="row" style="padding-left: 4px">
+                    <span class="chev"
+                      ><svg class="open" aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-conn" /></svg></span
+                    >acme<span class="sub">graylog.acme.io</span>
+                  </button>
+                  <button type="button" class="row" style="padding-left: 18px">
+                    <span class="chev"
+                      ><svg class="open" aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-github" /></svg></span
+                    >shop<span class="sub">acme/shop</span>
+                  </button>
+                  <button type="button" class="row" style="padding-left: 32px">
+                    <span class="chev"
+                      ><svg class="open" aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-stream" /></svg></span
+                    >payments
+                  </button>
+                  <button type="button" class="row sel" style="padding-left: 44px" aria-current="true">
+                    <span class="ico bad"
+                      ><svg aria-hidden="true"><use href="#i-ep" /></svg></span
+                    ><span class="method">POST</span><span class="mono ep">/v1/charges</span
+                    ><span class="count hero-count" style="color: var(--red)">1.2k · 13.5%</span>
+                  </button>
+                  <button type="button" class="row" style="padding-left: 44px">
+                    <span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-ep" /></svg></span
+                    ><span class="method">GET</span><span class="mono ep">/v1/charges/{id}</span><span class="count">820</span>
+                  </button>
+                  <button type="button" class="row" style="padding-left: 44px">
+                    <span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-ep" /></svg></span
+                    ><span class="method">POST</span><span class="mono ep">/v1/refunds</span><span class="count">96</span>
+                  </button>
+                  <button type="button" class="row" style="padding-left: 32px">
+                    <span class="chev"
+                      ><svg aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-stream" /></svg></span
+                    >orders
+                  </button>
+                  <button type="button" class="row" style="padding-left: 32px">
+                    <span class="chev"
+                      ><svg aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-stream" /></svg></span
+                    >gateway
+                  </button>
+                  <button type="button" class="row" style="padding-left: 32px">
+                    <span class="chev"
+                      ><svg aria-hidden="true"><use href="#i-chev" /></svg></span
+                    ><span class="ico"
+                      ><svg aria-hidden="true"><use href="#i-stream" /></svg></span
+                    >wallet
+                  </button>
+                </div>
+              </div>
+              <div class="island-editor editor" id="stage-editor">
+                <div class="scene" data-scene="spike">
+                  <div class="tabs">
+                    <span class="tab active"
+                      ><span class="ico bad"
+                        ><svg><use href="#i-ep" /></svg></span
+                      >POST /v1/charges</span
+                    >
+                    <span class="tab"
+                      ><span class="ico"
+                        ><svg><use href="#i-stream" /></svg></span
+                      >payments</span
+                    >
+                    <span class="icon more"
+                      ><svg><use href="#i-more" /></svg
+                    ></span>
+                  </div>
+                  <div class="ctb">
+                    <button class="tb24 run" style="color: var(--green)" aria-label="Run the query" data-tip-key="⌘⏎" data-tip-what="Run">
+                      <svg style="width: 14px; height: 14px"><use href="#i-play" /></svg>
+                    </button>
+                    <span class="tb24"
+                      ><svg><use href="#i-rotate" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-save" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-radio" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-download" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-claude" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-link" /></svg
+                    ></span>
+                    <span class="sep tall"></span>
+                    <span class="select"
+                      >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-calendar" /></svg
+                    ></span>
+                    <span class="muted right">| group by field · ⌘⏎ to run</span>
+                  </div>
+                  <div class="code">
+                    <span class="gutter">1</span
+                    ><span class="line"
+                      ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span
+                        class="s"
+                        >WARN</span
+                      ><span class="typedin"></span
+                    ></span>
+                  </div>
                   <div class="timeline-wrap">
                     <div class="tl-head">
-                      <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span>144 messages</span
-                      ><span style="color: var(--red)">— errors up to 4.2%</span
+                      <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span class="tl-count">1,244 messages</span
+                      ><span style="color: var(--amber)">— p95 up to 8,900 ms</span><span style="color: var(--red)">— errors up to 41.0%</span
                       ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
                     </div>
-                    <div class="timeline" id="explain-timeline"></div>
+                    <div class="timeline" data-bars></div>
+                    <!-- flux.bars(el, {counts, p95, fail, spike:[41,43]}); the #412 marker at left 64.17% -->
                   </div>
-                  <div class="xhead">
-                    <b>explain</b><span>10:41:00.000 – 10:43:00.000 against the three times as long before it, over 6 fields</span
-                    ><svg class="right" style="width: 12px; height: 12px"><use href="#i-x" /></svg>
+                  <div class="grid" role="grid">
+                    <div class="hd"><span></span><span>timestamp</span><span>host</span><span>level</span><span>message</span></div>
+                    <div class="tr" tabindex="0" data-row="1" data-id="req_7f3a9c2e">
+                      <span class="n">1</span><span data-col="timestamp">10:42:17</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="2" data-id="req_b81d04f6">
+                      <span class="n">2</span><span>10:42:16</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_b81d04f6: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="3">
+                      <span class="n">3</span><span>10:42:15</span><span>payments-1</span><span class="lvl-warn">WARN</span
+                      ><span>upstream slow: took 2314 ms · req_9c01aa7e</span>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="4" data-id="req_3e7d1c90">
+                      <span class="n">4</span><span>10:42:15</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_3e7d1c90: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="5" data-id="req_51f0be22">
+                      <span class="n">5</span><span>10:42:14</span><span>payments-2</span><span class="lvl-warn">WARN</span
+                      ><span>retrying provider call 2/3 · req_51f0be22</span>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="6" data-id="req_a04c7d11">
+                      <span class="n">6</span><span>10:42:13</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_a04c7d11: upstream timeout after 8000ms</span>
+                    </div>
                   </div>
-                  <div class="xcols"><span>field</span><span class="grow">value</span><span>in the stretch</span><span>before it</span></div>
-                  <div class="xrow">
-                    <span class="mono dim">version</span><span class="mono grow">v2.4.1</span
-                    ><span class="share"
-                      ><i><u style="width: 92%; background: var(--purple)"></u></i>92%</span
-                    ><span class="share"
-                      ><i><u style="width: 8%"></u></i>8%</span
-                    >
-                  </div>
-                  <div class="xrow">
-                    <span class="mono dim">host</span><span class="mono grow">payments-2</span
-                    ><span class="share"
-                      ><i><u style="width: 88%; background: var(--purple)"></u></i>88%</span
-                    ><span class="share"
-                      ><i><u style="width: 31%"></u></i>31%</span
-                    >
-                  </div>
-                  <div class="xrow">
-                    <span class="mono dim">route</span><span class="mono grow">POST /v1/charges</span
-                    ><span class="share"
-                      ><i><u style="width: 79%; background: var(--purple)"></u></i>79%</span
-                    ><span class="share"
-                      ><i><u style="width: 40%"></u></i>40%</span
+                  <div class="gfoot">
+                    <span>Reload</span><span>50 rows</span
+                    ><span class="pager"
+                      ><svg><use href="#i-chevleft" /></svg><span>1–50</span><svg><use href="#i-chevright" /></svg></span
+                    ><span>total 1,244</span><span>214 ms</span
+                    ><span class="right cols"
+                      ><svg><use href="#i-columns" /></svg>Columns</span
                     >
                   </div>
                 </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-chart" /></svg>Why is this spike different?
-                </h3>
-                <p>
-                  Drag across it with <kbd>⌥</kbd> held. Flux compares the stretch with the time before it and tells you which version, service, host
-                  or route it comes from — before you have written a query.
-                </p>
-              </div>
-            </article>
-
-            <!-- trace -->
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 240px">
+                <div class="scene" data-scene="explain">
+                  <div class="tabs">
+                    <span class="tab active"
+                      ><span class="ico bad"
+                        ><svg><use href="#i-ep" /></svg></span
+                      >POST /v1/charges</span
+                    >
+                    <span class="tab"
+                      ><span class="ico"
+                        ><svg><use href="#i-stream" /></svg></span
+                      >payments</span
+                    >
+                    <span class="icon more"
+                      ><svg><use href="#i-more" /></svg
+                    ></span>
+                  </div>
+                  <div class="ctb">
+                    <button class="tb24 run explain-rerun" type="button" style="color: var(--green)" aria-label="Run the query again">
+                      <svg style="width: 14px; height: 14px"><use href="#i-play" /></svg>
+                    </button>
+                    <span class="tb24"
+                      ><svg><use href="#i-rotate" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-save" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-radio" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-download" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-claude" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-link" /></svg
+                    ></span>
+                    <span class="sep tall"></span>
+                    <span class="select"
+                      >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-calendar" /></svg
+                    ></span>
+                    <span class="muted right">| group by field · ⌘⏎ to run</span>
+                  </div>
+                  <div class="code">
+                    <span class="gutter">1</span
+                    ><span class="line"
+                      ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span
+                        class="s"
+                        >WARN</span
+                      ><span class="typedin"></span
+                    ></span>
+                  </div>
+                  <div class="timeline-wrap">
+                    <div class="tl-head">
+                      <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span class="tl-count">1,244 messages</span
+                      ><span style="color: var(--amber)">— p95 up to 8,900 ms</span><span style="color: var(--red)">— errors up to 41.0%</span
+                      ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
+                    </div>
+                    <div
+                      class="timeline"
+                      data-bars
+                      tabindex="0"
+                      role="group"
+                      aria-label="Timeline, 60 buckets. Arrow keys move the cursor, Shift with them extends the selection, Enter narrows, Option-Enter explains, Escape clears."
+                    >
+                      <span class="marker" style="left: 64.17%"><b title="#412 retry provider calls · merged 10:38"></b></span>
+                      <span class="explain-ring" aria-hidden="true"></span>
+                      <span class="explain-drag-label" aria-hidden="true" hidden></span>
+                      <svg class="explain-cursor" aria-hidden="true"><use href="#i-cursor" /></svg>
+                    </div>
+                    <span class="sr explain-live" aria-live="polite"></span>
+                  </div>
+                  <div class="explain-panel" hidden>
+                    <div class="xhead">
+                      <b>explain</b
+                      ><span class="explain-span">10:41:00.000 – 10:43:00.000 against the three times as long before it, over 6 fields</span
+                      ><span class="spin" hidden></span>
+                      <button class="explain-x" type="button" aria-label="Close">
+                        <svg><use href="#i-x" /></svg>
+                      </button>
+                    </div>
+                    <div class="explain-body">
+                      <p class="explain-nothing" hidden>
+                        Nothing stands out: no value of version, service, host, route, status, level makes up a noticeably larger share of the stretch
+                        than before it.
+                      </p>
+                      <div class="explain-rows" hidden>
+                        <div class="xcols"><span>field</span><span>value</span><span>in the stretch</span><span>before it</span></div>
+                        <button
+                          class="xrow"
+                          type="button"
+                          style="--i: 0"
+                          data-field="version"
+                          data-value="v2.4.1"
+                          title='Narrow the console to version:"v2.4.1"'
+                        >
+                          <span
+                            >version<svg class="explain-tick" aria-hidden="true"><use href="#i-check" /></svg></span
+                          ><span>v2.4.1</span
+                          ><span class="share stretch"
+                            ><i><u style="--w: 92%"></u></i><span>92%</span></span
+                          ><span class="share"
+                            ><i><u style="--w: 8%"></u></i><span>8%</span></span
+                          >
+                        </button>
+                        <button
+                          class="xrow"
+                          type="button"
+                          style="--i: 1"
+                          data-field="host"
+                          data-value="payments-2"
+                          title='Narrow the console to host:"payments-2"'
+                        >
+                          <span
+                            >host<svg class="explain-tick" aria-hidden="true"><use href="#i-check" /></svg></span
+                          ><span>payments-2</span
+                          ><span class="share stretch"
+                            ><i><u style="--w: 88%"></u></i><span>88%</span></span
+                          ><span class="share"
+                            ><i><u style="--w: 31%"></u></i><span>31%</span></span
+                          >
+                        </button>
+                        <button
+                          class="xrow"
+                          type="button"
+                          style="--i: 2"
+                          data-field="route"
+                          data-value="POST /v1/charges"
+                          title='Narrow the console to route:"POST /v1/charges"'
+                        >
+                          <span
+                            >route<svg class="explain-tick" aria-hidden="true"><use href="#i-check" /></svg></span
+                          ><span>POST /v1/charges</span
+                          ><span class="share stretch"
+                            ><i><u style="--w: 79%"></u></i><span>79%</span></span
+                          ><span class="share"
+                            ><i><u style="--w: 40%"></u></i><span>40%</span></span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grid" role="grid">
+                    <div class="hd"><span></span><span>timestamp</span><span>host</span><span>level</span><span>message</span></div>
+                    <div class="tr" data-row="1" data-id="req_7f3a9c2e">
+                      <span class="n">1</span><span data-col="timestamp">10:42:17</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="2" data-id="req_b81d04f6">
+                      <span class="n">2</span><span data-col="timestamp">10:42:16</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_b81d04f6: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="3" data-id="req_9c01aa7e">
+                      <span class="n">3</span><span data-col="timestamp">10:42:15</span><span data-col="host">payments-1</span
+                      ><span class="lvl-warn" data-col="level">WARN</span><span data-col="message">upstream slow: took 2314 ms · req_9c01aa7e</span>
+                    </div>
+                    <div class="tr" data-row="4" data-id="req_3e7d1c90">
+                      <span class="n">4</span><span data-col="timestamp">10:42:15</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_3e7d1c90: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="5" data-id="req_51f0be22">
+                      <span class="n">5</span><span data-col="timestamp">10:42:14</span><span data-col="host">payments-2</span
+                      ><span class="lvl-warn" data-col="level">WARN</span><span data-col="message">retrying provider call 2/3 · req_51f0be22</span>
+                    </div>
+                    <div class="tr" data-row="6" data-id="req_a04c7d11">
+                      <span class="n">6</span><span data-col="timestamp">10:42:13</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_a04c7d11: upstream timeout after 8000ms</span>
+                    </div>
+                  </div>
+                  <div class="gfoot">
+                    <span>Reload</span><span>50 rows</span
+                    ><span class="pager"
+                      ><svg><use href="#i-chevleft" /></svg><span>1–50</span><svg><use href="#i-chevright" /></svg></span
+                    ><span class="explain-total">total 1,244</span><span>214 ms</span
+                    ><span class="right cols"
+                      ><svg><use href="#i-columns" /></svg>Columns</span
+                    >
+                  </div>
+                </div>
+                <div class="scene" data-scene="trace">
+                  <div class="tabs">
+                    <span class="tab trace-tab-charges active"
+                      ><span class="ico bad"
+                        ><svg><use href="#i-ep" /></svg></span
+                      >POST /v1/charges</span
+                    >
+                    <span class="tab"
+                      ><span class="ico"
+                        ><svg><use href="#i-stream" /></svg></span
+                      >payments</span
+                    >
+                    <span class="tab trace-tab" hidden
+                      ><span class="ico"
+                        ><svg><use href="#i-fingerprint" /></svg></span
+                      ><span class="trace-tab-id">req_7f3a9c2e</span></span
+                    >
+                    <span class="icon more"
+                      ><svg><use href="#i-more" /></svg
+                    ></span>
+                  </div>
+                  <div class="ctb">
+                    <button type="button" class="tb24 run" style="color: var(--green)" aria-label="Run the trace">
+                      <svg style="width: 14px; height: 14px"><use href="#i-play" /></svg>
+                    </button>
+                    <span class="tb24"
+                      ><svg><use href="#i-rotate" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-save" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-radio" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-download" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-claude" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-link" /></svg
+                    ></span>
+                    <span class="sep tall"></span>
+                    <span class="select"
+                      >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                    ><span class="tb24"
+                      ><svg><use href="#i-calendar" /></svg
+                    ></span>
+                    <span class="muted right">| group by field · ⌘⏎ to run</span>
+                  </div>
+                  <div class="code">
+                    <span class="gutter">1</span
+                    ><span class="line trace-line"
+                      ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span
+                        class="s"
+                        >WARN</span
+                      ></span
+                    >
+                  </div>
+                  <div class="timeline-wrap trace-spike">
+                    <div class="tl-head">
+                      <svg class="li" style="width: 11px; height: 11px">
+                        <use href="#i-chevdown" /></svg
+                      ><span class="tl-count">1,244 messages</span><span style="color: var(--amber)">— p95 up to 8,900 ms</span
+                      ><span style="color: var(--red)">— errors up to 41.0%</span
+                      ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
+                    </div>
+                    <div class="timeline" data-bars>
+                      <span class="marker" style="left: 64.17%"><b></b></span>
+                    </div>
+                  </div>
+                  <div class="grid trace-spike" role="grid">
+                    <div class="hd"><span></span><span>timestamp</span><span>host</span><span>level</span><span>message</span></div>
+                    <div class="tr sel" data-row="1" data-id="req_7f3a9c2e">
+                      <span class="n">1</span><span data-col="timestamp">10:42:17</span><span data-col="host">payments-2</span
+                      ><span class="lvl-error" data-col="level">ERROR</span
+                      ><span data-col="message">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="2" data-id="req_b81d04f6">
+                      <span class="n">2</span><span>10:42:16</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_b81d04f6: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="3" data-id="req_9c01aa7e">
+                      <span class="n">3</span><span>10:42:15</span><span>payments-1</span><span class="lvl-warn">WARN</span
+                      ><span>upstream slow: took 2314 ms · req_9c01aa7e</span>
+                    </div>
+                    <div class="tr" data-row="4" data-id="req_3e7d1c90">
+                      <span class="n">4</span><span>10:42:15</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_3e7d1c90: upstream timeout after 8000ms</span>
+                    </div>
+                    <div class="tr" data-row="5" data-id="req_51f0be22">
+                      <span class="n">5</span><span>10:42:14</span><span>payments-2</span><span class="lvl-warn">WARN</span
+                      ><span>retrying provider call 2/3 · req_51f0be22</span>
+                    </div>
+                    <div class="tr" data-row="6" data-id="req_a04c7d11">
+                      <span class="n">6</span><span>10:42:13</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_a04c7d11: upstream timeout after 8000ms</span>
+                    </div>
+                  </div>
+                  <div class="lanes trace-lanes trace-told" hidden></div>
+                  <div class="grid trace-grid trace-told" role="grid" hidden></div>
+                  <div class="trace-mapview trace-told" hidden>
+                    <div class="trace-maphead">
+                      <svg class="li" aria-hidden="true"><use href="#i-waypoints" /></svg><b>Service map</b
+                      ><span>acme · 5 services · 1,244 lines sampled · joined by request_id</span>
+                    </div>
+                    <svg
+                      class="trace-svg"
+                      viewBox="0 0 520 260"
+                      preserveAspectRatio="xMidYMid meet"
+                      role="img"
+                      aria-label="Service map: gateway to orders, orders to payments and to wallet, payments to provider — the step to the provider is failing"
+                    >
+                      <g style="--d: 0ms">
+                        <title>gateway → orders: 1,244 requests, 0 failed</title>
+                        <path class="trace-edge" pathLength="1" d="M92,78 C120,78 120,78 148,78" />
+                        <path class="trace-ah" d="M148,78 L140,74 L140,82 Z" />
+                        <text class="trace-elabel" x="120" y="70" text-anchor="middle">1,244</text>
+                      </g>
+                      <g style="--d: 300ms">
+                        <title>orders → payments: 449 requests, 148 failed</title>
+                        <path class="trace-edge" pathLength="1" d="M232,78 C260,78 260,78 288,78" />
+                        <path class="trace-ah" d="M288,78 L280,74 L280,82 Z" />
+                        <text class="trace-elabel" x="260" y="70" text-anchor="middle">449</text>
+                      </g>
+                      <g style="--d: 600ms">
+                        <title>orders → wallet: 318 requests, 0 failed</title>
+                        <path class="trace-edge" pathLength="1" d="M232,78 C260,78 260,182 288,182" />
+                        <path class="trace-ah" d="M288,182 L280,178 L280,186 Z" />
+                        <text class="trace-elabel" x="236" y="150" text-anchor="middle">318</text>
+                      </g>
+                      <g class="bad" style="--d: 900ms">
+                        <title>payments → provider: 449 requests, 148 failed</title>
+                        <path class="trace-edge" pathLength="1" d="M372,78 C400,78 400,182 428,182" />
+                        <path class="trace-ah" d="M428,182 L420,178 L420,186 Z" />
+                        <text class="trace-elabel" x="466" y="150" text-anchor="middle">449 · 148 failed</text>
+                      </g>
+                      <g class="trace-node">
+                        <rect x="8" y="62" width="84" height="32" rx="10" />
+                        <text x="50" y="78" text-anchor="middle" dominant-baseline="central">gateway</text>
+                      </g>
+                      <g class="trace-node">
+                        <rect x="148" y="62" width="84" height="32" rx="10" />
+                        <text x="190" y="78" text-anchor="middle" dominant-baseline="central">orders</text>
+                      </g>
+                      <g class="trace-node bad">
+                        <rect x="288" y="62" width="84" height="32" rx="10" />
+                        <text x="330" y="78" text-anchor="middle" dominant-baseline="central">payments</text>
+                      </g>
+                      <g class="trace-node">
+                        <rect x="288" y="166" width="84" height="32" rx="10" />
+                        <text x="330" y="182" text-anchor="middle" dominant-baseline="central">wallet</text>
+                      </g>
+                      <g class="trace-node">
+                        <rect x="428" y="166" width="84" height="32" rx="10" />
+                        <text x="470" y="182" text-anchor="middle" dominant-baseline="central">provider</text>
+                      </g>
+                    </svg>
+                  </div>
+                  <div class="gfoot">
+                    <span>Reload</span><span class="trace-gf-rows">50 rows</span
+                    ><span class="pager"
+                      ><svg><use href="#i-chevleft" /></svg><span class="trace-gf-page">1–50</span><svg><use href="#i-chevright" /></svg></span
+                    ><span class="trace-gf-total">total 1,244</span><span class="trace-gf-ms">214 ms</span
+                    ><span class="right cols"
+                      ><svg><use href="#i-columns" /></svg>Columns</span
+                    >
+                  </div>
+                  <div class="veil trace-veil" hidden></div>
+                  <div class="dialog trace-dialog" role="dialog" aria-modal="true" aria-labelledby="trace-dialog-h" hidden>
+                    <h3 id="trace-dialog-h">
+                      <svg aria-hidden="true"><use href="#i-fingerprint" /></svg>Trace an ID across every stream
+                    </h3>
+                    <button type="button" class="x" aria-label="Close">
+                      <svg aria-hidden="true"><use href="#i-x" /></svg>
+                    </button>
+                    <label class="sr" for="trace-id">The id to trace</label>
+                    <div class="input">
+                      <input
+                        id="trace-id"
+                        type="text"
+                        value="req_7f3a9c2e"
+                        placeholder="Request id, trace id, order id, user id, e-mail…"
+                        spellcheck="false"
+                        autocomplete="off"
+                        autocapitalize="off"
+                      />
+                    </div>
+                    <p class="trace-miss" aria-live="polite"></p>
+                    <div class="foot">
+                      <label class="sr" for="trace-range">Range</label>
+                      <select id="trace-range" class="select-native">
+                        <option>Last hour</option>
+                        <option>Last 24 hours</option>
+                        <option>Last 7 days</option>
+                        <option>Last 30 days</option>
+                      </select>
+                      <button type="button" class="btn primary right trace-run">Trace</button>
+                    </div>
+                    <p class="help">
+                      Searched as text in every stream, oldest first. The lanes over the results show which service said what, and when it failed.
+                    </p>
+                  </div>
+                </div>
+                <div class="scene" data-scene="case">
+                  <div class="tabs">
+                    <span class="tab"
+                      ><span class="ico bad"
+                        ><svg><use href="#i-ep" /></svg></span
+                      >POST /v1/charges</span
+                    >
+                    <span class="tab"
+                      ><span class="ico"
+                        ><svg><use href="#i-stream" /></svg></span
+                      >payments</span
+                    >
+                    <span class="tab active"
+                      ><span class="ico"
+                        ><svg><use href="#i-fingerprint" /></svg></span
+                      >req_7f3a9c2e</span
+                    >
+                    <span class="icon more"
+                      ><svg><use href="#i-more" /></svg
+                    ></span>
+                  </div>
                   <div class="lanes">
                     <div class="lhead">
                       <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><b class="mono">req_7f3a9c2e</b
-                      ><span>3 streams · 10:42:09 → 10:42:17</span><span style="color: var(--red)">1 failed</span>
+                      ><span>3 streams · 10:42:09 → 10:42:17</span><span style="color: var(--red)">1 failed</span
+                      ><span class="case-found">found in <span class="chip case-chip">request_id 6</span></span
+                      ><span class="right">over the 6 rows on screen</span>
                     </div>
                     <div class="lane">
-                      <span>gateway</span><span class="cnt">1</span><i><u style="left: 4%"></u></i>
+                      <span>gateway</span><span class="cnt">2</span><i><u style="left: 2%"></u><u style="left: 98%"></u></i>
                     </div>
                     <div class="lane">
-                      <span>orders</span><span class="cnt">2</span><i><u style="left: 10%"></u><u style="left: 96%"></u></i>
+                      <span>orders</span><span class="cnt">2</span><i><u style="left: 5%"></u><u style="left: 95%"></u></i>
                     </div>
                     <div class="lane">
                       <span>payments</span><span class="cnt" style="color: var(--red)">2 · 1✕</span
-                      ><i><u style="left: 36%"></u><u class="bad" style="left: 94%"></u></i>
+                      ><i><u style="left: 8%"></u><u class="bad" style="left: 92%"></u></i>
                     </div>
                   </div>
-                  <div class="grid">
-                    <div class="tr"><span class="n">1</span><span>10:42:09</span><span class="lvl-info">INFO</span><span>POST /v1/orders</span></div>
-                    <div class="tr">
+                  <div class="grid" role="grid" aria-label="The request's lines, oldest first">
+                    <div class="hd"><span></span><span>timestamp</span><span>level</span><span>message</span></div>
+                    <div class="tr" tabindex="0" data-row="1" data-id="req_7f3a9c2e" data-stream="gateway" data-host="gateway-1">
+                      <span class="n">1</span><span>10:42:09</span><span class="lvl-info">INFO</span
+                      ><span>POST /v1/checkout accepted · req_7f3a9c2e</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
+                    </div>
+                    <div class="tr" tabindex="0" data-row="2" data-id="req_7f3a9c2e" data-stream="orders" data-host="orders-1">
                       <span class="n">2</span><span>10:42:09</span><span class="lvl-info">INFO</span><span>Order ord-10531 created</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
                     </div>
-                    <div class="tr">
-                      <span class="n">3</span><span>10:42:09</span><span class="lvl-info">INFO</span><span>Charging ord-10531</span>
+                    <div class="tr" tabindex="0" data-row="3" data-id="req_7f3a9c2e" data-stream="payments" data-host="payments-2">
+                      <span class="n">3</span><span>10:42:09</span><span class="lvl-info">INFO</span><span>Charging ord-10531 via provider</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
                     </div>
-                    <div class="tr sel">
-                      <span class="n">4</span><span>10:42:17</span><span class="lvl-error">ERROR</span><span>Charge failed: upstream timeout</span>
+                    <div class="tr sel" tabindex="0" data-row="4" data-id="req_7f3a9c2e" data-stream="payments" data-host="payments-2">
+                      <span class="n">4</span><span>10:42:17</span><span class="lvl-error">ERROR</span
+                      ><span>Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-fingerprint" /></svg>One ID, every service.
-                </h3>
-                <p>
-                  Paste a request id, a trace id or a user id and read its whole story across every stream, in order — the step that failed in red.
-                </p>
-                <p class="keys"><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>I</kbd></p>
-              </div>
-            </article>
-
-            <!-- investigate -->
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 240px; padding: 12px 14px">
-                  <div class="eyebrow-sm">Investigation</div>
-                  <div class="ititle">Charge failed for request 7f3a9c2e: upstream timeout after 8000ms</div>
-                  <div class="isub">payments · 10:42:17 · 41 times in the last hour</div>
-                  <div class="istep">
-                    <span class="ok"
-                      ><svg><use href="#i-check" /></svg></span
-                    >The request, across 3 services
-                  </div>
-                  <div class="istep">
-                    <span class="ok"
-                      ><svg><use href="#i-check" /></svg></span
-                    >Who else it hit: 41 requests, 2 hosts
-                  </div>
-                  <div class="istep">
-                    <span class="ok"
-                      ><svg><use href="#i-check" /></svg></span
-                    >Where it is logged: <span class="mono dim">ChargeService.php:237</span>
-                  </div>
-                  <div class="istep">
-                    <span class="ok"
-                      ><svg><use href="#i-check" /></svg></span
-                    >The commit behind it: <span class="mono dim">#412 retry provider calls</span>
-                  </div>
-                  <div class="istep"><span class="spin"></span>Handing the case to Claude Code…</div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-microscope" /></svg>From a log line to the fix.
-                </h3>
-                <p>
-                  Investigate gathers the request across services, who else it hits, the line of code that logged it and the commit behind it — then
-                  hands the case to Claude Code.
-                </p>
-              </div>
-            </article>
-
-            <!-- service map -->
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 240px">
-                  <svg viewBox="0 0 320 220" width="100%" height="100%" font-family="Inter, sans-serif" font-size="11">
-                    <defs>
-                      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M0 0L10 5 0 10z" fill="#6f737a" />
-                      </marker>
-                    </defs>
-                    <g stroke="#6f737a" stroke-width="1.2" fill="none" marker-end="url(#arr)">
-                      <path d="M86 70 L150 70" />
-                      <path d="M86 78 C120 120 140 140 186 140" />
-                      <path d="M214 70 L250 70" />
-                      <path d="M214 140 L250 110" stroke="#e55765" />
-                    </g>
-                    <g>
-                      <rect x="20" y="52" width="66" height="36" rx="8" fill="#26282c" stroke="#303337" />
-                      <text x="53" y="74" text-anchor="middle" fill="#dfe1e5">gateway</text>
-                      <rect x="150" y="52" width="64" height="36" rx="8" fill="#26282c" stroke="#303337" />
-                      <text x="182" y="74" text-anchor="middle" fill="#dfe1e5">orders</text>
-                      <rect x="186" y="122" width="76" height="36" rx="8" fill="#26282c" stroke="#e55765" />
-                      <text x="224" y="144" text-anchor="middle" fill="#dfe1e5">payments</text>
-                      <rect x="250" y="52" width="60" height="36" rx="8" fill="#26282c" stroke="#303337" />
-                      <text x="280" y="74" text-anchor="middle" fill="#dfe1e5">wallet</text>
-                      <rect x="250" y="92" width="60" height="30" rx="8" fill="#26282c" stroke="#303337" />
-                      <text x="280" y="111" text-anchor="middle" fill="#dfe1e5">provider</text>
-                    </g>
-                    <text x="20" y="200" fill="#6f737a">joined by request ids · 1,244 requests in the last hour</text>
-                  </svg>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-waypoints" /></svg>Your architecture, drawn from your logs.
-                </h3>
-                <p>The service map joins services by the ids they already log. No agent, no tracing library, nothing to install.</p>
-                <p class="keys"><kbd>⇧</kbd> <kbd>⌘</kbd> <kbd>M</kbd></p>
-              </div>
-            </article>
-
-            <!-- watch -->
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 214px">
-                  <div class="phead">
-                    Queries<span class="right seg"><b>Saved</b><span>History</span></span>
-                  </div>
-                  <div class="filter">
-                    <svg><use href="#i-filter" /></svg>Filter…
-                  </div>
-                  <div class="q">
-                    <div class="qt">
-                      <span class="watch"
-                        ><svg><use href="#i-alert" /></svg>1m</span
-                      >Payment errors
+                    <div class="tr" tabindex="0" data-row="5" data-id="req_7f3a9c2e" data-stream="orders" data-host="orders-1">
+                      <span class="n">5</span><span>10:42:17</span><span class="lvl-warn">WARN</span
+                      ><span>Order ord-10531 left pending: payment failed</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
                     </div>
-                    <div class="qq">level:ERROR</div>
-                    <div class="qs">orders</div>
-                  </div>
-                  <div class="q">
-                    <div class="qt">Slow checkouts</div>
-                    <div class="qq">route:checkout AND took_ms:&gt;2000</div>
-                    <div class="qs">gateway</div>
-                  </div>
-                  <div class="balloon">
-                    <svg class="bi" style="color: var(--amber)"><use href="#i-alert" /></svg>
-                    <div>
-                      <div class="bt">Payment errors</div>
-                      <div class="bm">3 new matches on orders</div>
-                      <span class="bb">Open</span>
+                    <div class="tr" tabindex="0" data-row="6" data-id="req_7f3a9c2e" data-stream="gateway" data-host="gateway-1">
+                      <span class="n">6</span><span>10:42:17</span><span class="lvl-info">INFO</span><span>POST /v1/checkout 502 in 8,067 ms</span>
+                      <button type="button" class="case-dots" tabindex="-1" aria-label="Row actions">
+                        <svg><use href="#i-more" /></svg>
+                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-bell" /></svg>Let Flux watch it.
-                </h3>
-                <p>
-                  Watch a saved query for new matches — or for silence, when a cron or a webhook stops arriving. The island under the notch keeps the
-                  score while you work elsewhere.
-                </p>
-              </div>
-            </article>
-
-            <!-- monitor -->
-            <article class="card">
-              <div class="preview reveal">
-                <div
-                  class="frame app"
-                  style="height: 240px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; align-content: start"
-                >
-                  <div class="island tile">
-                    <b>Throughput</b><span>1.2k<small>/min</small></span
-                    ><em>last 5 min</em>
-                  </div>
-                  <div class="island tile"><b>Error rate</b><span style="color: var(--red)">4.2%</span><em>52 of 1,244</em></div>
-                  <div class="island tile"><b>p95</b><span style="color: var(--amber)">8.9 s</span><em>took_ms</em></div>
-                  <div class="island tile" style="grid-column: span 3">
-                    <b>Failures that repeat</b>
-                    <div class="rep"><span class="mono">Charge failed for request … upstream timeout</span><span class="dim">61%</span></div>
-                    <div class="rep"><span class="mono">card declined</span><span class="dim">30%</span></div>
-                  </div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-activity" /></svg>A live Monitor.
-                </h3>
-                <p>
-                  Throughput, failures, error rate, p95, hosts, levels and the failures that repeat — for one stream or all of them, updating as the
-                  logs arrive.
-                </p>
-              </div>
-            </article>
-
-            <!-- search everywhere -->
-            <article class="card wide">
-              <div class="preview reveal">
-                <div class="frame app" style="height: 240px">
-                  <div class="stabs">
-                    <span class="active">All</span><span>Streams</span><span>Endpoints</span><span>Projects</span><span>Queries</span
-                    ><span>Actions</span>
-                  </div>
-                  <div class="sinput">
-                    <svg><use href="#i-search" /></svg><span class="typed">charg</span><span class="caret"></span>
-                  </div>
-                  <div class="sgroup">Endpoints</div>
-                  <div class="srow sel">
-                    <span class="ico bad"
-                      ><svg><use href="#i-ep" /></svg></span
-                    ><span class="mono">POST /v1/charges</span><span class="ssub">orders</span><span class="right">acme</span>
-                  </div>
-                  <div class="srow">
-                    <span class="ico"
-                      ><svg><use href="#i-ep" /></svg></span
-                    ><span class="mono">GET /v1/charges/{id}</span><span class="ssub">orders</span><span class="right">acme</span>
-                  </div>
-                  <div class="sgroup">Queries</div>
-                  <div class="srow">
-                    <span class="ico"
-                      ><svg class="li" style="width: 13px; height: 13px"><use href="#i-history" /></svg></span
-                    ><span class="mono">message:"Charge failed"</span><span class="ssub">orders</span><span class="right">42 rows</span>
-                  </div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-panels" /></svg>An IDE, not a search box.
-                </h3>
-                <p>
-                  Streams and endpoints in a tree, each with its own console and result grid. Lucene with completion over the stream's own fields, a
-                  value inspector, workspaces that remember your layout, and Search Everywhere for anything by name.
-                </p>
-                <p class="keys"><kbd>⇧</kbd> <kbd>⇧</kbd> &nbsp;·&nbsp; <kbd>⌘</kbd> <kbd>⏎</kbd></p>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="agents">
-        <div class="wrap">
-          <header class="halo">
-            <p class="eyebrow">Agents</p>
-            <h2>Hand it to Claude Code.</h2>
-            <p>
-              Flux is an MCP server. Turn it on from the status bar, paste one command into a terminal, and an agent reads your logs with Flux's own
-              tools — searching, counting, opening a query in front of you. Loopback only, behind a token, read-only.
-            </p>
-          </header>
-          <div class="cards" style="grid-template-columns: 1fr 1fr">
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app prose" style="height: 240px">
-                  <div class="ttabs">
-                    <span class="active">acme</span
-                    ><span class="icon"
-                      ><svg style="width: 13px; height: 13px"><use href="#i-plus" /></svg
-                    ></span>
-                  </div>
-                  <div class="term">
-                    <div>
-                      <span class="prompt">~/acme %</span> <span class="t">claude mcp add --transport http flux http://127.0.0.1:4319/mcp …</span>
+                  <div class="case-groups" hidden>
+                    <div class="xcols"><span>host</span><span>count</span><span>share</span></div>
+                    <div class="xrow">
+                      <span>gateway-1</span><span>2</span
+                      ><span class="share"
+                        ><i><u style="width: 33%"></u></i><span>33%</span></span
+                      >
                     </div>
-                    <div>Added HTTP MCP server flux to local config</div>
-                    <div><span class="prompt">~/acme %</span> <span class="t">claude</span></div>
-                    <div class="t" style="margin-top: 4px">› Why are orders failing since 10:40?</div>
-                    <div style="margin-top: 4px">
-                      <span style="color: var(--accent)">●</span> <span class="t">flux · search_logs</span>(streams: ["orders"], query: "level:ERROR",
-                      minutes: 30)
+                    <div class="xrow">
+                      <span>orders-1</span><span>2</span
+                      ><span class="share"
+                        ><i><u style="width: 33%"></u></i><span>33%</span></span
+                      >
                     </div>
-                    <div style="padding-left: 12px">⎿ 42 lines</div>
-                    <div>
-                      <span style="color: var(--accent)">●</span> <span class="t">flux · open_query</span>(stream: "orders", query: "level:ERROR")
-                    </div>
-                    <div class="t" style="margin-top: 4px">
-                      Payments started failing at 10:41. Most are <span style="color: var(--red)">card declined</span> (61%) and
-                      <span style="color: var(--red)">provider timeout</span> (30%) — the timeouts all come from payments-1. I opened the query in
-                      Flux for you.
+                    <div class="xrow">
+                      <span>payments-2</span><span>2</span
+                      ><span class="share"
+                        ><i><u style="width: 33%"></u></i><span>33%</span></span
+                      >
                     </div>
                   </div>
-                </div>
-              </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-terminal" /></svg>Your logs, in the agent's hands.
-                </h3>
-                <p>Connections, streams, searches, counts and endpoints as JSON. Tokens are never part of an answer.</p>
-              </div>
-            </article>
-            <article class="card">
-              <div class="preview reveal">
-                <div class="frame app prose" style="height: 240px; padding: 14px; background: #1a1b1e">
-                  <div class="islandcard">
-                    <div class="ih">
-                      <i class="dot" style="background: #e5534b"></i>
-                      <div>
-                        <div class="it">1 with new matches · 2 running</div>
-                        <div class="is">3 things going on in Flux</div>
+                  <div class="veil case-veil" hidden></div>
+                  <div
+                    class="dialog case-win"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="case-title"
+                    aria-describedby="case-sub"
+                    tabindex="-1"
+                    hidden
+                  >
+                    <button type="button" class="x" aria-label="Close">
+                      <svg><use href="#i-x" /></svg>
+                    </button>
+                    <div class="eyebrow-sm">Investigation</div>
+                    <div class="ititle" id="case-title">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</div>
+                    <div class="isub" id="case-sub">payments · 10:42:17 · ERROR</div>
+                    <div class="case-cards">
+                      <div class="case-card" data-busy="true" aria-busy="true">
+                        <div class="case-ct">The request across services<span class="spin"></span></div>
+                        <div class="case-cb">
+                          <div class="muted">request_id = <code>req_7f3a9c2e</code></div>
+                          <div class="case-lane"><i class="case-dot"></i><span>gateway</span><span class="case-cnt">2 lines</span></div>
+                          <div class="case-lane"><i class="case-dot"></i><span>orders</span><span class="case-cnt">2 lines</span></div>
+                          <div class="case-lane">
+                            <i class="case-dot bad"></i><span>payments</span><span class="case-cnt bad">2 lines · 1 failed</span>
+                          </div>
+                          <div class="case-fail">
+                            <div class="case-fail-h">first failure · payments</div>
+                            <div class="case-fail-m">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</div>
+                          </div>
+                        </div>
                       </div>
-                      <span class="ib"
-                        ><svg><use href="#i-pin" /></svg></span
-                      ><span class="ib"
-                        ><svg><use href="#i-chevup" /></svg
+                      <div class="case-card" data-busy="true" aria-busy="true">
+                        <div class="case-ct">How often, and who else<span class="spin"></span></div>
+                        <div class="case-cb">
+                          <div>
+                            <b class="case-big">148</b> <span class="muted">in the last hour ·</span> <b>148</b>
+                            <span class="muted">in the last 24 hours</span>
+                            <div class="muted">first seen 10:41:12</div>
+                          </div>
+                          <div>
+                            <b>148</b> <span class="muted">distinct request ids hit, in a sample of 148</span>
+                            <div class="case-share"><code>host=payments-2</code><span>88%</span></div>
+                            <div class="case-share"><code>version=v2.4.1</code><span>92%</span></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="case-card" data-busy="true" aria-busy="true">
+                        <div class="case-ct">The code<span class="spin"></span></div>
+                        <div class="case-cb">
+                          <div class="case-file">
+                            <svg><use href="#i-file-code" /></svg>src/Payments/ChargeService.php:237
+                          </div>
+                          <code class="case-line">throw new UpstreamTimeout("upstream timeout after {$ms}ms");</code>
+                          <span class="case-from">from the stack trace</span>
+                          <span class="case-blame">last changed by ada on 2026-10-14: <span class="muted">retry provider calls</span></span>
+                          <span class="case-pr"
+                            ><svg><use href="#i-git-pr" /></svg>#412 retry provider calls</span
+                          >
+                        </div>
+                      </div>
+                      <div class="case-card" data-busy="true" aria-busy="true">
+                        <div class="case-ct">Merged in the last 48 hours<span class="spin"></span></div>
+                        <div class="case-cb">
+                          <div class="case-merge">
+                            <svg><use href="#i-git-pr" /></svg><span>#412 retry provider calls</span><span class="case-when">today 10:38</span>
+                          </div>
+                          <div class="case-merge">
+                            <svg><use href="#i-git-pr" /></svg><span>#409 wallet holds expire after 15 min</span
+                            ><span class="case-when">yesterday 11:05</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="case-foot">
+                      <button type="button" class="btn case-copy">
+                        <svg><use href="#i-clipboard" /></svg>Copy report
+                      </button>
+                      <button type="button" class="btn case-trace">
+                        <svg><use href="#i-fingerprint" /></svg>Trace the request
+                      </button>
+                      <span class="case-hint" aria-live="polite">Still gathering…</span>
+                      <button type="button" class="btn primary case-ask" disabled>
+                        <svg><use href="#i-claude" /></svg>Ask Claude to fix
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="scene" data-scene="claude">
+                  <div class="claude-top">
+                    <div class="tabs">
+                      <span class="tab active" id="claude-tab"
+                        ><span class="ico bad"
+                          ><svg><use href="#i-ep" /></svg></span
+                        >POST /v1/charges</span
+                      >
+                      <span class="tab"
+                        ><span class="ico"
+                          ><svg><use href="#i-stream" /></svg></span
+                        >payments</span
+                      >
+                      <span class="icon more"
+                        ><svg><use href="#i-more" /></svg
                       ></span>
                     </div>
-                    <div class="ir">
-                      <i style="background: #e5534b"></i>
-                      <div>
-                        <div>Payment errors</div>
-                        <div class="mono">3 new on the last round</div>
-                      </div>
-                      <span class="chip" style="color: #e5534b; background: rgba(229, 83, 75, 0.18)">new matches</span><span class="ago">4s</span>
+                    <div class="ctb">
+                      <span class="tb24 run" style="color: var(--green)"
+                        ><svg style="width: 14px; height: 14px"><use href="#i-play" /></svg
+                      ></span>
+                      <span class="tb24"
+                        ><svg><use href="#i-rotate" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-save" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-radio" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-download" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-claude" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-link" /></svg
+                      ></span>
+                      <span class="sep tall"></span>
+                      <span class="select" id="claude-range"
+                        >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                      ><span class="tb24"
+                        ><svg><use href="#i-calendar" /></svg
+                      ></span>
+                      <span class="muted right">| group by field · ⌘⏎ to run</span>
                     </div>
-                    <div class="ir">
-                      <i style="background: #d97757"></i>
-                      <div>
-                        <div>search_logs</div>
-                        <div class="mono">query: level:ERROR · minutes: 30</div>
-                      </div>
-                      <span class="chip" style="color: #d97757; background: rgba(217, 119, 87, 0.18)">MCP call</span><span class="ago">now</span>
+                    <div class="code">
+                      <span class="gutter">1</span
+                      ><span class="line" id="claude-line"
+                        ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span
+                          class="s"
+                          >WARN</span
+                        ></span
+                      >
                     </div>
-                    <div class="ir">
-                      <i style="background: #e5a33a"></i>
-                      <div>
-                        <div>POST /v1/charges</div>
-                        <div class="mono">level:ERROR</div>
+                    <div class="timeline-wrap">
+                      <div class="tl-head">
+                        <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg><span class="tl-count">1,244 messages</span
+                        ><span style="color: var(--amber)">— p95 up to 8,900 ms</span><span style="color: var(--red)">— errors up to 41.0%</span
+                        ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
                       </div>
-                      <span class="chip" style="color: #e5a33a; background: rgba(229, 163, 58, 0.18)">running</span><span class="ago">2s</span>
+                      <div class="timeline" id="claude-bars">
+                        <span class="marker" style="left: 64.17%"><b title="#412 retry provider calls · 10:38"></b></span>
+                      </div>
+                    </div>
+                    <div class="grid" role="grid" id="claude-grid">
+                      <div class="hd"><span></span><span>timestamp</span><span>host</span><span>level</span><span>message</span></div>
+                      <div class="tr sel" tabindex="0" data-row="1" data-id="req_7f3a9c2e">
+                        <span class="n">1</span><span data-col="timestamp">10:42:17</span><span data-col="host">payments-2</span
+                        ><span class="lvl-error" data-col="level">ERROR</span
+                        ><span data-col="message">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                      </div>
+                      <div class="tr" tabindex="0" data-row="2" data-id="req_b81d04f6">
+                        <span class="n">2</span><span data-col="timestamp">10:42:16</span><span data-col="host">payments-2</span
+                        ><span class="lvl-error" data-col="level">ERROR</span
+                        ><span data-col="message">Charge failed for request req_b81d04f6: upstream timeout after 8000ms</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="claude-panel">
+                    <div class="ttabs">
+                      <span class="active">shop</span><span class="chip-demo">demo</span
+                      ><span class="icon"
+                        ><svg><use href="#i-plus" /></svg
+                      ></span>
+                    </div>
+                    <div
+                      class="term claude-term"
+                      id="claude-term"
+                      aria-label="A scripted terminal, drawn: the agent's run, then one Flux tool per question"
+                    >
+                      <div class="claude-in-line" id="claude-in-line" hidden>
+                        <span class="prompt">demo ›</span>
+                        <input
+                          class="claude-in"
+                          id="claude-in"
+                          type="text"
+                          autocomplete="off"
+                          autocapitalize="off"
+                          spellcheck="false"
+                          aria-label="A scripted terminal: runs one Flux tool, no model"
+                          placeholder="Try a tool: count the timeouts in the last 30 minutes"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="scene" data-scene="watch">
+                  <div class="watch-editor">
+                    <div class="watch-query">
+                      <div class="tabs">
+                        <span class="tab active"
+                          ><span class="ico bad"
+                            ><svg><use href="#i-ep" /></svg></span
+                          >POST /v1/charges</span
+                        >
+                        <span class="tab"
+                          ><span class="ico"
+                            ><svg><use href="#i-stream" /></svg></span
+                          >payments</span
+                        >
+                        <span class="icon more"
+                          ><svg><use href="#i-more" /></svg
+                        ></span>
+                      </div>
+                      <div class="ctb">
+                        <span class="tb24" style="color: var(--green)"
+                          ><svg style="width: 14px; height: 14px"><use href="#i-play" /></svg
+                        ></span>
+                        <span class="tb24"
+                          ><svg><use href="#i-rotate" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-save" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-radio" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-download" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-claude" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-link" /></svg
+                        ></span>
+                        <span class="sep tall"></span>
+                        <span class="select"
+                          >Last 1 hour<svg class="chevdown"><use href="#i-chevdown" /></svg></span
+                        ><span class="tb24"
+                          ><svg><use href="#i-calendar" /></svg
+                        ></span>
+                        <span class="muted right">| group by field · ⌘⏎ to run</span>
+                      </div>
+                      <div class="code">
+                        <span class="gutter">1</span
+                        ><span class="line watch-line"
+                          ><span class="k">level</span>:<span class="s">ERROR</span> <span class="dim">OR</span> <span class="k">level</span>:<span
+                            class="s"
+                            >WARN</span
+                          ></span
+                        >
+                      </div>
+                      <div class="timeline-wrap">
+                        <div class="tl-head">
+                          <svg class="li" style="width: 11px; height: 11px"><use href="#i-chevdown" /></svg
+                          ><span class="tl-count">1,244 messages</span><span style="color: var(--amber)">— p95 up to 8,900 ms</span
+                          ><span style="color: var(--red)">— errors up to 41.0%</span
+                          ><span class="right">drag to narrow the range · ⌥-drag to explain a spike</span>
+                        </div>
+                        <div class="timeline watch-timeline" data-bars>
+                          <span class="marker" style="left: 64.17%"
+                            ><b role="img" title="#412 retry provider calls · merged 10:38" aria-label="#412 retry provider calls · merged 10:38"></b
+                          ></span>
+                          <span class="marker watch-m418" style="left: 92.5%"
+                            ><b
+                              role="img"
+                              title="#418 retry only on connect errors · merged 10:55"
+                              aria-label="#418 retry only on connect errors · merged 10:55"
+                            ></b
+                          ></span>
+                        </div>
+                      </div>
+                      <div class="grid">
+                        <div class="hd"><span></span><span>timestamp</span><span>host</span><span>level</span><span>message</span></div>
+                        <div class="tr" data-row="1" data-id="req_7f3a9c2e">
+                          <span class="n">1</span><span data-col="timestamp">10:42:17</span><span data-col="host">payments-2</span
+                          ><span class="lvl-error" data-col="level">ERROR</span
+                          ><span data-col="message">Charge failed for request req_7f3a9c2e: upstream timeout after 8000ms</span>
+                        </div>
+                        <div class="tr" data-row="2" data-id="req_b81d04f6">
+                          <span class="n">2</span><span>10:42:16</span><span>payments-2</span><span class="lvl-error">ERROR</span
+                          ><span>Charge failed for request req_b81d04f6: upstream timeout after 8000ms</span>
+                        </div>
+                        <div class="tr" data-row="3" data-id="req_9c01aa7e">
+                          <span class="n">3</span><span>10:42:15</span><span>payments-1</span><span class="lvl-warn">WARN</span
+                          ><span>upstream slow: took 2314 ms · req_9c01aa7e</span>
+                        </div>
+                      </div>
+                      <div class="gfoot">
+                        <span>Reload</span><span>50 rows</span
+                        ><span class="pager"
+                          ><svg><use href="#i-chevleft" /></svg><span>1–50</span><svg><use href="#i-chevright" /></svg></span
+                        ><span>total 1,244</span><span>214 ms</span
+                        ><span class="right cols"
+                          ><svg><use href="#i-columns" /></svg>Columns</span
+                        >
+                      </div>
+                    </div>
+                    <div class="watch-mon" hidden>
+                      <div class="watch-mon-head">
+                        <span class="watch-mon-title">Monitor<b class="watch-beta">BETA</b></span
+                        ><span class="watch-live"><i></i>Live</span><span class="right muted">All streams · Last 15 minutes</span>
+                      </div>
+                      <div class="watch-tiles">
+                        <div class="island tile">
+                          <b>Throughput</b><span class="watch-num" data-to="79" data-unit="/min">79/min</span><em>1,188 in the window</em>
+                        </div>
+                        <div class="island tile">
+                          <b>Failures</b><span class="watch-num" style="color: var(--red)" data-to="12">12</span><em>0.8/min now</em>
+                        </div>
+                        <div class="island tile">
+                          <b>Error rate</b><span class="watch-num" style="color: var(--amber)" data-to="1.01" data-dec="2" data-unit="%">1.01%</span
+                          ><em>failures out of all messages</em>
+                        </div>
+                        <div class="island tile">
+                          <b>Latency p95</b><span class="watch-num" data-to="212" data-unit=" ms">212 ms</span><em>p50 48 ms, over 1,188 lines</em>
+                        </div>
+                        <div class="island tile"><b>Hosts</b><span class="watch-num" data-to="2">2</span><em>1 streams speaking</em></div>
+                      </div>
+                      <div class="island watch-panel">
+                        <div class="watch-panel-head">Failures that repeat<span class="muted">masked to their template</span></div>
+                        <div class="rep">
+                          <span class="mono">Charge failed for request … upstream timeout after 8000ms</span><span class="dim">71%</span>
+                        </div>
+                        <div class="rep"><span class="mono">card declined</span><span class="dim">29%</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="island watch-queries" role="group" aria-label="Queries">
+                    <div class="phead">
+                      Queries<span class="right seg"><b>Saved</b><span>History</span></span>
+                    </div>
+                    <div class="filter">
+                      <svg><use href="#i-filter" /></svg>Filter…
+                    </div>
+                    <div class="watch-list">
+                      <div class="watch-item" data-name="Payment errors" data-query="level:ERROR" data-stream="payments">
+                        <button type="button" class="q watch-qbtn">
+                          <span class="qt"
+                            ><span class="watch watch-badge" hidden
+                              ><svg aria-hidden="true"><use href="#i-alert" /></svg><span class="watch-badge-text">1m</span></span
+                            >Payment errors</span
+                          >
+                          <span class="qq">level:ERROR</span>
+                          <span class="qs">payments</span>
+                        </button>
+                        <button type="button" class="watch-more" aria-haspopup="menu" aria-label="More for Payment errors">⋯</button>
+                      </div>
+                      <div class="watch-item" data-name="Slow checkouts" data-query="route:checkout AND took_ms:>2000" data-stream="gateway">
+                        <button type="button" class="q watch-qbtn">
+                          <span class="qt"
+                            ><span class="watch watch-badge" hidden
+                              ><svg aria-hidden="true"><use href="#i-alert" /></svg><span class="watch-badge-text">1m</span></span
+                            >Slow checkouts</span
+                          >
+                          <span class="qq">route:checkout AND took_ms:&gt;2000</span>
+                          <span class="qs">gateway</span>
+                        </button>
+                        <button type="button" class="watch-more" aria-haspopup="menu" aria-label="More for Slow checkouts">⋯</button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div class="body">
-                <h3>
-                  <svg class="ti"><use href="#i-notch" /></svg>An island under the notch.
-                </h3>
-                <p>
-                  Running queries, watches with news, a deploy on the radar, a terminal command that just finished, the agent's calls — in a pill that
-                  grows out of the camera housing, over every app.
-                </p>
+              <div class="stripe" aria-hidden="true">
+                <span class="sb"
+                  ><svg><use href="#i-bell" /></svg
+                ></span>
+                <span class="sb"
+                  ><svg><use href="#i-panelright" /></svg
+                ></span>
+                <span class="sb"
+                  ><svg><use href="#i-bookmark" /></svg
+                ></span>
               </div>
-            </article>
+            </div>
+            <div class="status">
+              <span class="with-icon"
+                ><svg style="width: 11px; height: 11px" aria-hidden="true"><use href="#i-server" /></svg>acme</span
+              >
+              <span>POST /v1/charges</span>
+              <span id="stage-rows" aria-live="polite">1,244 rows · 214 ms</span>
+              <span class="right">
+                <span class="chip-demo">demo data</span>
+                <span class="meter"
+                  ><b>CPU</b><i><u style="width: 4%"></u></i>0.4%</span
+                >
+                <span class="meter"
+                  ><b>RAM</b><i><u style="width: 4%"></u></i>0.3%</span
+                >
+                <span>1 connections</span>
+                <span class="mcp" id="stage-mcp" title="MCP server"
+                  ><svg aria-hidden="true"><use href="#i-mcp" /></svg
+                ></span>
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+        </aside>
 
-      <section class="section" id="how">
-        <div class="wrap">
-          <header class="halo">
-            <p class="eyebrow">How it works</p>
-            <h2>Connect, explore, act.</h2>
-            <p>Three minutes from download to the first spike explained. Nothing to deploy, nothing to run on the server.</p>
-          </header>
-          <div class="steps">
-            <div class="step">
-              <span class="num">1</span>
-              <h3>
-                <svg class="ti"><use href="#i-server" /></svg>Connect a source
-              </h3>
-              <p>
-                A Graylog URL and token, Elasticsearch through Kibana, or a folder of local log files and Docker containers. The token stays on your
-                Mac.
-              </p>
-            </div>
-            <div class="step">
-              <span class="num">2</span>
-              <h3>
-                <svg class="ti"><use href="#i-search" /></svg>Explore
-              </h3>
-              <p>
-                Streams and endpoints appear as a tree, with request counts and error rates. Open one, type Lucene, press <kbd>⌘</kbd> <kbd>⏎</kbd>.
-                Save what you will need again.
-              </p>
-            </div>
-            <div class="step">
-              <span class="num">3</span>
-              <h3>
-                <svg class="ti"><use href="#i-zap" /></svg>Act
-              </h3>
-              <p>Explain the spike, trace the id, investigate to the fix, watch the query, hand the case to Claude Code — and ship.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="section" id="trust">
-        <div class="wrap">
-          <header class="halo">
-            <p class="eyebrow">Privacy</p>
-            <h2>Your logs never leave your Mac.</h2>
-            <p>Flux talks to your sources directly. There is no server of ours in between, and nothing of what you read is sent anywhere.</p>
-          </header>
-          <div class="trust">
-            <div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <rect x="4" y="11" width="16" height="10" rx="2" />
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-              </svg>
-              <h3>Tokens stay local</h3>
-              <p>Connections and their tokens live in one file on your Mac. They are never synced, exported or put in a link.</p>
-            </div>
-            <div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <h3>Read-only</h3>
-              <p>Flux only searches and aggregates. It never writes to Graylog, Kibana or Elasticsearch, and neither can an agent through it.</p>
-            </div>
-            <div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="M21 12a9 9 0 1 1-9-9" />
-                <path d="M21 3v6h-6" />
-              </svg>
-              <h3>Only preferences sync</h3>
-              <p>Sign in and your appearance and keymap follow you to every Mac. Queries, projects and log content do not.</p>
-            </div>
-            <div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
-              </svg>
-              <h3>Open source</h3>
-              <p>Apache 2.0, on GitHub. Read how it keeps your data, or build it yourself.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div class="wrap">
-        <section class="download" id="download">
-          <h2>Download Flux for macOS</h2>
-          <p>Free and open source. Apple silicon and Intel, macOS 13 or later. Updates install themselves.</p>
-          <div class="cta">
-            <a class="button primary" href="/download"
-              ><svg class="li"><use href="#i-download" /></svg>Download <span id="download-version"></span>.dmg</a
-            >
-            <a class="button" href="https://github.com/bozkurtemre/flux/releases"
-              ><svg class="li"><use href="#i-github" /></svg>All releases</a
-            >
-          </div>
-          <pre>xattr -dr com.apple.quarantine /Applications/Flux.app</pre>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 10px">
-            Flux is not yet signed with an Apple Developer ID, so macOS quarantines the first manual install; this clears the flag once. Updates Flux
-            downloads itself never carry it.
+        <section id="explain" class="explain ch" aria-labelledby="explain-h">
+          <p class="eyebrow"><b>10:43</b><span>Why this stretch?</span></p>
+          <h2 id="explain-h" tabindex="-1">Why this stretch?</h2>
+          <p class="body">
+            The timeline already shows where. Hold ⌥ and drag across the spike: Flux compares the stretch with the three times as long before it and
+            names what makes it different — the version, the host, the route — before you have written a query. Click a row and the console narrows to
+            it. Drag without ⌥ and the same gesture narrows the range instead.
           </p>
+          <div class="act">
+            <span class="hint">Hold</span>
+            <button class="kbd lg explain-key" type="button" aria-pressed="false" aria-label="Hold Option">⌥</button>
+            <span class="hint">and drag across the spike, or</span>
+            <button class="button small explain-run" type="button" data-tip-key="⌥-drag" data-tip-what="Explain">Explain 10:41 – 10:43</button>
+          </div>
+          <div class="done" aria-live="polite"></div>
+          <div class="margin">
+            <div>
+              <h4>Keys</h4>
+              <p>⌥ + drag · click a row to narrow · Esc closes the panel</p>
+            </div>
+            <div>
+              <h4>From the docs</h4>
+              <p>
+                With a project's GitHub repository set, the pull requests merged during the window are drawn on the timeline, so a spike that starts
+                just after one is a question with half its answer. The dashed line is #412, merged at 10:38.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="trace" class="trace ch" aria-labelledby="trace-h">
+          <p class="eyebrow"><b>10:44</b><span>One request, every service</span></p>
+          <h2 id="trace-h" tabindex="-1">One request, every service</h2>
+          <p class="body">
+            Take the id from the failing line. ⇧⌘I searches it as text in every stream of the connection at once and tells its story oldest first: a
+            lane per stream, a dot per line, the failure in red. Click a dot to read the line. The same ids, logged between your services, draw the
+            service map — no agent, no tracing library, nothing to install on the server.
+          </p>
+          <div class="act">
+            <span class="hint">Press <kbd>⇧</kbd><kbd>⌘</kbd><kbd>I</kbd> or</span>
+            <button type="button" class="button small trace-open" data-tip-key="⇧⌘I" data-tip-what="Trace an ID">Trace req_7f3a9c2e</button>
+            <button type="button" class="button small trace-map" aria-pressed="false" data-tip-key="⇧⌘M" data-tip-what="The service map">
+              Show the map
+            </button>
+          </div>
+          <div class="done" aria-live="polite"></div>
+          <div class="margin">
+            <div>
+              <h4>Keys</h4>
+              <p>⇧⌘I trace · ⇧⌘M map · ← → between dots</p>
+            </div>
+            <div>
+              <h4>From the docs</h4>
+              <p>
+                A request id, a trace id, an order id, a user id or an email — searched as text in every stream of a connection at once. From a row's
+                context menu, Follow this request does the same for the id in that row. Try
+                <button type="button" class="trace-try">ord-10531</button>.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="case" class="case ch" aria-labelledby="case-h">
+          <p class="eyebrow"><b>10:46</b><span>The case</span></p>
+          <h2 id="case-h" tabindex="-1">The case</h2>
+          <p class="body">
+            Right-click the line and choose Investigate. Flux gathers the request across services, how often it happened and who else it hit, the line
+            of code that logged it through the project's folder, and the commit that last changed that line. Then it hands the whole case to Claude
+            Code in the terminal — one click.
+          </p>
+          <div class="act">
+            <span class="hint">Right-click the red line and choose Investigate, or</span>
+            <button type="button" class="button small case-open">Investigate</button>
+          </div>
+          <div class="done" aria-live="polite"></div>
+          <div class="margin">
+            <div>
+              <h4>Keys</h4>
+              <p>right-click · Shift+F10 · ⋯ on the row</p>
+            </div>
+            <div>
+              <h4>From the docs</h4>
+              <p>
+                Investigate goes further for one error: the request across services, who else the same failure hit, where in the code the message is
+                logged — through the project's folder — and the commit that last changed that line. The case is Markdown; Copy report puts it on the
+                clipboard.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="claude" class="claude ch" aria-labelledby="claude-h">
+          <p class="eyebrow"><b>10:51</b><span>Handed to the terminal</span></p>
+          <h2 id="claude-h" tabindex="-1">Handed to the terminal</h2>
+          <p class="body">
+            The case lands in the terminal where Claude Code runs, with a brief: find the cause, fix it on a branch with a test that fails without it,
+            open a draft pull request. While it works, the agent reads your logs back through Flux — Flux is an MCP server with seven read-only tools,
+            listening on 127.0.0.1 behind a token it makes for you. One line adds it to Claude Code.
+          </p>
+          <ol class="claude-steps">
+            <li>
+              <b>1</b>
+              <div>
+                <p>
+                  <strong>Turn it on</strong> — click the MCP icon in the status bar and tick Enable MCP Server.
+                  <button type="button" class="claude-show" id="claude-show">Show me</button>
+                  <span class="claude-check" id="claude-check" role="img" aria-label="The MCP server is on" hidden
+                    ><svg><use href="#i-check" /></svg
+                  ></span>
+                </p>
+                <div class="claude-strip" id="claude-strip" aria-hidden="true" hidden>
+                  <span class="claude-strip-item"
+                    ><svg><use href="#i-server" /></svg>acme</span
+                  >
+                  <span class="claude-strip-item">POST /v1/charges</span>
+                  <span class="claude-strip-item">1,244 rows · 214 ms</span>
+                  <span class="claude-strip-right">
+                    <span class="chip-demo">demo data</span>
+                    <span class="claude-strip-mcp" id="claude-strip-mcp"
+                      ><svg><use href="#i-mcp" /></svg
+                    ></span>
+                  </span>
+                </div>
+              </div>
+            </li>
+            <li>
+              <b>2</b>
+              <div>
+                <p><strong>Add it to Claude Code</strong> —</p>
+                <div class="claude-cmd">
+                  <pre
+                    id="claude-pre"
+                  ><code id="claude-code">claude mcp add --transport http flux http://127.0.0.1:4319/mcp --header "Authorization: Bearer …"</code></pre>
+                  <button type="button" class="btn" id="claude-copy" aria-label="Copy the command">
+                    <svg><use href="#i-copy" /></svg>Copy
+                  </button>
+                </div>
+              </div>
+            </li>
+            <li>
+              <b>3</b>
+              <div>
+                <p><strong>Ask</strong> — <code>claude</code>, then a question.</p>
+              </div>
+            </li>
+          </ol>
+          <div class="act" role="group" aria-label="Flux's MCP tools: each one runs a sample question in the terminal">
+            <button type="button" class="claude-chip" data-tool="list_connections" title="the connections Flux has">
+              <svg><use href="#i-mcp" /></svg>list_connections
+            </button>
+            <button type="button" class="claude-chip" data-tool="list_streams" title="a connection's streams">
+              <svg><use href="#i-mcp" /></svg>list_streams
+            </button>
+            <button type="button" class="claude-chip" data-tool="search_logs" title="lines matching a Lucene query, over the last minutes">
+              <svg><use href="#i-mcp" /></svg>search_logs
+            </button>
+            <button type="button" class="claude-chip" data-tool="count_logs" title="how many lines match">
+              <svg><use href="#i-mcp" /></svg>count_logs
+            </button>
+            <button type="button" class="claude-chip" data-tool="list_endpoints" title="a stream's endpoints with request counts and error rates">
+              <svg><use href="#i-mcp" /></svg>list_endpoints
+            </button>
+            <button type="button" class="claude-chip" data-tool="current_view" title="what is open in Flux right now">
+              <svg><use href="#i-mcp" /></svg>current_view
+            </button>
+            <button type="button" class="claude-chip" data-tool="open_query" title="opens a query in Flux">
+              <svg><use href="#i-mcp" /></svg>open_query
+            </button>
+          </div>
+          <p class="note claude-note">
+            The run above is made up; the tools and their arguments are real. The agent's reasoning is the agent's, not Flux's. Loopback only, behind
+            a token, read-only.
+          </p>
+          <div class="done" aria-live="polite"></div>
+          <div class="margin">
+            <div>
+              <h4>Keys</h4>
+              <p>⌥F12 the terminal · ↑ recalls the last call</p>
+            </div>
+            <div>
+              <h4>From the docs</h4>
+              <p>Everything is read-only, and tokens are never part of an answer. open_query opens the query in Flux in front of you.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="watch" class="watch ch" aria-labelledby="watch-h">
+          <p class="eyebrow"><b>10:58</b><span>Keep an eye on it</span></p>
+          <h2 id="watch-h" tabindex="-1">Keep an eye on it</h2>
+          <p class="body">
+            Save the query, right-click it, Watch for new matches. While Flux is open it asks the query every minute — or the interval you choose —
+            and the island under the notch keeps the score over every app: new matches, a sound if you like, a row you can click. Turn it around with
+            Alert when › Nothing arrives, for a cron or a webhook that goes quiet. And when the fix merges, the island watches the ten minutes after
+            it.
+          </p>
+          <div class="act">
+            <span class="hint">Right-click the saved query, or</span>
+            <button type="button" class="button small watch-set">Watch for new matches</button>
+            <div class="watch-settings">
+              <label
+                >Alert when
+                <select class="select-native watch-when">
+                  <option>New matches arrive</option>
+                  <option>Nothing arrives in a round</option>
+                  <option>Fewer than 10 arrive in a round</option>
+                  <option>Fewer than 100 arrive in a round</option>
+                </select></label
+              >
+              <label
+                >Check every
+                <select class="select-native watch-every">
+                  <option>15 seconds</option>
+                  <option selected>A minute</option>
+                  <option>5 minutes</option>
+                  <option>15 minutes</option>
+                </select></label
+              >
+              <p class="note">A minute on this page is three seconds.</p>
+            </div>
+            <div class="watch-deploy">
+              <button type="button" class="button primary watch-merge" disabled>Merge #418</button>
+              <button type="button" class="watch-monitor link">Open Monitor (beta)</button>
+              <p class="note">The fix, #418, is reviewed and merged by a person. Flux draws the merge and watches the ten minutes after it.</p>
+            </div>
+          </div>
+          <div class="done" aria-live="polite"></div>
+          <div class="margin">
+            <div>
+              <h4>Keys</h4>
+              <p>right-click a saved query · Shift+F10 · ⋯</p>
+            </div>
+            <div>
+              <h4>From the docs</h4>
+              <p>
+                The island can be muted for an hour, and it asks to be left out of screen sharing. With a project's repository set, the pull requests
+                merged while a query ran are drawn on the timeline, and the island watches the ten minutes after each merge.
+              </p>
+            </div>
+          </div>
         </section>
       </div>
-    </main>
 
-    <footer class="footer">
-      <div class="wrap">
-        <span>© 2026 Emre Bozkurt · Flux is licensed under the Apache License 2.0</span>
-        <div class="links">
-          <a href="/docs/introduction"
-            ><svg class="li"><use href="#i-book" /></svg>Docs</a
+      <section id="ran" class="ran" aria-labelledby="ran-h">
+        <div class="wrap">
+          <p class="eyebrow"><b>11:02</b><span>Where this ran</span></p>
+          <h2 id="ran-h" tabindex="-1">On your Mac, against your sources.</h2>
+          <p class="lead">
+            Flux talks to Graylog, Kibana or your files from your Mac. Nothing you read is sent anywhere, and there is no server of ours between you
+            and your logs. Two things do reach us: a version check at launch and every hour, and — once you sign in — your appearance, keymap, console
+            and grid settings, so they follow you to another Mac.
+          </p>
+
+          <div class="ran-grid">
+            <!-- Settings › Connections, drawn -->
+            <div class="frame app ran-settings" role="group" aria-label="Flux, drawn: Settings, Connections">
+              <div class="titlebar">
+                <span class="lights"><i style="background: #ff5f57"></i><i style="background: #febc2e"></i><i style="background: #28c840"></i></span>
+                <span>Settings</span>
+              </div>
+              <div class="ran-body">
+                <div class="ran-side" aria-hidden="true">
+                  <div class="row">Account</div>
+                  <div class="row">Appearance</div>
+                  <div class="row sel">Connections</div>
+                  <div class="row">Projects</div>
+                  <div class="row">MCP Server</div>
+                  <div class="row">Updates</div>
+                </div>
+                <div class="ran-pane">
+                  <div class="tabs" role="tablist" aria-label="Source">
+                    <button
+                      class="tab active"
+                      type="button"
+                      role="tab"
+                      id="ran-tab-graylog"
+                      aria-selected="true"
+                      aria-controls="ran-form-graylog"
+                      data-kind="graylog"
+                    >
+                      Graylog
+                    </button>
+                    <button
+                      class="tab"
+                      type="button"
+                      role="tab"
+                      id="ran-tab-kibana"
+                      aria-selected="false"
+                      aria-controls="ran-form-kibana"
+                      data-kind="kibana"
+                      tabindex="-1"
+                    >
+                      Kibana
+                    </button>
+                    <button
+                      class="tab"
+                      type="button"
+                      role="tab"
+                      id="ran-tab-local"
+                      aria-selected="false"
+                      aria-controls="ran-form-local"
+                      data-kind="local"
+                      tabindex="-1"
+                    >
+                      Local
+                    </button>
+                  </div>
+
+                  <div class="ran-form" id="ran-form-graylog" role="tabpanel" aria-labelledby="ran-tab-graylog">
+                    <div class="ran-row"><span class="ran-label">Name</span><span class="ran-input w">acme</span></div>
+                    <div class="ran-row">
+                      <span class="ran-label">Source</span>
+                      <span class="select"
+                        >Graylog<svg class="chevdown" aria-hidden="true"><use href="#i-chevdown" /></svg
+                      ></span>
+                    </div>
+                    <div class="ran-row"><span class="ran-label">Graylog URL</span><span class="ran-input mono">https://graylog.acme.io</span></div>
+                    <div class="ran-row">
+                      <span class="ran-label">Access token</span>
+                      <span class="ran-field">
+                        <span class="ran-input mono">••••••••••••</span>
+                        <span class="ran-hint">Graylog profile › Edit tokens. Kept in connections.json on this machine, never in an export.</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="ran-form" id="ran-form-kibana" role="tabpanel" aria-labelledby="ran-tab-kibana" hidden>
+                    <div class="ran-row"><span class="ran-label">Name</span><span class="ran-input w">acme</span></div>
+                    <div class="ran-row">
+                      <span class="ran-label">Source</span>
+                      <span class="select"
+                        >Elasticsearch (Kibana)<svg class="chevdown" aria-hidden="true"><use href="#i-chevdown" /></svg
+                      ></span>
+                    </div>
+                    <div class="ran-row"><span class="ran-label">Kibana URL</span><span class="ran-input mono">https://kibana.acme.io</span></div>
+                    <div class="ran-row">
+                      <span class="ran-label">API key</span>
+                      <span class="ran-field">
+                        <span class="ran-input mono">••••••••••••</span>
+                        <span class="ran-hint"
+                          >Kibana › Stack Management › API keys, the Encoded value. Kept in connections.json on this machine, never in an
+                          export.</span
+                        >
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="ran-form" id="ran-form-local" role="tabpanel" aria-labelledby="ran-tab-local" hidden>
+                    <div class="ran-row"><span class="ran-label">Name</span><span class="ran-input w">acme</span></div>
+                    <div class="ran-row">
+                      <span class="ran-label">Source</span>
+                      <span class="select"
+                        >Local files &amp; Docker<svg class="chevdown" aria-hidden="true"><use href="#i-chevdown" /></svg
+                      ></span>
+                    </div>
+                    <div class="ran-row">
+                      <span class="ran-label">Folder</span>
+                      <span class="ran-field">
+                        <span class="ran-input mono">~/logs</span>
+                        <span class="ran-hint">
+                          A folder of logs — every .log, .jsonl and rotated .log.1 under it is a stream — or one file. Write docker to read the
+                          running containers instead.
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="ran-testrow">
+                    <button class="btn ran-test" type="button">Test Connection</button>
+                    <span class="ran-result" role="status" aria-live="polite"></span>
+                  </div>
+
+                  <p class="ran-warn">
+                    A connection's token is kept in connections.json in Flux's settings folder, in the clear, so that macOS does not ask for Keychain
+                    permission after every update. Treat the file like an SSH key: it is never synced, exported or put in a link.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- the ledger -->
+            <div class="ran-ledger">
+              <p class="ran-ledger-head" id="ran-ledger-h">Pick something you do in Flux, and read what crosses which line.</p>
+              <div class="ran-actions" role="radiogroup" aria-labelledby="ran-ledger-h">
+                <button class="btn" type="button" role="radio" aria-checked="true" data-action="search">Search</button>
+                <button class="btn" type="button" role="radio" aria-checked="false" data-action="watch" tabindex="-1">Watch</button>
+                <button class="btn" type="button" role="radio" aria-checked="false" data-action="trace" tabindex="-1">Trace</button>
+                <button class="btn" type="button" role="radio" aria-checked="false" data-action="claude" tabindex="-1">Ask Claude Code</button>
+                <button class="btn" type="button" role="radio" aria-checked="false" data-action="signin" tabindex="-1">Sign in</button>
+                <button class="btn" type="button" role="radio" aria-checked="false" data-action="update" tabindex="-1">Update</button>
+              </div>
+              <dl class="ran-lines" aria-live="polite">
+                <dt>Crossed</dt>
+                <dd>your query, to graylog.acme.io, with the token it needs</dd>
+                <dt>Stayed</dt>
+                <dd>the lines you read, rendered on your Mac</dd>
+                <dt>Reached us</dt>
+                <dd>nothing</dd>
+              </dl>
+
+              <div class="frame app ran-table">
+                <div class="phead" id="ran-table-h">Where your data lives</div>
+                <div class="grid" role="table" aria-labelledby="ran-table-h">
+                  <div class="hd" role="row">
+                    <span role="columnheader">what</span><span role="columnheader">where</span><span role="columnheader">syncs?</span>
+                  </div>
+                  <div class="tr" role="row">
+                    <span role="cell">Connections and their tokens</span
+                    ><span role="cell"><code>connections.json</code> in Flux's settings folder</span>
+                    <span role="cell" class="ran-never">never</span>
+                  </div>
+                  <div class="tr" role="row">
+                    <span role="cell">Projects, saved queries, history</span
+                    ><span role="cell">the settings folder, or a workspace's <code>.flux</code></span>
+                    <span role="cell" class="ran-never">never</span>
+                  </div>
+                  <div class="tr" role="row">
+                    <span role="cell">Streams and endpoints already seen</span><span role="cell">the cache folder</span>
+                    <span role="cell" class="ran-never">never</span>
+                  </div>
+                  <div class="tr" role="row">
+                    <span role="cell">Window layout, open tabs</span><span role="cell"><code>workspace.json</code>, this Mac only</span>
+                    <span role="cell" class="ran-never">never</span>
+                  </div>
+                  <div class="tr" role="row">
+                    <span role="cell">Appearance, keymap, console and grid settings</span><span role="cell">your account</span>
+                    <span role="cell" class="ran-yes">yes</span>
+                  </div>
+                </div>
+              </div>
+
+              <p class="ran-links">
+                <a href="/docs/data">Where your data lives →</a>
+                <a href="/privacy">Privacy Policy →</a>
+                <a href="/docs/shortcuts">Keyboard shortcuts →</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="download" class="download" aria-labelledby="download-h">
+        <div class="wrap download-grid">
+          <div class="download-text">
+            <p class="eyebrow"><b>11:02</b><span>All clear</span></p>
+            <h2 id="download-h" tabindex="-1">All clear. Yours next.</h2>
+            <p class="body">
+              Free and open source, under the Apache License 2.0. One universal build for Apple silicon and Intel, macOS 13 or later. Flux is not yet
+              signed with an Apple Developer ID, so a manual download is quarantined once: clear the flag with the line below and never think of it
+              again — Flux updates itself from then on.
+            </p>
+            <div class="download-cta">
+              <a class="button primary lg" id="download-dl" href="/download">
+                <svg class="li" aria-hidden="true"><use href="#i-download" /></svg>
+                <span id="download-dl-text">Download for macOS</span>
+              </a>
+              <a class="button lg" href="https://github.com/bozkurtemre/flux/releases">
+                <svg class="li" aria-hidden="true"><use href="#i-github" /></svg>
+                <span>All releases</span>
+              </a>
+            </div>
+            <p class="download-fine">Universal · Apple silicon and Intel · macOS 13 or later · Apache 2.0</p>
+            <div class="download-cmd">
+              <pre id="download-xattr"><code>xattr -dr com.apple.quarantine /Applications/Flux.app</code></pre>
+              <button type="button" class="button small download-copy" id="download-copy" aria-label="Copy the command">
+                <svg class="li" aria-hidden="true"><use href="#i-copy" /></svg>Copy
+              </button>
+            </div>
+            <p class="download-note">Clear the quarantine flag once, after the first manual install. Updates Flux downloads itself never carry it.</p>
+          </div>
+          <div class="download-figure">
+            <p class="download-version" id="download-version">macOS</p>
+            <p class="download-published" id="download-published">13 or later</p>
+            <ul class="download-checks" role="list">
+              <li>
+                <svg class="li" aria-hidden="true"><use href="#i-check" /></svg>
+                <span>Checks for a new version at launch and every hour</span>
+              </li>
+              <li>
+                <svg class="li" aria-hidden="true"><use href="#i-check" /></svg>
+                <span>Installs with one click and reopens where you left it</span>
+              </li>
+              <li>
+                <svg class="li" aria-hidden="true"><use href="#i-check" /></svg>
+                <span>An update Flux downloads itself never carries the quarantine flag</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="foot" id="foot">
+      <!-- tier 1 -->
+      <section class="foot-hour wrap" aria-labelledby="foot-hour-h">
+        <h2 id="foot-hour-h" class="sr">The hour, 10:00 to 11:00</h2>
+        <div
+          class="foot-track reveal"
+          id="foot-track"
+          role="group"
+          tabindex="0"
+          aria-label="The hour from 10:00 to 11:00, one bar a minute. Arrow keys move along it, Home and End jump, Escape clears."
+        >
+          <div class="timeline" id="foot-bars"></div>
+          <div class="marker" style="left: 64.17%" data-label="#412 retry provider calls · merged 10:38">
+            <b
+              tabindex="0"
+              role="img"
+              aria-label="#412 retry provider calls · merged 10:38"
+              data-label="#412 retry provider calls · merged 10:38"
+            ></b>
+          </div>
+          <div class="marker" style="left: 92.5%" data-label="#418 retry only on connect errors · merged 10:55">
+            <b
+              tabindex="0"
+              role="img"
+              aria-label="#418 retry only on connect errors · merged 10:55"
+              data-label="#418 retry only on connect errors · merged 10:55"
+            ></b>
+          </div>
+          <div class="foot-cur sr" id="foot-cur" aria-live="polite"></div>
+        </div>
+        <ol class="foot-ticks">
+          <li>
+            <a href="#hero"><b>10:41</b>spike</a>
+          </li>
+          <li>
+            <a href="#explain"><b>10:43</b>explained</a>
+          </li>
+          <li>
+            <a href="#trace"><b>10:44</b>traced</a>
+          </li>
+          <li>
+            <a href="#case"><b>10:46</b>the case</a>
+          </li>
+          <li>
+            <a href="#claude"><b>10:51</b>Claude Code</a>
+          </li>
+          <li>
+            <a href="#watch"><b>10:55</b>#418 merged</a>
+          </li>
+          <li>
+            <a href="#watch"><b>10:58</b>watching</a>
+          </li>
+          <li>
+            <a href="#download"><b>11:02</b>all clear</a>
+          </li>
+        </ol>
+        <p class="note">The incident on this page is made up: acme, its services, #412 and #418 do not exist. The tools do.</p>
+      </section>
+      <!-- tier 2 -->
+      <div class="foot-status wrap" role="contentinfo" aria-label="Status">
+        <span class="with-icon"
+          ><svg class="li" style="width: 11px; height: 11px"><use href="#i-server" /></svg>flux.emreb.dev</span
+        >
+        <span class="meter" title="Flux talks to your sources from your Mac; nothing you read is sent anywhere."
+          ><b>LOGS</b><i><u style="width: 0"></u></i>0 B sent</span
+        >
+        <span class="meter" title="Connections and their tokens never sync."
+          ><b>TOKENS</b><i><u style="width: 0"></u></i>0 synced</span
+        >
+        <span class="foot-typed">everything you typed on this page stayed in this tab</span>
+        <span class="right">
+          <span class="foot-version" id="foot-version"></span>
+          <span class="foot-ro with-icon"
+            ><svg class="li" style="width: 11px; height: 11px"><use href="#i-eye" /></svg>read-only</span
           >
-          <a href="https://github.com/bozkurtemre/flux"
-            ><svg class="li"><use href="#i-github" /></svg>GitHub</a
+          <button
+            class="mcp foot-mcp"
+            id="foot-mcp"
+            type="button"
+            aria-pressed="false"
+            aria-expanded="false"
+            aria-controls="foot-mcp-pop"
+            title="MCP Server"
           >
-          <a href="https://github.com/bozkurtemre/flux/releases">Changelog</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
+            <svg><use href="#i-mcp" /></svg>
+          </button>
+        </span>
+        <div class="foot-mcp-pop" id="foot-mcp-pop" role="dialog" aria-label="MCP Server" hidden>
+          <div class="ph">
+            <b>MCP Server</b
+            ><span class="ib"
+              ><svg><use href="#i-settings" /></svg
+            ></span>
+          </div>
+          <label><input type="checkbox" id="foot-mcp-on" /> Enable MCP Server</label>
+          <p class="mono url">http://127.0.0.1:4319/mcp</p>
+          <p class="dim">Manual client configuration</p>
+          <div class="row">
+            <button
+              class="btn"
+              id="foot-mcp-copy"
+              type="button"
+              disabled
+              data-copy='claude mcp add --transport http flux http://127.0.0.1:4319/mcp --header "Authorization: Bearer …"'
+            >
+              Copy command
+            </button>
+          </div>
+          <p class="muted">Read-only: connections, streams, searches and endpoints. Tokens are never part of an answer.</p>
+          <p class="muted page">This is the page's own status bar; in Flux the same switch starts the server.</p>
         </div>
       </div>
+      <!-- tier 3 -->
+      <section class="foot-legend wrap" id="legend" aria-labelledby="legend-h">
+        <p class="foot-eyebrow">Legend</p>
+        <h2 id="legend-h" tabindex="-1">The keys, as an IDE has them.</h2>
+        <ul class="foot-keys">
+          <li>
+            <a href="/docs/shortcuts" data-keys="shift shift"
+              ><span class="keys"><kbd>⇧</kbd><kbd>⇧</kbd></span
+              ><span class="what">Search Everywhere</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="shift+meta+o"
+              ><span class="keys"><kbd>⇧</kbd><kbd>⌘</kbd><kbd>O</kbd></span
+              ><span class="what">Go to endpoint</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+enter"
+              ><span class="keys"><kbd>⌘</kbd><kbd>⏎</kbd></span
+              ><span class="what">Run the query</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+r"
+              ><span class="keys"><kbd>⌘</kbd><kbd>R</kbd></span
+              ><span class="what">Run it again</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+s"
+              ><span class="keys"><kbd>⌘</kbd><kbd>S</kbd></span
+              ><span class="what">Save the query</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+w"
+              ><span class="keys"><kbd>⌘</kbd><kbd>W</kbd></span
+              ><span class="what">Close the tab</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+1-9"
+              ><span class="keys"><kbd>⌘</kbd><span class="range">1–9</span></span
+              ><span class="what">The tabs in order</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="shift+meta+i"
+              ><span class="keys"><kbd>⇧</kbd><kbd>⌘</kbd><kbd>I</kbd></span
+              ><span class="what">Trace an ID</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="shift+meta+m"
+              ><span class="keys"><kbd>⇧</kbd><kbd>⌘</kbd><kbd>M</kbd></span
+              ><span class="what">The service map</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="shift+meta+f"
+              ><span class="keys"><kbd>⇧</kbd><kbd>⌘</kbd><kbd>F</kbd></span
+              ><span class="what">Find in the results</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="alt+f12"
+              ><span class="keys"><kbd>⌥</kbd><kbd>F12</kbd></span
+              ><span class="what">The terminal</span></a
+            >
+          </li>
+          <li>
+            <a href="/docs/shortcuts" data-keys="meta+,"
+              ><span class="keys"><kbd>⌘</kbd><kbd>,</kbd></span
+              ><span class="what">Settings</span></a
+            >
+          </li>
+        </ul>
+        <p class="note">Click a button with a shortcut three times and Flux tells you the keys, once.</p>
+      </section>
+      <!-- tier 4 -->
+      <div class="foot-colophon wrap">
+        <div class="foot-brand-col">
+          <a class="foot-brand" href="/" aria-label="Flux, home">
+            <svg width="26" height="26" viewBox="0 0 128 128" aria-hidden="true">
+              <rect width="128" height="128" rx="29" fill="url(#teal)" />
+              <rect x="14" y="14" width="100" height="100" rx="15" fill="#111214" />
+              <path d="M46 40H82V52H57V58H75V69H57V87H46Z" fill="#ffffff" />
+            </svg>
+            Flux
+          </a>
+          <p>Flux — an IDE for logs. Free and open source, Apache 2.0.</p>
+          <p>© 2026 Emre Bozkurt.</p>
+        </div>
+        <div>
+          <h3>Product</h3>
+          <ul>
+            <li><a href="/#explain">The story</a></li>
+            <li><a href="/docs/introduction">Docs</a></li>
+            <li><a href="/docs/shortcuts">Keyboard shortcuts</a></li>
+            <li><a href="https://github.com/bozkurtemre/flux/releases">Changelog</a></li>
+            <li><a href="https://github.com/bozkurtemre/flux/releases">All releases</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Agents</h3>
+          <ul>
+            <li><a href="/docs/mcp">Claude Code and MCP</a></li>
+            <li><a href="/docs/data">Where your data lives</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Legal</h3>
+          <ul>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="https://github.com/bozkurtemre/flux">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="wrap"><div class="foot-mark" aria-hidden="true">Flux</div></div>
     </footer>
-
-    <script>
-      // the streams: the sign-in panel's waves, more of them and taller, across the whole sky
-      const NS = "http://www.w3.org/2000/svg";
-      const g = document.getElementById("streams");
-      const smooth = (pts) => {
-        const out = [`M${pts[0][0]},${pts[0][1].toFixed(1)}`];
-        for (let i = 0; i < pts.length - 1; i++) {
-          const [p0, p1, p2, p3] = [pts[i - 1] ?? pts[i], pts[i], pts[i + 1], pts[i + 2] ?? pts[i + 1]];
-          const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
-          const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
-          out.push(`C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1].toFixed(1)}`);
-        }
-        return out.join(" ");
-      };
-      for (let i = 0; i < 22; i++) {
-        const y = 120 + i * 38;
-        const amp = 70 + (i % 4) * 18;
-        const phase = i * 0.37;
-        const pts = [];
-        for (let x = -200; x <= 1900; x += 50) pts.push([x, y + Math.sin(x / 260 + phase) * amp + Math.sin(x / 110 + phase * 1.7) * amp * 0.22]);
-        const d = smooth(pts);
-        const path = document.createElementNS(NS, "path");
-        path.setAttribute("d", d);
-        path.setAttribute("fill", "none");
-        path.setAttribute("stroke", "url(#stream)");
-        path.setAttribute("stroke-width", i % 5 === 2 ? 1.6 : 0.8);
-        path.setAttribute("stroke-opacity", (0.1 + (i % 5 === 2 ? 0.3 : (i % 3) * 0.06)).toFixed(2));
-        g.append(path);
-        if (i % 4 === 1) {
-          const light = document.createElementNS(NS, "path");
-          light.setAttribute("d", d);
-          light.setAttribute("fill", "none");
-          light.setAttribute("stroke", "#8cf7e2");
-          light.setAttribute("stroke-width", "1.8");
-          light.setAttribute("stroke-opacity", "0.55");
-          light.setAttribute("stroke-linecap", "round");
-          light.setAttribute("pathLength", "1000");
-          light.setAttribute("stroke-dasharray", "60 940");
-          light.setAttribute("class", "flow");
-          light.style.animationDuration = `${8 + (i % 4) * 1.6}s`;
-          light.style.animationDelay = `${-i * 0.9}s`;
-          g.append(light);
-        }
-      }
-
-      // the timelines, as the app draws one: bars and, where asked, the spike picked out
-      const bars = (id, counts, spike) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const peak = Math.max(...counts);
-        counts.forEach((c, i) => {
-          const bar = document.createElement("i");
-          bar.style.height = `${Math.max(2, (c / peak) * 56)}px`;
-          bar.style.setProperty("--i", i);
-          if (spike && i >= spike[0] && i <= spike[1]) bar.className = "spike";
-          el.append(bar);
-        });
-      };
-      bars("hero-timeline", [22, 24, 21, 26, 25, 28, 27, 30, 29, 31, 30, 33, 46, 71, 92, 88, 64, 41, 33, 30, 29, 31, 28, 30, 27, 29, 26, 28]);
-      bars("explain-timeline", [5, 6, 5, 7, 6, 8, 6, 9, 22, 31, 27, 12, 8, 7, 9, 6, 5, 7, 6, 8], [8, 10]);
-
-      // a preview plays once it comes into view: its rows, bars and steps arrive in order
-      const seen = new IntersectionObserver(
-        (entries) => entries.forEach((e) => e.isIntersecting && (e.target.classList.add("in"), seen.unobserve(e.target))),
-        { threshold: 0.15 },
-      );
-      document.querySelectorAll(".reveal").forEach((el) => seen.observe(el));
-
-      // which version Download gives, from the manifest the app itself reads
-      fetch("/api/latest")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((v) => {
-          if (!v?.version) return;
-          document.getElementById("download-version").textContent = ` Flux ${v.version} `;
-          document.getElementById("version-line").textContent = `v${v.version} · Free and open source · macOS 13 or later · Apple silicon and Intel`;
-        })
-        .catch(() => {});
-    </script>
+    <script src="/site.js"></script>
   </body>
 </html>
