@@ -8,7 +8,7 @@
 
 Navigate your logs by structure instead of retyping filters.
 
-<img src="assets/screenshot.png" width="900" alt="Flux with two connections in the explorer" />
+<img src="assets/screenshot.png" width="900" alt="Flux with a connection's streams and endpoints in the explorer, and a spike on POST /v1/charges" />
 
 </div>
 
