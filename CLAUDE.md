@@ -22,12 +22,13 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - **Calls to a source go through `@tauri-apps/plugin-http`**, so they are issued from Rust,
   by `request()` in `src/lib/datasource.ts`. Do not reach for `window.fetch`; it would
   reintroduce CORS.
-- **A connection's token (a Graylog token or a Kibana API key) is kept in `connections.json`,
-  in the clear.** A deliberate reversal
-  of the credential store, recorded in `docs/adr/0005`, made because the Keychain asked for
-  permission after every update. `connections.json` is therefore a credential file: it must
-  not be committed, shared or synced, whatever the "worth sharing with a team" line in the
-  README once implied about it.
+- **A connection's token (a Graylog token or a Kibana API key) is kept in the login keychain**,
+  service `Flux`, the connection's id as the account (`src-tauri/src/secrets.rs`,
+  `src/lib/settings.ts`, `docs/adr/0012`). `connections.json` writes `secretStorage: "keychain"`
+  in its place, and keeps the token itself only when the keychain refused it, until a save
+  succeeds; so it is still not a file to commit, share or sync. The keychain lets in the build
+  that stored a token without asking only while the signature matches: releases are signed with
+  the Developer ID, and a dev build is asked once, so run `make dev-signed` against real tokens.
 - **Each source kind is an adapter, and the sources are the only backend.** A connection names
   its kind (Graylog, Elasticsearch through Kibana, or local files and Docker); `src/lib/datasource.ts` is the contract
   every adapter answers, and `clientFor()` in the store is the only place that picks one. Code

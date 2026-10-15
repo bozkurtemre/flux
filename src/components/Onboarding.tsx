@@ -1553,7 +1553,7 @@ function ConnectionSettings({ url, token }: { url: boolean; token: boolean }) {
                   {row(
                     "Access token",
                     input(token ? <Typed text="••••••••••••••••••••" ms={700} /> : null, true, token),
-                    "Graylog profile › Edit tokens. Kept in connections.json on this machine, never in an export.",
+                    "Graylog profile › Edit tokens. Kept in this Mac's keychain, never in an export.",
                   )}
                 </div>
                 <div className="mt-5 flex items-center gap-2 pl-[162px]">

@@ -29,8 +29,9 @@ Flux holds credentials and runs a webview that can start commands, so these matt
 
 ## Out of scope
 
-- **`connections.json` is readable by your user account.** Tokens are kept there in the clear,
-  on purpose; [docs/adr/0005](docs/adr/0005-the-token-lives-in-the-settings-file.md) explains
-  why. Protect the file the way you would an SSH key.
+- **Anything your user account can read.** Tokens are kept in the login keychain
+  ([docs/adr/0012](docs/adr/0012-the-token-lives-in-the-keychain-again.md)), which another app
+  can read only once you allow it, but software running as you that you have already allowed,
+  or a keychain you have unlocked for it, is beyond what Flux can protect against.
 - **Releases are not signed with an Apple Developer ID**, so macOS asks before the first launch.
 - **Anything that needs an attacker who already controls your user account.**

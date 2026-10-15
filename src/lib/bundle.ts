@@ -2,8 +2,8 @@
 // who has just installed Flux. What a project is — its name, its streams, its repository — is
 // the same for everybody on a team, and assembling it by hand is an afternoon.
 //
-// What it never carries is a token. `connections.json` is a credential (docs/adr/0005) and a
-// file made to be sent is the last place one belongs: a connection arrives as a name and a URL,
+// What it never carries is a token. Tokens live in the keychain (docs/adr/0012), and a file made
+// to be sent is the last place one belongs: a connection arrives as a name and a URL,
 // and whoever receives it pastes their own token into it.
 import type { SourceKind } from "./datasource";
 import type { Connection, Project, Settings } from "./settings";

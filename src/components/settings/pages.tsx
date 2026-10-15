@@ -774,7 +774,7 @@ export function ConnectionsPage({ s, patch, selectId }: { s: Settings; patch: Pa
                   </Row>
                   <Row
                     label={conn.kind === "kibana" ? "API key" : "Access token"}
-                    hint={`${SOURCE_KINDS[conn.kind].token} Kept in connections.json on this machine, never in an export.`}
+                    hint={`${SOURCE_KINDS[conn.kind].token} Kept in this Mac's keychain, never in an export.`}
                   >
                     <Text value={conn.token} onChange={(v) => field({ token: v })} type="password" mono />
                   </Row>

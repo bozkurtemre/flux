@@ -41,6 +41,7 @@ pub fn run() {
             cache::cache_clear,
             cache::cache_location,
             secrets::secret_get,
+            secrets::secret_set,
             secrets::secret_delete,
             terminal::terminal_open,
             terminal::terminal_write,

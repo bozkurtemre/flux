@@ -1,6 +1,7 @@
-// Persisted app settings. Tokens live in the Tauri store on this machine only.
+// Persisted app settings: the files in the config directory, and each connection's token in the
+// login keychain beside them.
 import { load, type Store } from "@tauri-apps/plugin-store";
-import { deleteSecret, getSecret } from "./secrets";
+import { deleteSecret, getSecret, setSecret } from "./secrets";
 import type { SourceKind } from "./datasource";
 import type { Ide } from "./source";
 import type { JiraSettings } from "./jira";
@@ -12,10 +13,12 @@ export interface Connection {
   kind: SourceKind;
   url: string;
   /**
-   * A Graylog access token or a Kibana API key, kept in `connections.json` in the clear.
-   * See docs/adr/0005.
+   * A Graylog access token or a Kibana API key. Held here while Flux runs and stored in the
+   * login keychain; `connections.json` keeps it only when the keychain refused it. See
+   * docs/adr/0012.
    */
   token: string;
+  /** Written into `connections.json` in the token's place: the keychain holds it. */
   secretStorage?: "keychain";
   /** The result grid's columns, in order, as this connection was last left. */
   columns?: string[];
@@ -228,9 +231,10 @@ export function withDefaults(saved: Partial<Settings> | null | undefined): Setti
 /**
  * One file per concern, as the IDE does, rather than one blob.
  *
- * `connections.json` and `projects.json` describe what you set up and are the two a team
- * could share; `preferences.json` is how you like the window. None of them carries a
- * secret. Machine-specific state lives in `workspace.json`, see workspace.ts.
+ * `connections.json` and `projects.json` describe what you set up; `preferences.json` is how
+ * you like the window. The tokens are in the keychain, though `connections.json` keeps one the
+ * keychain refused, so it is still not a file to share. Machine-specific state lives in
+ * `workspace.json`, see workspace.ts.
  */
 const FILES = {
   connections: "connections.json",
@@ -325,26 +329,70 @@ export async function loadSettings(): Promise<Settings> {
     needsWrite = !!legacy;
   }
 
-  // Tokens used to be kept by the credential store. Any still there are read back into the
-  // file and removed from it, so an existing install keeps working and stops being asked
-  // about the Keychain on every launch. See docs/adr/0005.
-  for (const c of merged.connections) {
-    if (c.token) continue;
-    const stored = await getSecret(c.id).catch(() => null);
-    if (!stored) continue;
-    c.token = stored;
-    c.secretStorage = undefined;
-    await deleteSecret(c.id).catch(() => {});
-    needsWrite = true;
-  }
+  // The tokens come out of the keychain. One still in the file, as every install before 0.36
+  // had them, or one the keychain refused before, is moved there by the save this load asks
+  // for. See docs/adr/0012.
+  await Promise.all(
+    merged.connections.map(async (c) => {
+      if (c.token) {
+        needsWrite = true;
+        return;
+      }
+      if (c.secretStorage !== "keychain") return;
+      const stored = await getSecret(c.id).catch(() => null);
+      if (!stored) return;
+      c.token = stored;
+      held.set(c.id, stored);
+    }),
+  );
 
   if (needsWrite) await saveSettings(merged);
   return merged;
 }
 
-/** The token is written with the rest of the connection, in the clear. See docs/adr/0005. */
+/** What the keychain holds for each connection, as far as this window knows: what it read or wrote. */
+const held = new Map<string, string>();
+
+/**
+ * What saving a connection asks of the keychain: to store a token it does not hold yet, to
+ * remove one the connection no longer has, or nothing. A connection without a token that the
+ * keychain was never seen holding is left alone, so a token that could not be read at launch
+ * is not taken for one that was removed.
+ */
+export function keychainStep(c: Pick<Connection, "token">, stored: string | undefined): "set" | "delete" | null {
+  if (c.token) return stored === c.token ? null : "set";
+  return stored === undefined ? null : "delete";
+}
+
+/**
+ * The connection as `connections.json` keeps it: without its token when the keychain holds it,
+ * with it when the keychain refused it (nothing is lost, and the next save tries again), and as
+ * it was when it has none.
+ */
+export function asFiled(c: Connection, stored: string | undefined): Connection {
+  if (c.token && stored === c.token) return { ...c, token: "", secretStorage: "keychain" };
+  if (c.token) return { ...c, secretStorage: undefined };
+  return c;
+}
+
+/** The token goes to the keychain, and the files get the rest. */
 export async function saveSettings(settings: Settings): Promise<void> {
-  const connections = settings.connections.map((c) => ({ ...c, secretStorage: undefined }));
+  const connections = await Promise.all(
+    settings.connections.map(async (c) => {
+      const step = keychainStep(c, held.get(c.id));
+      if (step === "set") {
+        await setSecret(c.id, c.token).then(
+          () => held.set(c.id, c.token),
+          () => {},
+        );
+      } else if (step === "delete") {
+        await deleteSecret(c.id).catch(() => {});
+        held.delete(c.id);
+        return { ...c, secretStorage: undefined };
+      }
+      return asFiled(c, held.get(c.id));
+    }),
+  );
   const { connections: _c, projects, ..._preferences } = settings;
   const preferences = { ..._preferences } as Omit<Settings, "connections" | "projects">;
   void _c;
@@ -358,7 +406,12 @@ export async function saveSettings(settings: Settings): Promise<void> {
 
 /** Called when a connection is deleted, so its token does not outlive it. */
 export async function forgetSecrets(removed: Connection[]): Promise<void> {
-  await Promise.all(removed.map((c) => deleteSecret(c.id).catch(() => {})));
+  await Promise.all(
+    removed.map(async (c) => {
+      await deleteSecret(c.id).catch(() => {});
+      held.delete(c.id);
+    }),
+  );
 }
 
 export function newConnection(): Connection {

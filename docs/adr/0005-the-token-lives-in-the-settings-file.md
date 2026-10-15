@@ -1,5 +1,8 @@
 # The Graylog token lives in the settings file
 
+Superseded by [0012](0012-the-token-lives-in-the-keychain-again.md): releases are signed with a
+Developer ID now, and the token is back in the keychain.
+
 Access tokens were kept in the OS credential store, and the settings file held only a
 pointer. The Keychain grants access to a binary rather than to an application: the grant is
 bound to the code signature, an unsigned build's identity is the hash of its own contents,

@@ -160,7 +160,7 @@ queries are never synced: they stay on the machine they were set up on. See `doc
 
 | What                 | Where              | Lost if deleted                                          |
 | -------------------- | ------------------ | -------------------------------------------------------- |
-| `connections.json`   | config directory   | your source URLs **and their tokens or API keys**        |
+| `connections.json`   | config directory   | your source URLs; their tokens are in the keychain       |
 | `projects.json`      | config directory   | how streams are grouped; worth sharing with a team       |
 | `preferences.json`   | config directory   | how you like the window                                  |
 | `session.json`       | config directory   | which tabs and branches were open with no workspace open |
@@ -171,11 +171,11 @@ queries are never synced: they stay on the machine they were set up on. See `doc
 | Introspection cache  | OS cache directory | nothing, it is re-read from the source                   |
 | Your preferences     | your Flux account  | nothing, this Mac keeps its own copy too                 |
 
-`connections.json` holds access tokens in the clear, so treat it as a credential: do not
-commit it, share it or put it anywhere that syncs. It is deliberately the one thing a
-workspace does not carry — a `.flux` directory usually sits in a git checkout, and a token
-there is one forgotten `.gitignore` line from being published. The cache directory is safe to
-delete at any time.
+The tokens and API keys are in your login keychain, under the name **Flux**, one entry per
+connection; `connections.json` notes only that they are there. It keeps a token itself when the
+keychain refused to store it, until it no longer does, so still do not commit or share it.
+Connections are deliberately the one thing a workspace does not carry — a `.flux` directory
+usually sits in a git checkout. The cache directory is safe to delete at any time.
 
 ## Development
 
@@ -231,15 +231,15 @@ Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security
 
-Access tokens are stored in `connections.json`, in the clear, next to the URL they belong
-to. They were kept in the operating system's credential store until 0.5.0; the Keychain
-asks permission of whichever binary is asking, and an unsigned update is a different binary
-every time, so the choice was between a prompt after every update and a file you have to
-look after. The reasoning is in [docs/adr/0005](docs/adr/0005-the-token-lives-in-the-settings-file.md).
+Access tokens are stored in the login keychain, one entry per connection, never in a file
+Flux writes. From 0.5.0 until 0.36.0 they were kept in `connections.json` instead: the keychain
+asks permission of whichever build is asking, and an unsigned update was a different build every
+time. Releases are signed with a Developer ID now, the signature the keychain remembers stays
+the same from one update to the next, and the tokens are back where they belong; an install from
+before moves them there on its first launch. The reasoning is in
+[docs/adr/0012](docs/adr/0012-the-token-lives-in-the-keychain-again.md).
 
-Protect that file the way you would an SSH key: it is readable by anything that can read
-your home directory, and it travels with any backup or sync that includes the config
-directory. Deleting a connection removes its token from the file.
+Deleting a connection removes its token from the keychain.
 
 Tokens are sent nowhere except the server they belong to. Flux only ever reads: it issues
 searches and aggregations, and never writes to Graylog, Kibana or Elasticsearch.
