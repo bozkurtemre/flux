@@ -33,5 +33,4 @@ Flux holds credentials and runs a webview that can start commands, so these matt
   ([docs/adr/0012](docs/adr/0012-the-token-lives-in-the-keychain-again.md)), which another app
   can read only once you allow it, but software running as you that you have already allowed,
   or a keychain you have unlocked for it, is beyond what Flux can protect against.
-- **Releases are not signed with an Apple Developer ID**, so macOS asks before the first launch.
 - **Anything that needs an attacker who already controls your user account.**

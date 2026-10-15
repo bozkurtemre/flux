@@ -21,11 +21,11 @@ Open **Settings › Connections** (⌘,) and add a connection. Each one names it
 
 **Test** asks the source for its version and its streams before you save.
 
-<Warning>
-  A connection's token is kept in `connections.json` in Flux's settings folder, in the clear, so that macOS does not ask for Keychain permission after
-  every update. Treat the file like an SSH key: it is never synced, exported or put in a link, but anything that can read your home folder can read
-  it.
-</Warning>
+<Note>
+  A connection's token is kept in your Mac's login keychain, one entry per connection under the name **Flux**, and never in a file Flux writes. It is
+  never synced, exported or put in a link. Signed releases keep the keychain's permission from one update to the next, so macOS does not ask for it
+  again.
+</Note>
 
 ## The tree
 

@@ -2063,7 +2063,7 @@
                       <span class="ran-label">Access token</span>
                       <span class="ran-field">
                         <span class="ran-input mono">••••••••••••</span>
-                        <span class="ran-hint">Graylog profile › Edit tokens. Kept in connections.json on this machine, never in an export.</span>
+                        <span class="ran-hint">Graylog profile › Edit tokens. Kept in this Mac's keychain, never in an export.</span>
                       </span>
                     </div>
                   </div>
@@ -2082,8 +2082,7 @@
                       <span class="ran-field">
                         <span class="ran-input mono">••••••••••••</span>
                         <span class="ran-hint"
-                          >Kibana › Stack Management › API keys, the Encoded value. Kept in connections.json on this machine, never in an
-                          export.</span
+                          >Kibana › Stack Management › API keys, the Encoded value. Kept in this Mac's keychain, never in an export.</span
                         >
                       </span>
                     </div>
@@ -2115,8 +2114,8 @@
                   </div>
 
                   <p class="ran-warn">
-                    A connection's token is kept in connections.json in Flux's settings folder, in the clear, so that macOS does not ask for Keychain
-                    permission after every update. Treat the file like an SSH key: it is never synced, exported or put in a link.
+                    A connection's token is kept in this Mac's login keychain, one entry per connection, never in a file Flux writes. It is never
+                    synced, exported or put in a link, and signed releases keep the keychain's permission from one update to the next.
                   </p>
                 </div>
               </div>
@@ -2150,7 +2149,7 @@
                   </div>
                   <div class="tr" role="row">
                     <span role="cell">Connections and their tokens</span
-                    ><span role="cell"><code>connections.json</code> in Flux's settings folder</span>
+                    ><span role="cell"><code>connections.json</code>, the tokens in your keychain</span>
                     <span role="cell" class="ran-never">never</span>
                   </div>
                   <div class="tr" role="row">
@@ -2189,9 +2188,8 @@
             <p class="eyebrow"><b>11:02</b><span>All clear</span></p>
             <h2 id="download-h" tabindex="-1">All clear. Yours next.</h2>
             <p class="body">
-              Free and open source, under the Apache License 2.0. One universal build for Apple silicon and Intel, macOS 13 or later. Flux is not yet
-              signed with an Apple Developer ID, so a manual download is quarantined once: clear the flag with the line below and never think of it
-              again — Flux updates itself from then on.
+              Free and open source, under the Apache License 2.0. One universal build for Apple silicon and Intel, macOS 13 or later, signed with an
+              Apple Developer ID and notarized by Apple: drag it to Applications and open it. Flux updates itself from then on.
             </p>
             <div class="download-cta">
               <a class="button primary lg" id="download-dl" href="/download">
@@ -2204,13 +2202,6 @@
               </a>
             </div>
             <p class="download-fine">Universal · Apple silicon and Intel · macOS 13 or later · Apache 2.0</p>
-            <div class="download-cmd">
-              <pre id="download-xattr"><code>xattr -dr com.apple.quarantine /Applications/Flux.app</code></pre>
-              <button type="button" class="button small download-copy" id="download-copy" aria-label="Copy the command">
-                <svg class="li" aria-hidden="true"><use href="#i-copy" /></svg>Copy
-              </button>
-            </div>
-            <p class="download-note">Clear the quarantine flag once, after the first manual install. Updates Flux downloads itself never carry it.</p>
           </div>
           <div class="download-figure">
             <p class="download-version" id="download-version">macOS</p>
@@ -2226,7 +2217,7 @@
               </li>
               <li>
                 <svg class="li" aria-hidden="true"><use href="#i-check" /></svg>
-                <span>An update Flux downloads itself never carries the quarantine flag</span>
+                <span>Signed with a Developer ID and notarized by Apple</span>
               </li>
             </ul>
           </div>

@@ -5394,34 +5394,6 @@ main.doc {
   color: var(--text-muted);
   font-size: var(--t-fine);
 }
-.download-cmd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 28px;
-}
-.download-cmd pre {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  padding: 9px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-editor);
-  color: var(--text-dim);
-  font: 12.5px/1.5 var(--font-mono);
-  overflow-x: auto;
-}
-.download-copy {
-  flex: none;
-}
-.download-note {
-  margin-top: 10px;
-  max-width: 56ch;
-  color: var(--text-muted);
-  font-size: var(--t-fine);
-  line-height: 1.55;
-}
 /* the figure column: the version as the hero's em, published beneath, a hairline, three rows */
 .download-figure {
   container-type: inline-size;

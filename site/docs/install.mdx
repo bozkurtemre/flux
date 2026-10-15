@@ -5,20 +5,13 @@ description: Download Flux, open it once, and let it update itself from then on.
 
 <Steps>
   <Step title="Download">
-    Get the latest `.dmg` from [flux.emreb.dev/download](https://flux.emreb.dev/download) and drag Flux to `/Applications`. Flux is a universal build: Apple silicon and Intel, macOS 13 or later.
-  </Step>
-  <Step title="Clear the quarantine flag">
-    Flux is not yet signed with an Apple Developer ID, so macOS quarantines a manual download and offers nothing but "Move to Trash". Clear the flag once:
-
-    ```sh
-    xattr -dr com.apple.quarantine /Applications/Flux.app
-    ```
-
-    Updates that Flux downloads itself never carry the flag.
-
+    Get the latest `.dmg` from [flux.emreb.dev/download](https://flux.emreb.dev/download), drag Flux to `/Applications` and open it. Flux is a
+    universal build: Apple silicon and Intel, macOS 13 or later, signed with an Apple Developer ID and notarized by Apple, so macOS opens it like any
+    other app.
   </Step>
   <Step title="Sign in">
-    Flux asks you to sign in with an email link or code, or with GitHub or Google. The account holds only your synced preferences; see [Where your data lives](/data).
+    Flux asks you to sign in with an email link or code, or with GitHub or Google. The account holds only your synced preferences; see [Where your
+    data lives](/data).
   </Step>
 </Steps>
 

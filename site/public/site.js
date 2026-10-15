@@ -1234,7 +1234,6 @@
   if (!se || !input || !listEl || typeof se.showModal !== "function") return;
   const tabs = [...se.querySelectorAll(".stabs [role=tab]")];
   const go = (id) => (F.go ? F.go(id) : (location.href = `/#${id}`));
-  const XATTR = "xattr -dr com.apple.quarantine /Applications/Flux.app";
   const CHAPTERS = [
     [
       "hero",
@@ -1268,20 +1267,6 @@
   const ACTIONS = landing
     ? [
         { title: "Download Flux for macOS", href: "/download" },
-        {
-          title: "Copy the install command",
-          sub: XATTR,
-          run: () => {
-            const done = F.copy
-              ? F.copy(XATTR)
-              : navigator.clipboard
-                ? navigator.clipboard.writeText(XATTR).then(() => true)
-                : Promise.resolve(false);
-            Promise.resolve(done)
-              .then((ok) => ok && F.tip?.("Copied", XATTR))
-              .catch(() => {});
-          },
-        },
         {
           title: "Trace “req_7f3a9c2e” across every stream",
           trailing: "⇧⌘I",
@@ -4264,9 +4249,6 @@
   const version = document.getElementById("download-version");
   const published = document.getElementById("download-published");
   const label = document.getElementById("download-dl-text");
-  const copy = document.getElementById("download-copy");
-  const command = document.getElementById("download-xattr");
-  const COMMAND = "xattr -dr com.apple.quarantine /Applications/Flux.app";
   const latest = flux.latest && typeof flux.latest.then === "function" ? flux.latest : Promise.resolve(null);
 
   let cancel = null;
@@ -4279,8 +4261,6 @@
     if (version) version.textContent = final;
   };
   flux.chapters.register(el, { clock: "11:02", label: "All clear", leave: settle });
-
-  if (copy) copy.addEventListener("click", () => flux.copy(COMMAND, copy, command));
 
   latest.then((v) => {
     if (v && v.version && label) label.textContent = `Download Flux ${v.version} for macOS`;
