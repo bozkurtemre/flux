@@ -422,6 +422,47 @@ kbd.down {
 .sky .flow {
   animation: flow 9s linear infinite;
 }
+/* log lines drifting through the sky, now and then a deploy among them (site.js): a texture of data
+   behind the page, not something to read; faint, slow, and softened like the streams */
+.sky-logs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: blur(0.8px);
+  pointer-events: none;
+}
+.sky-log {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.01em;
+  color: rgba(223, 225, 229, 0.12);
+  will-change: transform;
+}
+.sky-log .t {
+  color: rgba(223, 225, 229, 0.08);
+}
+.sky-log .warn {
+  color: rgba(217, 163, 67, 0.22);
+}
+.sky-log .error {
+  color: rgba(229, 87, 101, 0.26);
+}
+.sky-log.deploy {
+  font-size: 13px;
+  color: rgba(140, 247, 226, 0.3);
+}
+.sky-log.deploy b {
+  font-weight: 600;
+  color: rgba(140, 247, 226, 0.42);
+}
+@media (max-width: 640px) {
+  .sky-log {
+    font-size: 10.5px;
+  }
+}
 .sky .fade {
   position: absolute;
   inset: 0;
@@ -4946,20 +4987,20 @@ main.doc {
   }
 }
 
-/* ==== line: an interstitial between the story and where it ran ==== */
-.line {
+/* ==== motto: an interstitial between the story and where it ran ==== */
+.motto {
   width: min(1120px, 100% - 48px);
   margin: 0 auto;
   padding: 140px 0 20px;
   text-align: center;
 }
-.line-tiles {
+.motto-tiles {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 }
-.line-tile {
+.motto-tile {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4972,36 +5013,36 @@ main.doc {
     opacity 700ms var(--ease),
     color 240ms ease;
 }
-.line-tile.sm {
+.motto-tile.sm {
   width: 48px;
   height: 48px;
   border-radius: 13px;
 }
-.line-tile.md {
+.motto-tile.md {
   width: 58px;
   height: 58px;
   border-radius: 15px;
 }
-.line-tile.lg {
+.motto-tile.lg {
   width: 76px;
   height: 76px;
   border: 0;
   background: none;
   filter: drop-shadow(0 14px 32px rgba(34, 200, 178, 0.28));
 }
-.line-tile.sm svg {
+.motto-tile.sm svg {
   width: 22px;
   height: 22px;
 }
-.line-tile.md svg {
+.motto-tile.md svg {
   width: 26px;
   height: 26px;
 }
-.line-tile.lg svg {
+.motto-tile.lg svg {
   width: 76px;
   height: 76px;
 }
-.line-text {
+.motto-text {
   margin-top: 40px;
   font-size: clamp(30px, 3.6vw, 52px);
   text-wrap: balance;
@@ -5015,7 +5056,7 @@ main.doc {
     transform 800ms var(--ease) 220ms,
     opacity 800ms var(--ease) 220ms;
 }
-.line-text em {
+.motto-text em {
   font-style: normal;
   /* the second sentence never breaks: it wraps as a whole onto the next line */
   white-space: nowrap;
@@ -5026,31 +5067,31 @@ main.doc {
   text-shadow: none;
 }
 /* before it is seen: the tiles gather toward Flux, the sentence waits below; .in plays it once */
-.line.pending .line-tile {
+.motto.pending .motto-tile {
   opacity: 0;
   transform: translateY(10px) scale(0.86);
 }
-.line.pending .line-text {
+.motto.pending .motto-text {
   opacity: 0;
   transform: translateY(14px);
 }
-.line .line-tile.md {
+.motto .motto-tile.md {
   transition-delay: 90ms;
 }
-.line .line-tile.sm {
+.motto .motto-tile.sm {
   transition-delay: 170ms;
 }
-.line .line-tile:not(.lg):hover {
+.motto .motto-tile:not(.lg):hover {
   color: rgba(223, 225, 229, 0.8);
 }
 @media (max-width: 640px) {
-  .line {
+  .motto {
     padding-top: 96px;
   }
-  .line-tiles {
+  .motto-tiles {
     gap: 8px;
   }
-  .line-text {
+  .motto-text {
     margin-top: 28px;
   }
 }

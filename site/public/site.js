@@ -1,3 +1,107 @@
+// log lines drifting through the sky behind the landing page, and now and then a deploy with the lines it
+// brings: the shop of the story, logging. Made of the story's own names; faint, slow, a few at a time,
+// paused while the tab is hidden, and left out entirely under reduced motion.
+(() => {
+  const sky = document.querySelector(".sky");
+  if (!sky || !document.getElementById("story") || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const layer = document.createElement("div");
+  layer.className = "sky-logs";
+  layer.setAttribute("aria-hidden", "true");
+  sky.insertBefore(layer, sky.querySelector(".fade"));
+
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  const id = () => Math.random().toString(16).slice(2, 10);
+  const ord = () => `ord-${10000 + Math.floor(Math.random() * 9999)}`;
+  const ms = (a, b) => a + Math.floor(Math.random() * (b - a));
+  // [weight, level, host, message]
+  const LINES = [
+    [6, "INFO", "gateway-1", () => `GET /v1/products/${ms(1000, 9999)} 200 in ${ms(6, 60)} ms`],
+    [4, "INFO", "gateway-2", () => `GET /v1/cart 200 in ${ms(4, 30)} ms`],
+    [4, "INFO", "orders-1", () => `Order ${ord()} created`],
+    [3, "INFO", "payments-1", () => `Charge captured for ${ord()}: ${ms(9, 240)}.${ms(10, 99)} EUR`],
+    [3, "INFO", "wallet-1", () => `Hold placed for ${ord()}`],
+    [2, "INFO", "gateway-1", () => `POST /v1/checkout accepted · req_${id()}`],
+    [2, "WARN", "payments-2", () => `upstream slow: took ${ms(2100, 4800)} ms`],
+    [1, "WARN", "payments-2", () => `Provider call timed out, retrying 1/2`],
+    [1, "ERROR", "payments-2", () => `Charge failed: upstream timeout after 8000ms`],
+    [1, "ERROR", "gateway-2", () => `POST /v1/checkout 502 in ${ms(8040, 8090)} ms`],
+  ];
+  const bag = LINES.flatMap((l) => Array(l[0]).fill(l));
+  const DEPLOYS = [
+    ["shop", "v2.4.2", "#418 retry only on connect errors"],
+    ["shop", "v2.4.3", "#421 cache product images"],
+    ["wallet", "v0.9.8", "#57 holds expire after 15 min"],
+    ["gateway", "v3.12.1", "#203 rate limit per token"],
+  ];
+  let clock = (10 * 60 + 30) * 60; // 10:30:00, the story's morning
+  const stamp = () => {
+    clock += ms(1, 9);
+    const t = clock % 86400;
+    return [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60].map((n) => String(n).padStart(2, "0")).join(":");
+  };
+  const span = (cls, text) => {
+    const s = document.createElement("span");
+    if (cls) s.className = cls;
+    s.textContent = text;
+    return s;
+  };
+
+  let live = 0;
+  const most = () => (matchMedia("(max-width: 640px)").matches ? 4 : 7);
+  const float = (el, y, seconds, under = 0) => {
+    layer.append(el);
+    live++;
+    const w = el.getBoundingClientRect().width;
+    const leftward = Math.random() < 0.5;
+    const from = leftward ? innerWidth + 40 : -w - 40;
+    const to = leftward ? -w - 40 : innerWidth + 40;
+    el.style.top = `${y}px`;
+    const run = el.animate([{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }], {
+      duration: seconds * 1000,
+      easing: "linear",
+    });
+    // the lines there when the page opens are already on their way across
+    run.currentTime = under * seconds * 1000;
+    run.onfinish = () => {
+      el.remove();
+      live--;
+    };
+  };
+  const logLine = (y, seconds = ms(26, 42), under = 0) => {
+    const [, level, host, text] = pick(bag);
+    const el = document.createElement("div");
+    el.className = "sky-log";
+    el.append(span("t", `${stamp()}  `), span("", `${host.padEnd(11)}`), span(level.toLowerCase(), `${level.padEnd(6)}`), span("", text()));
+    float(el, y ?? ms(60, innerHeight - 40), seconds, under);
+  };
+  const deploy = () => {
+    const [service, version, pr] = pick(DEPLOYS);
+    const el = document.createElement("div");
+    el.className = "sky-log deploy";
+    const what = document.createElement("b");
+    what.textContent = `${service} ${version}`;
+    el.append(span("", "▲ deploy "), what, span("", `  ${pr} · merged`));
+    const y = ms(90, innerHeight - 120);
+    float(el, y, ms(30, 38));
+    // the lines it brings, close behind it
+    [1, 2, 3].forEach((n) => setTimeout(() => !document.hidden && logLine(y + n * 20, ms(30, 38)), n * 900));
+  };
+
+  let nextDeploy = performance.now() + ms(6000, 12000);
+  const tick = () => {
+    if (!document.hidden) {
+      if (performance.now() >= nextDeploy) {
+        deploy();
+        nextDeploy = performance.now() + ms(20000, 40000);
+      } else if (live < most()) logLine();
+    }
+    setTimeout(tick, ms(2200, 4200));
+  };
+  // a few already on their way when the page opens
+  for (let i = 0; i < 4; i++) logLine(undefined, ms(26, 42), 0.15 + Math.random() * 0.6);
+  setTimeout(tick, 2500);
+})();
+
 // the reading lane (site.css): how far into the chapters the page is, as --lane from 0 to 1. Nothing at the
 // top of the page; it rises over the first 140px of scroll, so the hero is covered as soon as the reader
 // moves, and falls while the story's bottom climbs from 85% to 40% of the window, going out with the last.
@@ -3988,10 +4092,10 @@
   render();
 })();
 
-// ==== line ====
+// ==== motto ====
 // the interstitial plays once, when it is first seen: Flux first, then the sources beside it, then the sentence
 (() => {
-  const el = document.getElementById("line");
+  const el = document.getElementById("motto");
   if (!el || !window.flux || flux.reduced) return;
   el.classList.add("pending");
   flux.reveal(el, () => requestAnimationFrame(() => el.classList.remove("pending")));
