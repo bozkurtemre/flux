@@ -3,6 +3,22 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.37.0
+
+This update is required: every older copy installs it before it can be used again.
+
+### Added
+
+- The query console completes values: after `field:` it offers the values that field holds in
+  the streams and window being searched, most frequent first, with how often each occurs. Picking
+  one writes it quoted, ready to run.
+
+### Fixed
+
+- Escape closes Settings, discarding what was changed, as Cancel does. A dropdown or a
+  confirmation open in front of it closes first.
+- Double Shift, ⇧⌘F and ⇧⌘O no longer open Search Everywhere behind Settings or another dialog.
+
 ## 0.36.0
 
 This update is required: every older copy installs it before it can be used again, so every Mac
