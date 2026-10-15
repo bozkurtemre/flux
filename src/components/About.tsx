@@ -15,11 +15,12 @@ export function About() {
   const setOpen = setShowAbout;
   const [tauri, setTauri] = useState("");
 
+  // listening only while open: closing what is already closed still writes to the store, and
+  // that write re-rendered everything under it in the middle of every Escape
   useEffect(() => {
-    if (open) {
-      void getVersion().then(setVersion);
-      void getTauriVersion().then(setTauri);
-    }
+    if (!open) return;
+    void getVersion().then(setVersion);
+    void getTauriVersion().then(setTauri);
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

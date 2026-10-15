@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 import { Button, Indexing } from "./controls";
 import { findAll } from "@/lib/find";
@@ -177,13 +177,18 @@ export function SettingsDialog() {
     setShowSettings(false);
   };
 
+  // Escape is Cancel, unless a menu or a confirmation opened from a page is in front: that
+  // closes instead. Subscribed once, before anything a page opens, so this runs first and still
+  // finds it there; a listener renewed on every render could be dropped by a render the same key
+  // caused, and the window would ignore the key.
+  const onEscape = useEffectEvent(() => {
+    if (!document.querySelector("[data-menu],[data-modal]")) cancel();
+  });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") cancel();
-    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, []);
 
   // what each page says, read once from the pages themselves, so a search finds a setting by
   // the words on it and not only by the name of the page it is on
