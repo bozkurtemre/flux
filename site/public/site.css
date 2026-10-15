@@ -5682,6 +5682,8 @@ main.doc {
   background-clip: text;
   color: transparent;
   user-select: none;
+  /* decoration: the glyphs rise above their line box, over the colophon's last links, and must not take their clicks */
+  pointer-events: none;
 }
 
 /* the footer at tablet and phone widths (§2.3) */
