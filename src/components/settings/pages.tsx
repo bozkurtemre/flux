@@ -628,7 +628,7 @@ export function KeymapPage() {
       {groups.map((g) => (
         <Section key={g} title={g}>
           {SHORTCUTS.filter((s) => s.group === g).map((s) => (
-            <div key={s.action} className="flex items-center gap-3 py-[3px]">
+            <div key={s.keys} className="flex items-center gap-3 py-[3px]">
               <span className="w-[190px] shrink-0 text-right text-[13px]">{s.action}</span>
               <span
                 className="rounded px-1.5 py-0.5 font-[var(--font-mono)] text-[12px]"
