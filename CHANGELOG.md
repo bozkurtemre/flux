@@ -3,6 +3,21 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.38.0
+
+### Added
+
+- The Connection Explorer's button on the left hides the explorer when it is already open, and
+  the editor takes the room. Clicked again, the explorer comes back at the width it had.
+- The value inspector marks the value under the pointer with a grey box, and Copy value in its
+  right-click menu copies all of it, without selecting it first.
+
+### Fixed
+
+- The Connection Explorer keeps the width it was dragged to, through hiding it and through a
+  relaunch, and opens at that width straight away.
+- Dragging the Connection Explorer's edge no longer stutters while a console is open.
+
 ## 0.37.0
 
 This update is required: every older copy installs it before it can be used again.
