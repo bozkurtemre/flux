@@ -111,9 +111,9 @@ function HistoryList() {
               e.preventDefault();
               setMenu({ x: e.clientX, y: e.clientY, id: h.id });
             }}
-            className="flex cursor-default flex-col gap-0.5 px-2 py-1.5"
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "")}
+            className="flex cursor-default flex-col gap-0.5 px-2 py-1.5 hover:bg-[var(--bg-hover)]"
+            // the row its menu is open on stays marked while the pointer is on the menu
+            style={{ background: menu?.id === h.id ? "var(--bg-hover)" : undefined }}
           >
             <span className="truncate font-[var(--font-mono)] text-[11px]" style={{ color: "var(--text)" }} title={h.query}>
               {h.query || "*"}
@@ -249,10 +249,8 @@ function SavedList() {
                   quietBelow: q.quietBelow,
                 });
               }}
-              className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5"
-              style={{ background: current === q.id ? "var(--bg-active)" : undefined }}
-              onMouseEnter={(e) => current !== q.id && (e.currentTarget.style.background = "var(--bg-hover)")}
-              onMouseLeave={(e) => current !== q.id && (e.currentTarget.style.background = "")}
+              className="group flex cursor-default flex-col gap-0.5 px-2 py-1.5 hover:bg-[var(--bg-hover)]"
+              style={{ background: current === q.id ? "var(--bg-active)" : menu?.id === q.id ? "var(--bg-hover)" : undefined }}
             >
               <div className="flex items-center gap-1.5">
                 {q.watch && (
