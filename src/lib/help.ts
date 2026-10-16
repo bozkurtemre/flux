@@ -76,6 +76,7 @@ A console line is a Lucene query, as Graylog and Elasticsearch both read it, fol
 - \`| group by httpStatusCode\` — one table: each value, and how many messages carried it.
 - \`| group by route | group by source\` — one table each, above the messages.
 - \`| group by method, route\` — two tables, not one over both: the pair times out on a busy stream.
+- **⋮** at the end of a table's header exports that table alone, as CSV or JSON.
 
 ## Patterns
 

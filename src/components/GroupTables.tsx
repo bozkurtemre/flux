@@ -7,9 +7,10 @@
 // change: the clause that was asked, and the count that came back. What it is not is the
 // same component: no virtualiser, no sorting, no columns to drag, no footer.
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardCopy, FileSearch, SquarePen } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardCopy, FileSearch, MoreVertical, SquarePen } from "lucide-react";
 import { ContextMenu } from "./ContextMenu";
 import { NUM_W, defaultWidth, render } from "./ResultGrid";
+import { exportItems } from "./QueryConsole";
 import { messageField, patternsOf } from "@/lib/patterns";
 import { parseQuery } from "@/lib/query";
 import { useApp, type GroupResult, type Tab } from "@/store";
@@ -31,15 +32,15 @@ export function GroupTables({ tab }: { tab: Tab }) {
   if (!groups.length && !patterns) return null;
   return (
     <div className="flex shrink-0 flex-col overflow-auto" style={{ maxHeight: "50%", borderBottom: "1px solid var(--border)" }}>
-      {patterns && <GroupTable key="patterns" group={patterns} counted={tab.page?.rows.length} tabId={tab.id} />}
+      {patterns && <GroupTable key="patterns" group={patterns} title={tab.title} counted={tab.page?.rows.length} tabId={tab.id} />}
       {groups.map((g) => (
-        <GroupTable key={g.field} group={g} />
+        <GroupTable key={g.field} group={g} title={tab.title} />
       ))}
     </div>
   );
 }
 
-function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: number; tabId?: string }) {
+function GroupTable({ group, title, counted, tabId }: { group: GroupResult; title: string; counted?: number; tabId?: string }) {
   // a pattern is a problem with a name, which is most of what an issue is
   const [menu, setMenu] = useState<{ x: number; y: number; template: string; count: number; sample: string } | null>(null);
   const r = useApp((s) => s.settings.results);
@@ -49,6 +50,7 @@ function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: n
   // collapsed it is a header and nothing else, so several clauses can be stacked and only
   // the one being read left open
   const [open, setOpen] = useState(true);
+  const [exporting, setExporting] = useState<{ x: number; y: number; right: number } | null>(null);
   const line = `${r.rowHeight}px`;
   const width = defaultWidth(group.field);
   const rows = useMemo(() => {
@@ -96,6 +98,18 @@ function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: n
             count
             {arrow("count")}
           </div>
+          {/* this table alone, in the order it is sorted on screen */}
+          <button
+            onClick={(e) => {
+              const b = e.currentTarget.getBoundingClientRect();
+              setExporting({ x: b.left, y: b.bottom + 4, right: b.right });
+            }}
+            disabled={!!group.error || !rows.length}
+            data-tip="Export this table"
+            className="sticky right-0 ml-auto flex w-[26px] shrink-0 items-center justify-center bg-[var(--bg-tool)] hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
+          >
+            <MoreVertical size={13} style={{ color: "var(--text-dim)" }} />
+          </button>
         </div>
 
         {!open ? null : group.error ? (
@@ -153,6 +167,19 @@ function GroupTable({ group, counted, tabId }: { group: GroupResult; counted?: n
           ))
         )}
       </div>
+      {exporting && (
+        <ContextMenu
+          x={exporting.x}
+          y={exporting.y}
+          flipX={exporting.right}
+          items={exportItems(
+            `${title} by ${group.field}`,
+            { columns: [group.field, "count"], rows: rows.map((row) => ({ [group.field]: row.value, count: row.count })) },
+            [group.field, "count"],
+          )}
+          onClose={() => setExporting(null)}
+        />
+      )}
       {menu && tabId && (
         <ContextMenu
           x={menu.x}

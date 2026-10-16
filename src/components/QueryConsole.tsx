@@ -12,7 +12,7 @@ import { autocompletion } from "@codemirror/autocomplete";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { CalendarClock, Download, Link2, Play, Radio, RotateCw, Save } from "lucide-react";
-import { QUICK_RANGES, absolute } from "@/lib/datasource";
+import { QUICK_RANGES, absolute, type MessagePage } from "@/lib/datasource";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
 import { consoleCompletion } from "@/lib/complete";
@@ -79,16 +79,16 @@ function resultJson(tab: Tab): string {
   return tab.page ? toJson(tab.page, columns) : "[]";
 }
 
-/** The results as they are on screen, written where the save dialog says. */
-function exportItems(tab: Tab): MenuItem[] {
-  const columns = tab.layout?.length ? tab.layout : (tab.page?.columns ?? []);
+/** A table as it is on screen — the results, or a group by's counts — written where the save
+ *  dialog says. */
+export function exportItems(title: string, page: MessagePage | undefined, columns: string[]): MenuItem[] {
   const write = async (format: "csv" | "json") => {
-    if (!tab.page) return;
-    const path = await saveDialog({ defaultPath: exportName(tab.title, format) });
+    if (!page) return;
+    const path = await saveDialog({ defaultPath: exportName(title, format) });
     if (!path) return;
-    const contents = format === "csv" ? toCsv(tab.page, columns) : toJson(tab.page, columns);
+    const contents = format === "csv" ? toCsv(page, columns) : toJson(page, columns);
     await invoke("save_file", { path, contents });
-    useApp.getState().notify("info", "Export", `${tab.page.rows.length.toLocaleString()} rows written.`);
+    useApp.getState().notify("info", "Export", `${page.rows.length.toLocaleString()} rows written.`);
   };
   const run = (format: "csv" | "json") => () =>
     void write(format).catch((e: unknown) => useApp.getState().notify("error", "Export", failureReason(e)));
@@ -248,7 +248,14 @@ export function QueryConsole({ tab }: { tab: Tab }) {
         >
           <Download size={13} style={{ color: "var(--text-dim)" }} />
         </button>
-        {exporting && <ContextMenu x={exporting.x} y={exporting.y} items={exportItems(tab)} onClose={() => setExporting(null)} />}
+        {exporting && (
+          <ContextMenu
+            x={exporting.x}
+            y={exporting.y}
+            items={exportItems(tab.title, tab.page, tab.layout?.length ? tab.layout : (tab.page?.columns ?? []))}
+            onClose={() => setExporting(null)}
+          />
+        )}
         <button
           onClick={() => void sendToClaude(resultJson(tab))}
           disabled={!tab.page?.rows.length}
