@@ -3,6 +3,20 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.41.0
+
+### Added
+
+- Each group by table, and the patterns table, has a ⋮ at the end of its header that exports
+  that table alone, as CSV or JSON, in the order it is sorted on screen.
+
+### Fixed
+
+- A local log, a container and a Kibana data view no longer offer Graylog's Copy Stream ID and
+  Copy Graylog URL. A data view's menu copies its name, id and Discover URL; a local log its
+  file name and path, a container its name, and a local connection its folder.
+- A row in History or Saved Queries stays marked while its right-click menu is open.
+
 ## 0.40.1
 
 ### Added
