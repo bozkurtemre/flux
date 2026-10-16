@@ -63,8 +63,9 @@ notary() { xcrun notarytool "$@" --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_AP
 say "releasing $tag from this machine"
 
 # ------------------------------------------------------------------------------ the tag itself
-# the GitHub release hangs off it; both pushes do nothing when they are already there
-git push origin HEAD
+# the GitHub release hangs off it; both pushes do nothing when they are already there. The tag
+# checked out on its own, as the check above suggests, has no branch to push, only the tag
+if git symbolic-ref -q HEAD >/dev/null; then git push origin HEAD; fi
 git push origin "$tag"
 
 # -------------------------------------------------------------------------------- the checks
