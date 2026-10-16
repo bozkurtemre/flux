@@ -21,6 +21,7 @@ import {
 import { Chevron, ConnectionIcon, EndpointIcon, ProjectIcon, Spinner, StreamIcon } from "./icons";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
 import { useApp, visibleRows, type TreeNode } from "@/store";
+import { DOCKER } from "@/lib/local";
 
 export function ConnectionExplorer() {
   const state = useApp();
@@ -105,7 +106,12 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
       },
       { separator: true },
       { label: "Copy Name", icon: clip, onClick: () => copy(node.label) },
-      { label: "Copy URL", icon: clip, onClick: () => copy(conn?.url ?? "") },
+      // a local connection is a folder or a file, or docker, which has nothing to copy
+      ...(conn?.kind !== "local"
+        ? [{ label: "Copy URL", icon: clip, onClick: () => copy(conn?.url ?? "") }]
+        : conn.url.trim().toLowerCase() === DOCKER
+          ? []
+          : [{ label: "Copy Path", icon: clip, onClick: () => copy(conn.url.trim()) }]),
       { separator: true },
       {
         label: "Delete…",
@@ -141,19 +147,41 @@ function menuFor(node: TreeNode, ask: (c: { title: string; message: string; run:
   }
 
   if (node.kind === "stream") {
-    return [
+    const head: MenuItem[] = [
       { label: "Open Query Console", icon: console_, shortcut: "↵", onClick: openIt },
       { label: "Refresh Endpoints", icon: refresh, shortcut: "⌘R", onClick: () => void app.refresh(node.id) },
       { separator: true },
+    ];
+    // a local stream is a file under the connection's folder, or a container: it has no id or
+    // page of its own to copy
+    if (conn?.kind === "local") {
+      const root = conn.url.trim().replace(/\/+$/, "");
+      if (root.toLowerCase() === DOCKER) return [...head, { label: "Copy Container Name", icon: clip, onClick: () => copy(node.label) }];
+      return [
+        ...head,
+        { label: "Copy File Name", icon: clip, onClick: () => copy(node.label) },
+        // a connection to one file names the file itself; to a folder, the folder the name is under
+        { label: "Copy Path", icon: clip, onClick: () => copy(root.endsWith(`/${node.label}`) ? root : `${root}/${node.label}`) },
+      ];
+    }
+    // what Kibana lists is a data view, with its own id and its page in Discover
+    if (conn?.kind === "kibana") {
+      return [
+        ...head,
+        { label: "Copy Data View Name", icon: clip, onClick: () => copy(node.label) },
+        { label: "Copy Data View ID", icon: clip, onClick: () => copy(node.streamId ?? "") },
+        {
+          label: "Copy Discover URL",
+          icon: clip,
+          onClick: () => copy(`${conn.url}/app/discover#/?_a=(dataSource:(dataViewId:'${node.streamId}',type:dataView))`),
+        },
+      ];
+    }
+    return [
+      ...head,
       { label: "Copy Stream Name", icon: clip, onClick: () => copy(node.label) },
       { label: "Copy Stream ID", icon: clip, onClick: () => copy(node.streamId ?? "") },
-      conn?.kind === "kibana"
-        ? {
-            label: "Copy Discover URL",
-            icon: clip,
-            onClick: () => copy(`${conn.url}/app/discover#/?_a=(dataSource:(dataViewId:'${node.streamId}',type:dataView))`),
-          }
-        : { label: "Copy Graylog URL", icon: clip, onClick: () => copy(`${conn?.url ?? ""}/streams/${node.streamId}/search`) },
+      { label: "Copy Graylog URL", icon: clip, onClick: () => copy(`${conn?.url ?? ""}/streams/${node.streamId}/search`) },
     ];
   }
 
