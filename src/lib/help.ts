@@ -8,7 +8,7 @@ export const GETTING_STARTED = `# Getting started
 
 - **Settings › Connections** takes a Graylog URL and an access token, or a Kibana URL and an API key for logs in Elasticsearch. The token stays in this Mac's keychain.
 - No server at all? **＋ Local** takes a folder of log files — JSON lines, Laravel, logfmt or plain — or \`docker\` for the running containers, and the same console, timeline and tools work on them.
-- **Settings › Projects › Add from export** takes a set-up file a teammate sent: their projects and saved queries, without their tokens.
+- **Connections › Import connections…** takes a set-up file a teammate sent: their connections, projects and saved queries, without their tokens. **Export connections…** makes one.
 
 ## Find what you need
 

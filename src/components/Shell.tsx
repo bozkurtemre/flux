@@ -6,6 +6,8 @@ import {
   Gauge,
   Bug,
   ChevronDown,
+  FileInput,
+  FileOutput,
   Folder,
   FolderOpen,
   FolderX,
@@ -26,6 +28,7 @@ import {
 import { Logo } from "./Logo";
 import { McpIcon } from "./icons";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { TransferWizard } from "./TransferWizard";
 import { useApp } from "@/store";
 import { failureReason } from "@/lib/progress";
 import { reportProblem } from "./HelpWindow";
@@ -42,6 +45,7 @@ export function TitleBar() {
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [connections, setConnections] = useState<{ x: number; y: number } | null>(null);
   const [workspaces, setWorkspaces] = useState<{ x: number; y: number } | null>(null);
+  const [transfer, setTransfer] = useState<"import" | "export" | null>(null);
   const [home, setHome] = useState("");
   const { workspaceFolder, recentWorkspaces, openWorkspace, closeWorkspace } = useApp();
 
@@ -81,6 +85,10 @@ export function TitleBar() {
   // Flux keeps no connection open, so these are about what the window knows: re-read what is
   // on screen, forget it, or forget it and fetch it again.
   const connectionItems: MenuItem[] = [
+    // a set-up file in or out, a step at a time, without going through Settings
+    { label: "Import connections…", icon: <FileInput size={12} />, onClick: () => setTransfer("import") },
+    { label: "Export connections…", icon: <FileOutput size={12} />, onClick: () => setTransfer("export") },
+    { separator: true },
     { label: "Reconnect all connections", icon: <Plug size={12} />, onClick: () => void reconnectAll() },
     { label: "Disconnect all connections", icon: <Unplug size={12} />, onClick: () => disconnectAll() },
     { separator: true },
@@ -122,6 +130,7 @@ export function TitleBar() {
         <ChevronDown size={12} />
       </button>
       {connections && <ContextMenu x={connections.x} y={connections.y} items={connectionItems} onClose={() => setConnections(null)} />}
+      {transfer && <TransferWizard mode={transfer} onClose={() => setTransfer(null)} />}
       <div className="ml-auto flex items-center gap-0.5">
         <button className={icon} data-tip="Settings" data-tip-key="⌘," onClick={() => setShowSettings(true)}>
           <Wrench size={15} style={{ color: "var(--text-dim)" }} />

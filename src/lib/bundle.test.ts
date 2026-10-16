@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { makeBundle, mergeBundle, readBundle } from "./bundle";
+import { makeBundle, mergeBundle, mergeConnections, readBundle } from "./bundle";
 import { DEFAULTS, type Settings } from "./settings";
 
 const mine: Settings = {
@@ -133,5 +133,41 @@ describe("the team's saved queries, in the same file", () => {
   it("refuses a file whose queries are not queries", () => {
     const bad = { ...makeBundle(mine, ["p1"]), queries: [{ name: 1 }] };
     expect(readBundle(JSON.stringify(bad))).toBeNull();
+  });
+});
+
+describe("connections handed over whole, from the Connections menu", () => {
+  const saved = [
+    {
+      id: "q1",
+      name: "Stage errors",
+      query: "level:ERROR",
+      connId: "c-stage",
+      streamIds: ["s42"],
+      streamLabel: "api",
+      rangeSeconds: 3600,
+      savedAt: 1,
+    },
+    { id: "q2", name: "Prod", query: "*", connId: "c-prod", streamIds: ["s1"], streamLabel: "wallet", rangeSeconds: 60, savedAt: 1 },
+  ];
+
+  it("carries a connection with no project of its own, and its saved queries", () => {
+    const b = makeBundle({ ...mine, projects: [] }, [], new Date(), saved, ["c-stage"]);
+    expect(b.connections.map((c) => c.name)).toEqual(["stage"]);
+    expect(b.projects).toEqual([]);
+    expect(b.queries?.map((q) => q.name)).toEqual(["Stage errors"]);
+    expect(JSON.stringify(b)).not.toContain("secret-stage");
+  });
+});
+
+describe("connections from a .env", () => {
+  it("adds the ones not set up yet, with their tokens, and leaves the rest alone", () => {
+    const m = mergeConnections(mine, [
+      { id: "n1", name: "prod", kind: "graylog", url: "https://GRAYLOG.example", token: "other" },
+      { id: "n2", name: "qa", kind: "graylog", url: "https://qa.example", token: "secret-qa" },
+    ]);
+    expect(m.present.map((c) => c.name)).toEqual(["prod"]);
+    expect(m.added.map((c) => c.name)).toEqual(["qa"]);
+    expect(m.settings.connections.map((c) => c.token)).toEqual(["secret-prod", "secret-stage", "secret-qa"]);
   });
 });

@@ -24,15 +24,24 @@ export interface Bundle {
 
 /**
  * The chosen projects, the connections they stand on, and — when asked — the saved queries that
- * search only those projects' streams. Nothing that authenticates.
+ * search only those projects' streams. `connectionIds` hands connections over whole, with or
+ * without projects of their own, and their saved queries with them. Nothing that authenticates.
  */
-export function makeBundle(settings: Settings, projectIds: string[], at = new Date(), saved: SavedQuery[] = []): Bundle {
+export function makeBundle(
+  settings: Settings,
+  projectIds: string[],
+  at = new Date(),
+  saved: SavedQuery[] = [],
+  connectionIds: string[] = [],
+): Bundle {
   const projects = settings.projects.filter((p) => projectIds.includes(p.id));
-  const used = new Set(projects.map((p) => p.connectionId));
-  // a query is the team's when every stream it searches is one being handed over
+  const whole = new Set(connectionIds);
+  const used = new Set([...projects.map((p) => p.connectionId), ...connectionIds]);
+  // a query is the team's when its connection goes whole, or every stream it searches is one
+  // being handed over
   const streams = new Set(projects.flatMap((p) => p.streams.map((s) => `${p.connectionId}|${s}`)));
   const queries = saved
-    .filter((q) => used.has(q.connId) && q.streamIds.length && q.streamIds.every((s) => streams.has(`${q.connId}|${s}`)))
+    .filter((q) => used.has(q.connId) && q.streamIds.length && (whole.has(q.connId) || q.streamIds.every((s) => streams.has(`${q.connId}|${s}`))))
     .map((q) => ({
       name: q.name,
       query: q.query,
@@ -162,6 +171,20 @@ export function mergeBundle(
   }
 
   return { settings: { ...settings, connections, projects }, connectionsAdded: needToken.length, projectsAdded, projectsGrown, needToken, queries };
+}
+
+/**
+ * Connections read from a `.env`, folded into what is set up: one whose URL is already here is
+ * that connection and is left as it is; the others are added with the tokens the file gave them.
+ */
+export function mergeConnections(settings: Settings, incoming: Connection[]): { settings: Settings; added: Connection[]; present: Connection[] } {
+  const added: Connection[] = [];
+  const present: Connection[] = [];
+  for (const c of incoming) {
+    if ([...settings.connections, ...added].some((x) => sameUrl(x.url, c.url))) present.push(c);
+    else added.push(c);
+  }
+  return { settings: { ...settings, connections: [...settings.connections, ...added] }, added, present };
 }
 
 /** A name that says what the file is, and whose. */

@@ -36,3 +36,9 @@ The tree reads from a cache so it opens instantly; **Refresh** asks the source a
 ## Projects
 
 A project groups streams that belong to one service, and can name its GitHub repository. With a repository set, the pull requests merged while a query ran are drawn on the timeline, and the island watches the ten minutes after each merge.
+
+## Handing over a set-up
+
+**Connections › Export connections…** writes the connections you choose, the projects on them and, if you want, their saved queries to one file. Tokens never go in it.
+
+**Connections › Import connections…** reads such a file, or a `.env` with `GRAYLOG_URL` and `GRAYLOG_TOKEN` lines, and shows what is new before it changes anything. A connection already set up by the same URL stays as it is. Connections from a set-up file arrive without a token: **Add their tokens…** opens Settings › Connections to paste your own.
