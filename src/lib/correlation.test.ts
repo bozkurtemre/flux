@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { correlationOf, identifying, NAME_LABELS, pairOnLine, parseFields, setCorrelationFields } from "./correlation";
+import { correlationOf, identifying, NAME_LABELS, pairOnLine, parseFields, setCorrelationFields, valueOnLine } from "./correlation";
 
 describe("what is worth following", () => {
   it("takes a dash for the empty field it is", () => {
@@ -52,6 +52,20 @@ describe("the line under the pointer", () => {
 
   it("takes an element of an array as a value of its own", () => {
     expect(pairOnLine('    "one",')).toEqual({ value: "one" });
+  });
+
+  it("marks the value as it is written, quotes and all, without its comma", () => {
+    const at = (line: string) => {
+      const v = valueOnLine(line);
+      return v && line.slice(v.from, v.to);
+    };
+    expect(at('  "level_name": "INFO",')).toBe('"INFO"');
+    expect(at('  "time": "2026-10-16T10:06:14.456245Z",')).toBe('"2026-10-16T10:06:14.456245Z"');
+    expect(at('  "logInformation": null,')).toBe("null");
+    expect(at('  "httpStatusCode": 0')).toBe("0");
+    expect(at('    "one",')).toBe('"one"');
+    expect(at('  "context": {')).toBeNull();
+    expect(at("  },")).toBeNull();
   });
 });
 

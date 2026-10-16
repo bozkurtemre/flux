@@ -76,17 +76,28 @@ export function correlationOf(row: Record<string, unknown>, preferred?: string):
   return null;
 }
 
-/** What a line of the inspector's JSON says: the key it names, and the value it holds. */
-export function pairOnLine(line: string): { key?: string; value: string } | null {
-  const pair = /^\s*"((?:[^"\\]|\\.)*)"\s*:\s*(.*?),?\s*$/.exec(line);
+/**
+ * Where a line of the inspector's JSON writes its value, as the characters [from, to) of the
+ * line, and the key it is under: what the inspector marks under the pointer, and what
+ * `pairOnLine` reads, so the two never disagree.
+ */
+export function valueOnLine(line: string): { key?: string; from: number; to: number } | null {
+  const pair = /^(\s*"((?:[^"\\]|\\.)*)"\s*:\s*)(.*?),?\s*$/.exec(line);
   if (pair) {
-    const value = unquote(pair[2]);
     // `"context": {` names a block rather than a value; there is nothing to follow in `{`
-    if (value === "{" || value === "[") return null;
-    return { key: unquote(pair[1]), value };
+    if (pair[3] === "{" || pair[3] === "[") return null;
+    return { key: pair[2], from: pair[1].length, to: pair[1].length + pair[3].length };
   }
   const bare = line.trim().replace(/,$/, "");
-  return bare && !"{}[]".includes(bare) ? { value: unquote(bare) } : null;
+  if (!bare || "{}[]".includes(bare)) return null;
+  const from = line.length - line.trimStart().length;
+  return { from, to: from + bare.length };
+}
+
+/** What a line of the inspector's JSON says: the key it names, and the value it holds. */
+export function pairOnLine(line: string): { key?: string; value: string } | null {
+  const at = valueOnLine(line);
+  return at ? { key: at.key, value: unquote(line.slice(at.from, at.to)) } : null;
 }
 
 /** JSON's own escaping, undone: what is copied or searched is what was logged. */

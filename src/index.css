@@ -217,6 +217,19 @@ button {
   background: var(--accent) !important;
   color: var(--accent-text) !important;
 }
+/* a value in the inspector, marked under the pointer as the one piece a right click's Copy value
+   takes; the shadow widens the mark without moving the text */
+.json-value {
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.json-value:hover,
+.json-value-pinned {
+  background: var(--bg-hover);
+  box-shadow: 0 0 0 2px var(--bg-hover);
+}
+
 /* how often a suggested value occurs, quietly at the end of its row */
 .cm-tooltip-autocomplete .cm-completionDetail {
   float: right;

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { findAll, lines, withMatches, type Span } from "@/lib/find";
 import { blocksOf, foldAround, visibleLines } from "@/lib/fold";
-import { identifying, pairOnLine } from "@/lib/correlation";
+import { identifying, pairOnLine, valueOnLine } from "@/lib/correlation";
 import { codeBlock, type Flavour } from "@/lib/export";
 import { expand } from "@/lib/diff";
 import { ideName, sourceRefs } from "@/lib/source";
@@ -102,10 +102,21 @@ export function ValueInspector({ tab }: { tab: Tab }) {
 
   // Right-clicking in here acts on what is under the pointer: the selection if there is one,
   // otherwise the pair the line holds. It is the row menu's Follow, reached from the value.
-  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  // The selection is the one there was when the button went down: on a Mac, WebKit selects the
+  // word under the pointer itself before the menu opens, which is not a choice anyone made, and
+  // would have Copy value take a word of the value instead of all of it.
+  // `line` is the line whose value the menu acts on, kept marked while the pointer is on the menu
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[]; line?: number } | null>(null);
+  const chosen = useRef("");
+  const onMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 2 || e.ctrlKey) chosen.current = window.getSelection()?.toString().trim() ?? "";
+  };
   const onContextMenu = (e: React.MouseEvent) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>("[data-line]");
-    const selected = window.getSelection()?.toString().trim() ?? "";
+    const selected = chosen.current;
+    chosen.current = "";
+    // the word WebKit picked goes again: the grey mark shows what the menu acts on
+    if (!selected) window.getSelection()?.removeAllRanges();
     const pair = el ? pairOnLine(text.split("\n")[Number(el.dataset.line)] ?? "") : null;
     const value = selected || pair?.value || "";
     if (!value) return;
@@ -116,6 +127,7 @@ export function ValueInspector({ tab }: { tab: Tab }) {
     setMenu({
       x: e.clientX,
       y: e.clientY,
+      line: !selected && el ? Number(el.dataset.line) : undefined,
       items: [
         {
           label: field ? `Follow this ${field}` : "Follow this value",
@@ -256,9 +268,13 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         </div>
       )}
 
-      <div onContextMenu={onContextMenu} className="selectable min-h-0 flex-1 overflow-auto p-2 font-[var(--font-mono)] text-[11.5px] leading-[1.6]">
+      <div
+        onMouseDown={onMouseDown}
+        onContextMenu={onContextMenu}
+        className="selectable min-h-0 flex-1 overflow-auto p-2 font-[var(--font-mono)] text-[11.5px] leading-[1.6]"
+      >
         {row ? (
-          <Json text={text} matches={matches} current={at} blocks={blocks} folded={shownFolds} onFold={fold} />
+          <Json text={text} matches={matches} current={at} blocks={blocks} folded={shownFolds} onFold={fold} pinned={menu?.line} />
         ) : (
           <span style={{ color: "var(--text-muted)" }}>Select a row</span>
         )}
@@ -292,6 +308,7 @@ function Json({
   blocks,
   folded,
   onFold,
+  pinned,
 }: {
   text: string;
   matches: { start: number; end: number }[];
@@ -299,6 +316,8 @@ function Json({
   blocks: Map<number, number>;
   folded: Set<number>;
   onFold: (line: number) => void;
+  /** The line whose value a menu is open for: it stays marked once the pointer has left it. */
+  pinned?: number;
 }) {
   const here = useRef<HTMLSpanElement>(null);
   useEffect(() => here.current?.scrollIntoView({ block: "nearest" }), [current, matches]);
@@ -324,24 +343,52 @@ function Json({
                 {isFolded ? <ChevronRight size={10} /> : <ChevronDown size={10} />}
               </button>
             )}
-            {withMatches(tokens(line), start, matches).map((span, j) => (
-              <span
-                key={j}
-                ref={span.match === current ? here : undefined}
-                style={{
-                  color: span.match === undefined ? span.color : undefined,
-                  background: span.match === undefined ? undefined : span.match === current ? "var(--accent)" : "var(--sel-blur)",
-                }}
-              >
-                {span.text}
-              </span>
-            ))}
+            {(() => {
+              const spans = withMatches(tokens(line), start, matches);
+              const piece = (part: string) => (span: Span, j: number) => (
+                <span
+                  key={part + j}
+                  ref={span.match === current ? here : undefined}
+                  style={{
+                    color: span.match === undefined ? span.color : undefined,
+                    background: span.match === undefined ? undefined : span.match === current ? "var(--accent)" : "var(--sel-blur)",
+                  }}
+                >
+                  {span.text}
+                </span>
+              );
+              // the value is marked under the pointer as one piece: what a right click's Copy value takes
+              const value = valueOnLine(line);
+              if (!value) return spans.map(piece("s"));
+              return (
+                <>
+                  {clip(spans, 0, value.from).map(piece("b"))}
+                  <span className={i === pinned ? "json-value json-value-pinned" : "json-value"}>
+                    {clip(spans, value.from, value.to).map(piece("v"))}
+                  </span>
+                  {clip(spans, value.to, line.length).map(piece("a"))}
+                </>
+              );
+            })()}
             {isFolded && end !== undefined && <span style={{ color: "var(--text-muted)" }}>{` … ${end - i - 1} lines`}</span>}
           </div>
         );
       })}
     </>
   );
+}
+
+/** The pieces of a line between two of its characters, cut where a piece crosses either end. */
+function clip(spans: Span[], from: number, to: number): Span[] {
+  const out: Span[] = [];
+  let at = 0;
+  for (const s of spans) {
+    const a = Math.max(from, at),
+      b = Math.min(to, at + s.text.length);
+    if (a < b) out.push({ ...s, text: s.text.slice(a - at, b - at) });
+    at += s.text.length;
+  }
+  return out;
 }
 
 /** One line as coloured pieces. Markup comes later, once the matches have had their say. */
