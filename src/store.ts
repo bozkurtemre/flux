@@ -193,6 +193,10 @@ interface State {
   namingQuery?: string;
   terminalSize: number;
   inspectorSize: number;
+  /** Width of the Connection Explorer, as a percentage of the window. */
+  explorerSize: number;
+  /** Whether the Connection Explorer's column is shown, or folded away for the editor. */
+  showExplorer: boolean;
   projectFolders: Record<string, string>;
   /** Set once a tab has had to start without tmux, so quitting stops promising persistence. */
   tmuxMissing: boolean;
@@ -257,6 +261,8 @@ interface State {
   toggleJourney: () => void;
   toggleFields: () => void;
   setFieldsSize: (n: number) => void;
+  setExplorerSize: (n: number) => void;
+  setShowExplorer: (show: boolean) => void;
   /** ⌘S and the toolbar: an already-saved query is updated, a new one is named first. */
   saveActiveQuery: () => void;
   nameAndSaveQuery: (name: string) => void;
@@ -415,6 +421,8 @@ export const useApp = create<State>((set, get) => ({
   fieldsSize: 34,
   terminalSize: 32,
   inspectorSize: 30,
+  explorerSize: 26,
+  showExplorer: true,
   queriesSize: 18,
   projectFolders: {},
   tmuxMissing: false,
@@ -452,7 +460,16 @@ export const useApp = create<State>((set, get) => ({
       settingsError = `Settings could not be read: ${errorText(e)}`;
     }
     const globals = await loadGlobals();
-    set({ ready: true, settingsError, recentWorkspaces: globals.recents });
+    // the tree's width is read before the window is drawn, so the tree opens at the width it was
+    // left at rather than at the default and then jumping, once the session is restored below
+    const { explorerSize, showExplorer } = await loadSession(globals.current);
+    set({
+      ready: true,
+      settingsError,
+      recentWorkspaces: globals.recents,
+      ...(explorerSize ? { explorerSize } : {}),
+      showExplorer: showExplorer ?? true,
+    });
     await get().setSettings(settings);
     if (globals.current) {
       await get().openWorkspace(globals.current);
@@ -577,7 +594,11 @@ export const useApp = create<State>((set, get) => ({
     persist(get);
   },
 
+  // a panel reports every change to its size, its width too when it sits in a column that is
+  // being widened: a percentage that has not moved is not written, or each report re-renders the
+  // window under the pointer
   setQueriesSize: (queriesSize) => {
+    if (Math.abs(queriesSize - get().queriesSize) < 0.5) return;
     set({ queriesSize });
     persist(get);
   },
@@ -590,7 +611,22 @@ export const useApp = create<State>((set, get) => ({
   },
 
   setFieldsSize: (fieldsSize) => {
+    if (Math.abs(fieldsSize - get().fieldsSize) < 0.5) return;
     set({ fieldsSize });
+    persist(get);
+  },
+
+  // the panel reports its width when it mounts too, before the session is read: an unchanged
+  // width is not written, or that report would overwrite the saved session with an empty one
+  setExplorerSize: (explorerSize) => {
+    if (Math.abs(explorerSize - get().explorerSize) < 0.5) return;
+    set({ explorerSize });
+    persist(get);
+  },
+
+  setShowExplorer: (showExplorer) => {
+    if (showExplorer === get().showExplorer) return;
+    set({ showExplorer });
     persist(get);
   },
 
@@ -2187,6 +2223,8 @@ function persist(get: Getter) {
     showTerminal,
     terminalSize,
     inspectorSize,
+    explorerSize,
+    showExplorer,
     queriesSize,
     rightTool,
     showFields,
@@ -2205,6 +2243,8 @@ function persist(get: Getter) {
       showTerminal,
       terminalSize,
       inspectorSize,
+      explorerSize,
+      showExplorer,
       queriesSize,
       rightTool,
       showFields,
@@ -2236,6 +2276,8 @@ async function restoreWorkspace(set: Setter, get: Getter) {
     showTerminal: !!w.showTerminal && terminals.length > 0,
     terminalSize: w.terminalSize ?? 32,
     inspectorSize: w.inspectorSize ?? 30,
+    explorerSize: w.explorerSize ?? 26,
+    showExplorer: w.showExplorer ?? true,
     queriesSize: w.queriesSize ?? 18,
     // sessions written before the dock held more than one tool said so with a boolean
     rightTool: w.rightTool ?? (w.showQueries ? "queries" : null),

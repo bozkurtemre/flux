@@ -62,6 +62,9 @@ export interface Session {
   inspectorSize?: number;
   /** Width of the saved queries panel, as a percentage of the window. */
   queriesSize?: number;
+  /** Width of the Connection Explorer, as a percentage of the window, and whether it was shown. */
+  explorerSize?: number;
+  showExplorer?: boolean;
   /** Which tool window the right dock was showing. `showQueries` is what it was called. */
   rightTool?: "queries" | "notifications" | null;
   showQueries?: boolean;

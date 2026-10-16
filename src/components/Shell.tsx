@@ -153,10 +153,20 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
-  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints, view, setView } = useApp();
+  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints, view, setView, showExplorer, setShowExplorer } =
+    useApp();
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
-      <StripeButton active={view === "explorer"} tip="Connection Explorer" onClick={() => setView("explorer")}>
+      <StripeButton
+        active={view === "explorer" && showExplorer}
+        tip="Connection Explorer"
+        // in front, it folds the column away or brings it back; from the monitor it returns shown
+        onClick={() => {
+          if (view === "explorer") return setShowExplorer(!showExplorer);
+          setView("explorer");
+          setShowExplorer(true);
+        }}
+      >
         <Server size={16} />
       </StripeButton>
       <StripeButton

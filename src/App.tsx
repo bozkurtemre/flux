@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Group, Panel, Separator, type PanelImperativeHandle } from "react-resizable-panels";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
@@ -83,10 +83,23 @@ export default function App() {
     setQueriesSize,
     showFields,
     setFieldsSize,
+    explorerSize,
+    setExplorerSize,
+    showExplorer,
+    setShowExplorer,
   } = useApp();
   const terminalPanel = useRef<PanelImperativeHandle>(null);
   const queriesPanel = useRef<PanelImperativeHandle>(null);
   const fieldsPanel = useRef<PanelImperativeHandle>(null);
+  const explorerPanel = useRef<PanelImperativeHandle>(null);
+  // the width the tree is first drawn at, or nothing when it was left hidden, read once the window
+  // is ready and fixed from then on: a defaultSize that followed the width would be handed back to
+  // the panel on every step of a drag, and the drag would stutter or stall
+  const explorerStart = useMemo(() => {
+    if (!ready) return "26";
+    const { showExplorer, explorerSize } = useApp.getState();
+    return showExplorer ? String(Math.min(50, Math.max(14, explorerSize))) : "0";
+  }, [ready]);
   const [askQuit, setAskQuit] = useState(false);
   const [remember, setRemember] = useState(false);
 
@@ -230,6 +243,29 @@ export default function App() {
       panel.collapse();
     }
   }, [showFields]);
+
+  // the tree keeps the width it was dragged to. It mounts at the width read before the window was
+  // drawn; a workspace opened later brings its own, and the panel follows it. The width the panel
+  // already has is left alone, so a drag is never driven back into the panel it came from
+  useEffect(() => {
+    const panel = explorerPanel.current;
+    if (panel && !panel.isCollapsed() && Math.abs(panel.getSize().asPercentage - explorerSize) > 0.5) {
+      panel.resize(`${Math.min(50, Math.max(14, explorerSize))}%`);
+    }
+  }, [explorerSize]);
+
+  // the stripe's Connection Explorer button folds the column away, and brings it back at the width
+  // it was left at rather than at whatever the panel would expand to
+  useEffect(() => {
+    const panel = explorerPanel.current;
+    if (!panel) return;
+    if (!showExplorer) {
+      panel.collapse();
+    } else if (panel.isCollapsed()) {
+      panel.expand();
+      panel.resize(`${Math.min(50, Math.max(14, useApp.getState().explorerSize))}%`);
+    }
+  }, [showExplorer]);
 
   const onTerminalResize = (size: { asPercentage: number }) => {
     const { showTerminal, showEndpoints } = useApp.getState();
@@ -425,8 +461,20 @@ export default function App() {
             {view === "monitor" && <MonitorView />}
             {/* hidden rather than unmounted: tabs, scroll and panel sizes are where they were */}
             <div className="h-full" style={{ display: view === "monitor" ? "none" : undefined }}>
-              <Group orientation="horizontal" className="h-full min-h-0">
-                <Panel defaultSize="26" minSize="14" maxSize="50">
+              <Group
+                orientation="horizontal"
+                className="h-full min-h-0"
+                // the tree's width is kept when a drag ends, not at every step of it: a write per step
+                // re-rendered the window under the pointer, and the drag lagged behind it
+                // dragged shut, the column counts as hidden, and the width it had is kept for its return
+                onLayoutChanged={(_, meta) => {
+                  const panel = explorerPanel.current;
+                  if (!meta.isUserInteraction || !panel) return;
+                  if (panel.isCollapsed()) setShowExplorer(false);
+                  else setExplorerSize(panel.getSize().asPercentage);
+                }}
+              >
+                <Panel panelRef={explorerPanel} collapsible collapsedSize={0} defaultSize={explorerStart} minSize="14" maxSize="50">
                   <Group orientation="vertical" className="h-full min-h-0">
                     <Panel minSize="20">
                       <div className="island h-full">
@@ -448,7 +496,7 @@ export default function App() {
                     </Panel>
                   </Group>
                 </Panel>
-                <Separator className="w-1.5" />
+                <Separator className="w-1.5" style={{ display: showExplorer ? undefined : "none" }} />
                 <Panel minSize="30">
                   <div className="island-editor h-full">
                     <EditorArea />
