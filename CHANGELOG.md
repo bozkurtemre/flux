@@ -3,15 +3,21 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
-## 0.38.1
+## 0.39.0
 
 This update is required: every older copy installs it before it can be used again.
+
+### Added
+
+- A saved query, and a query in the History, can be shared: right-click it and choose Copy a
+  link to this view. Whoever opens the link gets the same stream, query and range in their own
+  Flux, through their own connection; the link never carries a token.
 
 ### Fixed
 
 - For a few minutes, the update to 0.38.0 was a build without Flux's signature, and a Mac that
-  installed it asked for the keychain password. 0.38.1 is the same version, signed and notarized,
-  and every copy moves to it.
+  installed it asked for the keychain password. 0.39.0 is signed and notarized, and every copy
+  moves to it.
 
 ## 0.38.0
 
