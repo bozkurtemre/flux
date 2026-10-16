@@ -126,7 +126,10 @@ put() { node scripts/r2.mjs put "$BUCKET" "$1" "$2" "$3" "$4"; }
 # fine, another one is refused, and the fix ships as the next version (docs/adr/0013)
 live="https://updates.emreb.dev/updates/$version/Flux.app.tar.gz"
 served="$(mktemp)"
-if curl -fsS -o "$served" "$live" 2>/dev/null && ! cmp -s "$served" "$out/macos/Flux.app.tar.gz"; then
+# asked of the bucket, past the CDN: asked at the address itself, a version not uploaded yet left
+# its 404 in the CDN, and the check after the upload read that 404 instead of the package. What
+# the address serves is still checked, after the upload, before the manifest names it
+if curl -fsS -o "$served" "$live?origin=$RANDOM" 2>/dev/null && ! cmp -s "$served" "$out/macos/Flux.app.tar.gz"; then
   echo "$live already serves a different package; release this as the next version" >&2
   exit 1
 fi
