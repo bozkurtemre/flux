@@ -69,7 +69,10 @@ function useDeployRadar(on: boolean): Radar[] {
                 const b = { total: bt, errors: be };
                 const a = { total: at, errors: ae };
                 return {
-                  key: `deploy:${m.url}`,
+                  // per project as well as per PR: projects that share a repository each report
+                  // the same merge, and two rows under one key left the island's list with rows
+                  // React no longer owned, invisible and taking up the room above the rest
+                  key: `deploy:${project.id}|${m.url}`,
                   title: `${project.name || project.github} · ${m.label}`,
                   detail: radarLine(b, a, now - merged.getTime()),
                   worse: worse(b, a),
@@ -191,7 +194,7 @@ export function Island() {
       const app = useApp.getState();
       if (kind === "watch") app.openSavedQuery(id);
       else if (kind === "update") void app.installUpdate();
-      else if (kind === "deploy") void openUrl(id);
+      else if (kind === "deploy") void openUrl(id.slice(id.indexOf("|") + 1));
       else if (kind === "term") {
         app.setActiveTerminal(id);
         if (!app.showTerminal) app.toggleTerminal();

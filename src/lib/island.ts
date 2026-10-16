@@ -4,7 +4,7 @@
 export type IslandState = "running" | "following" | "alert" | "quiet" | "watching" | "mcp" | "update" | "deploy" | "regressed" | "done" | "failed";
 
 export interface IslandItem {
-  /** `run:<tab>`, `follow:<tab>`, `watch:<query>`, `mcp:<tool>`, `update:<version>`, `deploy:<pr url>` or `term:<terminal>`: what a click on the row goes back to. */
+  /** `run:<tab>`, `follow:<tab>`, `watch:<query>`, `mcp:<tool>`, `update:<version>`, `deploy:<project>|<pr url>` or `term:<terminal>`: what a click on the row goes back to. */
   key: string;
   title: string;
   detail: string;
