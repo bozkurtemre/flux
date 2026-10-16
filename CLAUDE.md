@@ -55,5 +55,12 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
 - **The MCP server answers with the front end's own tools.** `src-tauri/src/mcp.rs` is the
   socket and the protocol; every tool is defined and run in `src/lib/mcp.ts`, where the
   adapters and the endpoint derivation already live. Add a tool there, not in Rust.
+- **No release is ever unsigned.** Every release is signed with the Developer ID and notarized,
+  or it is not published: no unsigned fallback, hotfix or CI build, for any reason. Releases are
+  made with `make release-local` on the Mac that holds the certificate; it refuses otherwise and
+  checks the update package's signature itself. The GitHub Release workflow does not run unless
+  the repository variable `RELEASE_FROM_ACTIONS` is `true`, and refuses without the signing
+  secrets. A published version is never published again with different files (the CDN caches
+  them for a year): a broken release is fixed by the next version. See `docs/adr/0013`.
 - **`make check`** runs exactly what CI runs: type-check, ESLint, Prettier, Vitest and
   Clippy. `make hooks` runs the same gate before each commit.

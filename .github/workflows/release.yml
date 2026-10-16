@@ -7,9 +7,15 @@ on:
 permissions:
   contents: write
 
+# Releases are made from a Mac with `make release-local`, which signs with the Developer ID and
+# notarizes. A tag push starts this workflow too, and on 2026-10-16 it published an unsigned
+# 0.38.0 over the signed one (docs/adr/0013). It runs only when the repository variable
+# RELEASE_FROM_ACTIONS is "true", and even then refuses to build without the signing and
+# notarizing secrets: there is no unsigned release.
 jobs:
   release:
     name: Build and publish
+    if: vars.RELEASE_FROM_ACTIONS == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
@@ -50,10 +56,8 @@ jobs:
           pnpm test
           cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings
 
-      # Signed and notarized when the secrets exist, unsigned when they do not. A missing
-      # secret arrives as an empty string, and an empty APPLE_CERTIFICATE is worse than no
-      # certificate at all: Tauri sees the variable, imports nothing, and fails the build.
-      # So the variables are only exported once there is something in them.
+      # Signed with the Developer ID and notarized, or not built at all: every secret below must
+      # be there, and a missing one stops the release before anything is built or published.
       - name: Build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -65,19 +69,19 @@ jobs:
           NOTARY_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           NOTARY_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -n "$CERTIFICATE" ]; then
-            export APPLE_CERTIFICATE="$CERTIFICATE"
-            export APPLE_CERTIFICATE_PASSWORD="$CERTIFICATE_PASSWORD"
-            export APPLE_SIGNING_IDENTITY="$SIGNING_IDENTITY"
-            echo "signing with $SIGNING_IDENTITY"
-          else
-            echo "no signing certificate in this repository: building unsigned"
-          fi
-          if [ -n "$NOTARY_ID" ] && [ -n "$NOTARY_PASSWORD" ] && [ -n "$NOTARY_TEAM" ]; then
-            export APPLE_ID="$NOTARY_ID"
-            export APPLE_PASSWORD="$NOTARY_PASSWORD"
-            export APPLE_TEAM_ID="$NOTARY_TEAM"
-          fi
+          for v in CERTIFICATE CERTIFICATE_PASSWORD SIGNING_IDENTITY NOTARY_ID NOTARY_PASSWORD NOTARY_TEAM TAURI_SIGNING_PRIVATE_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v is not set: a release is signed and notarized or it is not made (docs/adr/0013)" >&2
+              exit 1
+            fi
+          done
+          export APPLE_CERTIFICATE="$CERTIFICATE"
+          export APPLE_CERTIFICATE_PASSWORD="$CERTIFICATE_PASSWORD"
+          export APPLE_SIGNING_IDENTITY="$SIGNING_IDENTITY"
+          export APPLE_ID="$NOTARY_ID"
+          export APPLE_PASSWORD="$NOTARY_PASSWORD"
+          export APPLE_TEAM_ID="$NOTARY_TEAM"
+          echo "signing with $SIGNING_IDENTITY"
           # both architectures in one package, and the updater artifacts alongside it. The
           # flag is passed here rather than committed, so a local build needs no signing key.
           pnpm tauri build --target universal-apple-darwin --bundles app,dmg \

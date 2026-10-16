@@ -187,38 +187,35 @@ bundle is a test artifact and stays unsigned.
 
 ## Releasing
 
+**Every release is signed with the Developer ID and notarized by Apple. There is no unsigned
+release, of any kind, for any reason** ([docs/adr/0013](docs/adr/0013-no-release-is-unsigned.md)).
+
 The version lives in four files. One command keeps them in step, runs the quality gate,
-commits and tags:
+commits and tags, and a second one makes the release from this Mac:
 
 ```sh
-make version       # what is the current version
-make bump-patch    # 0.1.0 -> 0.1.1, commit and tag
-make publish       # push the branch and the tag
+make version        # what is the current version
+make bump-minor     # 0.1.0 -> 0.2.0, commit and tag (bump-patch, bump-major)
+make release-local  # push, check, build, sign, notarize, publish to R2, and the GitHub release
+FORCE=1 make release-local  # the same, and every older copy must update to keep working
 ```
 
-Pushing a `v*` tag runs the release workflow, which re-runs the quality gate, builds
-`Flux.app` and a `.dmg`, and publishes them as a GitHub Release with generated notes.
-The workflow refuses a tag that disagrees with the version in the tree, so the tag and
-the binary can never describe different builds.
+`make release-local` reads its keys from a folder outside the repository —
+`~/Desktop/flux-updater-keys` unless `KEYS=` says otherwise: `flux.key` and `password.txt` for
+the updater signature, `r2.env` for the bucket, `notary.env` and the `AuthKey_*.p8` it names
+for notarizing. The Developer ID certificate comes from the login keychain. It refuses to
+release without any of them, and anything but the commit the version was tagged at.
 
-When the workflow cannot run — GitHub refusing to start it, as it does when an account's
-Actions billing lapses — the same release can be made from this machine:
+Before it publishes, it checks what will be installed: the app, the disk image and the app in
+the update package are signed, notarized and accepted by Gatekeeper. A version is published
+once: its files are cached for a year at their own address, so the script refuses to publish a
+different package for a version that already has one, checks that the address serves exactly
+the package it uploaded, and only then publishes the manifest. A broken release is fixed by
+the next version, never by publishing the same one again with other files.
 
-```sh
-make bump-minor     # as before: commit and tag
-make release-local  # push, check, build, publish to R2, prune, and make the GitHub release
-```
-
-It does what the workflow does, in the same order, with the keys the workflow holds as
-secrets read from a folder outside the repository — `~/Desktop/flux-updater-keys` unless
-`KEYS=` says otherwise — holding `flux.key`, `password.txt` and an `r2.env` that sets
-`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `BUCKET`. It refuses to
-release anything but the commit the version was tagged at, and running it twice for the same
-version publishes the same files again.
-
-Use one or the other for a version, never both: `make release-local` pushes the tag, which
-starts the workflow too, and two builds of one version overwrite each other's package and
-manifest. With Actions running, `make publish` is the release.
+The Release workflow in GitHub Actions cannot sign, so it does not run: a pushed tag starts it
+and it stops at once, unless the repository variable `RELEASE_FROM_ACTIONS` is `true`. Even
+then it refuses to build without the signing and notarizing secrets.
 
 Changes are recorded in [CHANGELOG.md](CHANGELOG.md).
 

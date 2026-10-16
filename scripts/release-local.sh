@@ -102,6 +102,11 @@ xcrun stapler validate "$dmg"
 spctl --assess --type open --context context:primary-signature "$dmg"
 checked="$(mktemp -d)"
 tar -xzf "$out/macos/Flux.app.tar.gz" -C "$checked"
+# the app the updater installs: signed with the Developer ID, not only carrying a ticket. A
+# stapled ticket says nothing about the signature, and 0.38.0 once went out with a package
+# whose app had none (docs/adr/0013)
+codesign --verify --deep --strict "$checked/Flux.app"
+spctl --assess --type execute "$checked/Flux.app"
 xcrun stapler validate "$checked/Flux.app"
 rm -rf "$checked"
 rm -f "$out"/macos/Flux-v*-macos.zip
@@ -116,8 +121,25 @@ node scripts/release-notes.mjs "$tag" >"$notes"
 say "publishing the update"
 immutable="public, max-age=31536000, immutable"
 put() { node scripts/r2.mjs put "$BUCKET" "$1" "$2" "$3" "$4"; }
+# A version is published once. Its files are cached for a year at their own address, so a
+# second, different package for it is never what anyone downloads: the same package again is
+# fine, another one is refused, and the fix ships as the next version (docs/adr/0013)
+live="https://updates.emreb.dev/updates/$version/Flux.app.tar.gz"
+served="$(mktemp)"
+if curl -fsS -o "$served" "$live" 2>/dev/null && ! cmp -s "$served" "$out/macos/Flux.app.tar.gz"; then
+  echo "$live already serves a different package; release this as the next version" >&2
+  exit 1
+fi
 put "updates/$version/Flux.app.tar.gz" "$out/macos/Flux.app.tar.gz" application/gzip "$immutable"
 put "updates/$version/Flux_${version}_universal.dmg" "$dmg" application/x-apple-diskimage "$immutable"
+# what an updater downloads from the address the manifest will name is this package and no
+# other, checked before the manifest points anyone at it
+curl -fsS -o "$served" "$live"
+cmp -s "$served" "$out/macos/Flux.app.tar.gz" || {
+  echo "$live serves a different package from the one just uploaded; the manifest is not published" >&2
+  exit 1
+}
+rm -f "$served"
 
 # the manifest being replaced carries the minimum version and the last releases' notes forward;
 # FORCE=1 makes this release the minimum, so older copies cannot be used until they update
