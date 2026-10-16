@@ -3,6 +3,13 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.39.1
+
+### Fixed
+
+- The island no longer opens on an empty space above its rows after deploys leave the radar,
+  when more than one project is linked to the same repository.
+
 ## 0.39.0
 
 This update is required: every older copy installs it before it can be used again.
