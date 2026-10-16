@@ -3,6 +3,16 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.38.1
+
+This update is required: every older copy installs it before it can be used again.
+
+### Fixed
+
+- For a few minutes, the update to 0.38.0 was a build without Flux's signature, and a Mac that
+  installed it asked for the keychain password. 0.38.1 is the same version, signed and notarized,
+  and every copy moves to it.
+
 ## 0.38.0
 
 ### Added
