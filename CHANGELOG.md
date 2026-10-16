@@ -3,6 +3,15 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.40.0
+
+### Added
+
+- The Connections menu has Import connections… and Export connections… above Reconnect and
+  Refresh. Export writes the connections you choose, their projects and their saved queries to
+  one file, without their tokens; Import reads that file, or a .env with Graylog lines, shows
+  what is new before anything changes, and opens Settings to add the tokens it did not carry.
+
 ## 0.39.1
 
 ### Fixed
