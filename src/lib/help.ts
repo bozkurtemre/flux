@@ -51,7 +51,7 @@ export const GETTING_STARTED = `# Getting started
 
 - **⌘S** saves a query by name, with the workspace. **Watch** one to be told when new matches arrive, while Flux is open — or, with **Alert when › Nothing arrives**, when it goes quiet: a cron that stopped, a webhook that no longer comes. A silence is reported once when it starts and once when it ends.
 - The **History** tab keeps every query you ran.
-- **Copy a link** to a view and anyone with the same Graylog opens it in their own Flux.
+- **Copy a link** to a view, from the console's toolbar or by right-clicking a saved query or one in the History, and anyone with the same Graylog opens it in their own Flux.
 
 ## Bring the agent in
 

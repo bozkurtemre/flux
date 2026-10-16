@@ -15,7 +15,12 @@ Virtualised, sortable, resizable columns, a row-number gutter, and severity colo
 
 ## Saved queries
 
-<kbd>⌘</kbd> <kbd>S</kbd> keeps the query by name in the **Queries** tool window on the right. Saved queries can be [watched](/watch).
+<kbd>⌘</kbd> <kbd>S</kbd> keeps the query by name in the **Queries** tool window on the right. Saved queries can be [watched](/watch), and its
+**History** tab keeps every query you ran.
+
+## Sharing a view
+
+**Copy a link to this view** turns a console into a `flux://` link: from the link button on the console's toolbar, or by right-clicking a saved query or one in the History. Whoever opens it gets the same stream, query and range in their own Flux, through their own connection to the same Graylog. The link names the Graylog by its address and never carries a token; a view that searches several streams has no link, since a link names one.
 
 ## Search Everywhere
 

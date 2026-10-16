@@ -16,7 +16,7 @@ import { QUICK_RANGES, absolute } from "@/lib/datasource";
 import { exportName, toCsv, toJson } from "@/lib/export";
 import { parseQuery, withBetween, withoutBetween } from "@/lib/query";
 import { consoleCompletion } from "@/lib/complete";
-import { linkFor } from "@/lib/link";
+import { linkToView } from "@/lib/link";
 import { RangePicker, openingRange } from "./RangePicker";
 import { ClaudeIcon } from "./icons";
 import { sendToClaude } from "./TerminalPanel";
@@ -70,19 +70,6 @@ function CustomRange({ tab }: { tab: Tab }) {
       )}
     </span>
   );
-}
-
-/** This view as a `flux://` link, or null when there is no single stream to name. */
-function linkOf(tab: Tab): string | null {
-  const conn = useApp.getState().settings.connections.find((c) => c.id === tab.connId);
-  if (!conn || tab.streamIds.length !== 1) return null;
-  return linkFor({
-    graylog: conn.url,
-    stream: tab.streamIds[0],
-    label: tab.streamLabel,
-    query: tab.query,
-    ...(parseQuery(tab.query).between ? {} : { seconds: tab.rangeSeconds }),
-  });
 }
 
 /** The rows on screen, in the columns on screen: what the agent is handed, and what a file
@@ -176,7 +163,7 @@ function fieldValues(tabId: string, field: string): Promise<{ value: string; cou
 }
 
 export function QueryConsole({ tab }: { tab: Tab }) {
-  const { patchTab, runQuery, settings, saveActiveQuery, savedQueries, toggleFollow } = useApp();
+  const { patchTab, runQuery, settings, saveActiveQuery, savedQueries, toggleFollow, copyViewLink } = useApp();
   const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
   const e = settings.editor;
   const dirty = unsaved(tab, savedQueries);
@@ -271,14 +258,8 @@ export function QueryConsole({ tab }: { tab: Tab }) {
           <ClaudeIcon size={13} />
         </button>
         <button
-          onClick={() => {
-            const link = linkOf(tab);
-            if (!link) return;
-            void navigator.clipboard
-              .writeText(link)
-              .then(() => useApp.getState().notify("info", "Link copied", "Anyone with the same connection set up can open this view from it."));
-          }}
-          disabled={!linkOf(tab)}
+          onClick={() => copyViewLink(tab)}
+          disabled={!linkToView(settings.connections, tab)}
           data-tip={tab.streamIds.length === 1 ? "Copy a link to this view" : "A link names one stream; this tab searches several"}
           className="flex size-6 items-center justify-center rounded hover:bg-[var(--bg-hover)] disabled:opacity-35 disabled:hover:bg-transparent"
         >

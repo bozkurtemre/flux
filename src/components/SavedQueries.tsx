@@ -13,12 +13,14 @@ import {
   Filter,
   History,
   Info,
+  Link2,
   Pencil,
   SquareTerminal,
   Trash2,
   TriangleAlert,
 } from "lucide-react";
 import { ConfirmDialog, ContextMenu, type MenuItem } from "./ContextMenu";
+import { linkToView } from "@/lib/link";
 import { watchEvery } from "@/lib/queries";
 import type { NoticeKind } from "@/lib/progress";
 import { useApp } from "@/store";
@@ -72,8 +74,10 @@ export function SavedQueries() {
 
 /** Everything run in this window, newest first, whether it was worth saving or not. */
 function HistoryList() {
-  const { history, openHistory, clearHistory } = useApp();
+  const { history, openHistory, clearHistory, copyViewLink, settings } = useApp();
   const [filter, setFilter] = useState("");
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string } | null>(null);
+  const picked = menu && history.find((h) => h.id === menu.id);
   const needle = filter.trim().toLowerCase();
   const shown = needle ? history.filter((h) => `${h.query} ${h.streamLabel}`.toLowerCase().includes(needle)) : history;
 
@@ -103,6 +107,10 @@ function HistoryList() {
           <div
             key={h.id}
             onClick={() => openHistory(h.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, id: h.id });
+            }}
             className="flex cursor-default flex-col gap-0.5 px-2 py-1.5"
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "")}
@@ -125,6 +133,24 @@ function HistoryList() {
       >
         <History size={11} /> Clear history
       </button>
+      {menu && picked && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={[
+            { label: "Open", icon: <SquareTerminal size={12} />, onClick: () => openHistory(picked.id) },
+            { label: "Copy query", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(picked.query) },
+            {
+              label: "Copy a link to this view",
+              icon: <Link2 size={12} />,
+              // a link names one stream, on a connection this Mac still has
+              disabled: !linkToView(settings.connections, picked),
+              onClick: () => copyViewLink(picked),
+            },
+          ]}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </>
   );
 }
@@ -151,6 +177,7 @@ function SavedList() {
     settings,
     tabs,
     activeTab,
+    copyViewLink,
   } = useApp();
   const [confirm, setConfirm] = useState<{ id: string; name: string } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
@@ -275,6 +302,16 @@ function SavedList() {
             [
               { label: "Open", icon: <SquareTerminal size={12} />, onClick: () => openSavedQuery(menu.id) },
               { label: "Copy query", icon: <ClipboardCopy size={12} />, onClick: () => void navigator.clipboard.writeText(menu.query) },
+              (() => {
+                const saved = savedQueries.find((q) => q.id === menu.id);
+                return {
+                  label: "Copy a link to this view",
+                  icon: <Link2 size={12} />,
+                  // a link names one stream, on a connection this Mac still has
+                  disabled: !saved || !linkToView(settings.connections, saved),
+                  onClick: () => saved && copyViewLink(saved),
+                };
+              })(),
               { label: "Rename…", icon: <Pencil size={12} />, onClick: () => setRenaming({ id: menu.id, name: menu.name }) },
               {
                 label: menu.watch ? "Stop watching" : menu.quietBelow ? "Watch for silence" : "Watch for new matches",

@@ -42,7 +42,7 @@ import { journeyOf } from "@/lib/journey";
 import { messageField, templateOf } from "@/lib/patterns";
 import type { Evidence } from "@/lib/investigate";
 import { mergesCommand, readMerges, type Marker } from "@/lib/deploys";
-import { connectionFor, linkFor, readLink } from "@/lib/link";
+import { connectionFor, linkToView, readLink, type LinkedView } from "@/lib/link";
 import { draftForPattern, draftForRow, issueUrl, type Draft } from "@/lib/jira";
 import { ideName, ideUrl, localPath, sourceRefs, type SourceRef } from "@/lib/source";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -307,6 +307,8 @@ interface State {
   issueFromPattern: (tabId: string, pattern: { template: string; count: number; sample: string }) => void;
   /** A `flux://open?…` link, opened on whichever connection here answers for its Graylog. */
   openLink: (link: string) => void;
+  /** A view's `flux://` link onto the clipboard: a tab, a saved query, a query in the history. */
+  copyViewLink: (view: LinkedView) => void;
   /** A console for a stream, opened and run: what an agent asks for with open_query. */
   openQuery: (o: { connId: string; streamId: string; query: string; minutes?: number }) => void;
   clearHistory: () => void;
@@ -676,6 +678,14 @@ export const useApp = create<State>((set, get) => ({
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab) return;
     openIssue(get, draftForPattern({ ...pattern, stream: tab.streamLabel, link: viewLink(get, tab) }));
+  },
+
+  copyViewLink: (view) => {
+    const link = linkToView(get().settings.connections, view);
+    if (!link) return;
+    void navigator.clipboard
+      .writeText(link)
+      .then(() => get().notify("info", "Link copied", "Anyone with the same connection set up can open this view from it."));
   },
 
   openLink: (link) => {
@@ -2004,9 +2014,7 @@ export const pickKey = (tab: Tab, row: Record<string, unknown>) => `${tab.id}|${
 
 /** The tab as a `flux://` link, when it names one stream. */
 function viewLink(get: Getter, tab: Tab): string | undefined {
-  const conn = get().settings.connections.find((c) => c.id === tab.connId);
-  if (!conn || tab.streamIds.length !== 1) return undefined;
-  return linkFor({ graylog: conn.url, stream: tab.streamIds[0], label: tab.streamLabel, query: tab.query, seconds: tab.rangeSeconds });
+  return linkToView(get().settings.connections, tab) ?? undefined;
 }
 
 /**

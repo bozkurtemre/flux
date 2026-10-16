@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectionFor, linkFor, readLink } from "./link";
+import { connectionFor, linkFor, linkToView, readLink } from "./link";
 
 describe("a view as a link", () => {
   const view = {
@@ -43,5 +43,30 @@ describe("the connection that answers a link", () => {
 
   it("is nobody when the Graylog is not set up here", () => {
     expect(connectionFor(connections, "https://third.example")).toBeUndefined();
+  });
+});
+
+describe("a tab, a saved query or a query in the history as a link", () => {
+  const connections = [{ id: "c1", url: "https://graylog.example.com" }];
+  const view = { connId: "c1", streamIds: ["s1"], streamLabel: "payments", query: "level:ERROR", rangeSeconds: 3600 };
+
+  it("names the connection by its URL, the stream, the line and the range", () => {
+    expect(readLink(linkToView(connections, view)!)).toEqual({
+      graylog: "https://graylog.example.com",
+      stream: "s1",
+      label: "payments",
+      query: "level:ERROR",
+      seconds: 3600,
+    });
+  });
+
+  it("leaves the range out when the line names its own window", () => {
+    const pinned = { ...view, query: "level:ERROR | between 2026-10-16T10:00:00Z and 2026-10-16T11:00:00Z" };
+    expect(readLink(linkToView(connections, pinned)!)?.seconds).toBeUndefined();
+  });
+
+  it("is no link for several streams, or for a connection this Mac no longer has", () => {
+    expect(linkToView(connections, { ...view, streamIds: ["s1", "s2"] })).toBeNull();
+    expect(linkToView(connections, { ...view, connId: "gone" })).toBeNull();
   });
 });
