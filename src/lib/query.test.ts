@@ -132,6 +132,40 @@ describe("asking for patterns", () => {
   });
 });
 
+describe("metrics beside the count", () => {
+  it("are read off the line, in the order written, and asked of every table", () => {
+    const parsed = parseQuery("level:ERROR | group by route, source | p95(took_ms), avg(took_ms)");
+    expect(parsed.search).toBe("level:ERROR");
+    expect(parsed.groupBy).toEqual(["route", "source"]);
+    expect(parsed.metrics?.map((m) => m.name)).toEqual(["p95(took_ms)", "avg(took_ms)"]);
+  });
+
+  it("are what the source is asked for: a percentile for pNN, a distinct count for unique", () => {
+    expect(parseQuery("* | group by route | P99(took_ms), unique(user_id), max(size)").metrics?.map((m) => m.metric)).toEqual([
+      { function: "percentile", field: "took_ms", configuration: { percentile: 99 } },
+      { function: "card", field: "user_id" },
+      { function: "max", field: "size" },
+    ]);
+  });
+
+  it("sit before or after the tables, once each", () => {
+    const parsed = parseQuery("* | max(took_ms) | group by route | max(took_ms) | patterns");
+    expect(parsed.metrics?.map((m) => m.name)).toEqual(["max(took_ms)"]);
+    expect(parsed.groupBy).toEqual(["route"]);
+    expect(parsed.patterns).toBe("");
+  });
+
+  it("stay on the line when it is written again", () => {
+    expect(withClause("source:api | group by route | p95(took_ms)", 'level:"ERROR"')).toBe(
+      'source:api AND level:"ERROR" | group by route | p95(took_ms)',
+    );
+  });
+
+  it("are not taken from a query that only mentions a function", () => {
+    expect(parseQuery('message:"max(took_ms) exceeded"')).toEqual({ search: 'message:"max(took_ms) exceeded"', groupBy: [] });
+  });
+});
+
 describe("taking the window off again", () => {
   it("leaves the query and the tables it had", () => {
     expect(withoutBetween("level:ERROR | group by route | between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z")).toBe(

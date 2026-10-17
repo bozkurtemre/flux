@@ -7,7 +7,7 @@ Open a stream or an endpoint and it gets a tab of its own: a Lucene console abov
 
 ## The console
 
-Lucene, with syntax colouring and completion over the stream's own field names; after `field:` it offers the values that field holds in the streams and window you are searching, most frequent first, with how often each occurs. <kbd>⌘</kbd> <kbd>⏎</kbd> runs it; the toolbar's range picker chooses the window, or write one into the query. `| group by field` at the end turns the result into counts per value.
+Lucene, with syntax colouring and completion over the stream's own field names; after `field:` it offers the values that field holds in the streams and window you are searching, most frequent first, with how often each occurs. <kbd>⌘</kbd> <kbd>⏎</kbd> runs it; the toolbar's range picker chooses the window, or write one into the query. `| group by field` at the end turns the result into counts per value; `| p95(took_ms), avg(took_ms)` after it adds those per value too (`avg`, `min`, `max`, `sum`, `unique` and any percentile from `p50` to `p99`), and the ⋮ at the end of a table's header exports it as CSV or JSON.
 
 ## The grid
 

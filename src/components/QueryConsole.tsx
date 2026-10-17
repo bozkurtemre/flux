@@ -110,7 +110,7 @@ const highlight = HighlightStyle.define([
 // `group by` is ours rather than Lucene's, so the solr mode does not know it; it is marked
 // on top of whatever that mode made of those words.
 const clause = new MatchDecorator({
-  regexp: /(?:^|\|)\s*(?:group\s*by|patterns|between\s+\S+\s+and)\b/gi,
+  regexp: /(?:^|\|)\s*(?:group\s*by|patterns|between\s+\S+\s+and|(?:avg|min|max|sum|unique|p\d{1,2})(?=\())\b/gi,
   decoration: Decoration.mark({ class: "cm-clause" }),
 });
 

@@ -76,6 +76,7 @@ A console line is a Lucene query, as Graylog and Elasticsearch both read it, fol
 - \`| group by httpStatusCode\` — one table: each value, and how many messages carried it.
 - \`| group by route | group by source\` — one table each, above the messages.
 - \`| group by method, route\` — two tables, not one over both: the pair times out on a busy stream.
+- \`| group by route | p95(took_ms), avg(took_ms)\` — each table works out these per value too: \`avg\`, \`min\`, \`max\`, \`sum\`, \`unique\` (how many distinct values) and any percentile, \`p50\` to \`p99\`. A column's header sorts by it.
 - **⋮** at the end of a table's header exports that table alone, as CSV or JSON.
 
 ## Patterns
@@ -90,6 +91,7 @@ A console line is a Lucene query, as Graylog and Elasticsearch both read it, fol
 ## Together
 
 - \`level:ERROR | group by route | patterns | between 2026-09-18T11:00:00Z and 2026-09-18T12:00:00Z\`
+- \`route:/v1/* | group by route | p95(took_ms), max(took_ms)\` — which endpoint got slow, and how slow at worst.
 `;
 
 /** A GitHub issue, opened with what a report needs already in it. */

@@ -58,6 +58,8 @@ export function consoleCompletion(fieldNames: string[], valuesOf: (field: string
         { label: "group by", type: "keyword", apply: "group by " },
         { label: "between", type: "keyword", apply: "between " },
         { label: "patterns", type: "keyword", apply: "patterns" },
+        // what a group by table works out beside the count
+        ...["p95", "p99", "avg", "max", "min", "sum", "unique"].map((fn) => ({ label: `${fn}()`, type: "function", apply: `${fn}(` })),
       ],
     };
   };

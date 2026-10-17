@@ -5,6 +5,8 @@
 // The split is on the whole clause, not on the pipe, so a pipe inside the query — a regex
 // alternation, a value that contains one — is left where it was. At the start of the line
 // there is nothing to separate the clause from, so the pipe is optional there.
+import type { Metric } from "./datasource";
+
 const CLAUSE = /(?:^|\|)\s*group\s*by\s+/i;
 
 /** `patterns`, optionally naming the field the messages are in. */
@@ -13,6 +15,10 @@ const PATTERNS = /(?:^|\|)\s*patterns\b(?:\s+([A-Za-z_][\w.]*))?\s*/i;
 
 /** `between <from> and <to>`, the window the console searches instead of the last minutes. */
 const BETWEEN = /(?:^|\|)\s*between\s+(\S+)\s+and\s+(\S+)\s*/i;
+
+/** `p95(took_ms), avg(took_ms)`: what each group by table works out besides the count. */
+const CALL = String.raw`(?:avg|min|max|sum|unique|p\d{1,2})\(\s*[\w.@-]+\s*\)`;
+const METRICS = new RegExp(String.raw`(?:^|\|)\s*(${CALL}(?:\s*,\s*${CALL})*)\s*(?=\||$)`, "i");
 
 export interface ParsedQuery {
   /** What Graylog is asked for the messages. */
@@ -23,6 +29,18 @@ export interface ParsedQuery {
   between?: { from: string; to: string };
   /** The field to count message templates in, when the line asks for patterns. */
   patterns?: string;
+  /** Worked out per value in every group by table, beside the count, as they were written. */
+  metrics?: { name: string; metric: Metric }[];
+}
+
+/** One `fn(field)` as the source is asked for it: `p95` is the 95th percentile, `unique` the
+ *  number of distinct values. */
+function metricOf(call: string): { name: string; metric: Metric } {
+  const [, fn, field] = /^(\w+)\(\s*([^)\s]+)\s*\)$/.exec(call.trim())!;
+  const f = fn.toLowerCase();
+  const name = `${f}(${field})`;
+  if (/^p\d+$/.test(f)) return { name, metric: { function: "percentile", field, configuration: { percentile: Number(f.slice(1)) } } };
+  return { name, metric: { function: f === "unique" ? "card" : f, field } };
 }
 
 export function parseQuery(text: string): ParsedQuery {
@@ -37,6 +55,16 @@ export function parseQuery(text: string): ParsedQuery {
       between = { from: window[1], to: window[2] };
       line = line.slice(0, window.index) + line.slice(window.index + window[0].length);
     }
+  }
+
+  // before the group by clauses are read, which would otherwise take it for a field
+  const metrics: { name: string; metric: Metric }[] = [];
+  for (let found = METRICS.exec(line); found; found = METRICS.exec(line)) {
+    for (const call of found[1].match(new RegExp(CALL, "gi")) ?? []) {
+      const m = metricOf(call);
+      if (!metrics.some((x) => x.name === m.name)) metrics.push(m);
+    }
+    line = line.slice(0, found.index) + line.slice(found.index + found[0].length);
   }
 
   let patterns: string | undefined;
@@ -65,6 +93,7 @@ export function parseQuery(text: string): ParsedQuery {
     groupBy,
     between,
     patterns,
+    ...(metrics.length ? { metrics } : {}),
   };
 }
 
@@ -98,6 +127,7 @@ function rebuild(parsed: ParsedQuery, search: string): string {
   return [
     search,
     ...parsed.groupBy.map((f) => `group by ${f}`),
+    ...(parsed.metrics ? [parsed.metrics.map((m) => m.name).join(", ")] : []),
     ...(parsed.patterns === undefined ? [] : [`patterns${parsed.patterns ? ` ${parsed.patterns}` : ""}`]),
     ...(parsed.between ? [`between ${parsed.between.from} and ${parsed.between.to}`] : []),
   ]

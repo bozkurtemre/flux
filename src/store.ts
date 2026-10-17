@@ -83,8 +83,11 @@ export interface TreeNode {
 /** What one `| group by <field>` clause came back with. */
 export interface GroupResult {
   field: string;
-  /** `sample` is a real line behind a pattern, which a template on its own is not. */
-  rows: { value: string; count: number; sample?: string }[];
+  /** `sample` is a real line behind a pattern, which a template on its own is not. `values`
+   *  are the line's metrics for that value, in the order of `metrics`. */
+  rows: { value: string; count: number; sample?: string; values?: (number | null)[] }[];
+  /** The metrics the line asked for besides the count, as it wrote them: `p95(took_ms)`. */
+  metrics?: string[];
   /** A field Graylog cannot group by fails on its own, without taking the query with it. */
   error?: string;
 }
@@ -1740,10 +1743,16 @@ export const useApp = create<State>((set, get) => ({
             streams: tab.streamIds,
             timerange,
             groupBy: [{ field, limit: settings.results.pageSize }],
-            metrics: [{ function: "count" }],
+            metrics: [{ function: "count" }, ...(parsed.metrics ?? []).map((m) => m.metric)],
             signal: stop.signal,
           });
-          return { field, rows: r.rows.map((row) => ({ value: String(row[0] ?? ""), count: Number(row[row.length - 1]) || 0 })) };
+          // the value, the count, then each metric in the order the line asked for them
+          const metric = (v: unknown) => (v == null || !Number.isFinite(Number(v)) ? null : Number(v));
+          return {
+            field,
+            rows: r.rows.map((row) => ({ value: String(row[0] ?? ""), count: Number(row[1]) || 0, values: row.slice(2).map(metric) })),
+            ...(parsed.metrics ? { metrics: parsed.metrics.map((m) => m.name) } : {}),
+          };
         } catch (e) {
           if (stop.signal.aborted) throw e;
           return { field, rows: [], error: failureReason(e) };

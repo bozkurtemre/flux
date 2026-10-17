@@ -17,6 +17,11 @@ import { useApp, type GroupResult, type Tab } from "@/store";
 
 const COUNT_W = 110;
 
+/** A column of numbers: the count, or one of the metrics by its place on the line. */
+type Numbers = "count" | number;
+const numberIn = (row: GroupResult["rows"][number], col: Numbers) => (col === "count" ? row.count : (row.values?.[col] ?? null));
+const shown = (v: number | null) => (v == null ? "–" : v.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+
 export function GroupTables({ tab }: { tab: Tab }) {
   const groups = tab.groups ?? [];
   // the templates are counted here, over the rows on screen: it is the same table as a
@@ -46,21 +51,28 @@ function GroupTable({ group, title, counted, tabId }: { group: GroupResult; titl
   const r = useApp((s) => s.settings.results);
   // Graylog answers with the largest count first, which is the order worth keeping until a
   // header is clicked
-  const [sort, setSort] = useState<{ col: "value" | "count"; dir: 1 | -1 } | null>(null);
+  const [sort, setSort] = useState<{ col: "value" | Numbers; dir: 1 | -1 } | null>(null);
   // collapsed it is a header and nothing else, so several clauses can be stacked and only
   // the one being read left open
   const [open, setOpen] = useState(true);
   const [exporting, setExporting] = useState<{ x: number; y: number; right: number } | null>(null);
   const line = `${r.rowHeight}px`;
   const width = defaultWidth(group.field);
+  const metrics = group.metrics ?? [];
+  const numbers: Numbers[] = ["count", ...metrics.map((_, i) => i)];
   const rows = useMemo(() => {
     if (!sort) return group.rows;
-    return [...group.rows].sort((a, b) =>
-      sort.col === "count" ? (a.count - b.count) * sort.dir : a.value.localeCompare(b.value, undefined, { numeric: true }) * sort.dir,
-    );
+    const col = sort.col;
+    if (col === "value") return [...group.rows].sort((a, b) => a.value.localeCompare(b.value, undefined, { numeric: true }) * sort.dir);
+    // a value with nothing to measure goes last, whichever way the column is sorted
+    return [...group.rows].sort((a, b) => {
+      const x = numberIn(a, col);
+      const y = numberIn(b, col);
+      return x == null ? (y == null ? 0 : 1) : y == null ? -1 : (x - y) * sort.dir;
+    });
   }, [group.rows, sort]);
-  const toggle = (col: "value" | "count") => setSort((s) => (s?.col === col ? { col, dir: s.dir === 1 ? -1 : 1 } : { col, dir: 1 }));
-  const arrow = (col: "value" | "count") => (sort?.col === col ? <span style={{ color: "var(--accent)" }}>{sort.dir === 1 ? "▲" : "▼"}</span> : null);
+  const toggle = (col: "value" | Numbers) => setSort((s) => (s?.col === col ? { col, dir: s.dir === 1 ? -1 : 1 } : { col, dir: 1 }));
+  const arrow = (col: "value" | Numbers) => (sort?.col === col ? <span style={{ color: "var(--accent)" }}>{sort.dir === 1 ? "▲" : "▼"}</span> : null);
   const head = {
     borderRight: "1px solid var(--border)",
     borderBottom: "1px solid var(--border)",
@@ -69,7 +81,7 @@ function GroupTable({ group, title, counted, tabId }: { group: GroupResult; titl
 
   return (
     <div className="shrink-0 overflow-auto" style={{ maxHeight: open ? 220 : undefined, borderBottom: "1px solid var(--border-soft)" }}>
-      <div style={{ width: NUM_W + width + COUNT_W, minWidth: "100%" }}>
+      <div style={{ width: NUM_W + width + COUNT_W * numbers.length + 26, minWidth: "100%" }}>
         <div className="sticky top-0 z-10 flex h-[26px]" style={{ background: "var(--bg-tool)" }}>
           <button
             onClick={() => setOpen((v) => !v)}
@@ -89,15 +101,18 @@ function GroupTable({ group, title, counted, tabId }: { group: GroupResult; titl
             <span className="truncate font-[var(--font-mono)]">{group.field}</span>
             {arrow("value")}
           </div>
-          <div
-            onClick={() => toggle("count")}
-            className="flex shrink-0 items-center gap-1 px-2 text-[11px] font-medium"
-            style={{ width: COUNT_W, userSelect: "none", ...head }}
-            title={counted ? `counted in the ${counted.toLocaleString()} rows on screen` : undefined}
-          >
-            count
-            {arrow("count")}
-          </div>
+          {numbers.map((col) => (
+            <div
+              key={col}
+              onClick={() => toggle(col)}
+              className="flex shrink-0 items-center gap-1 px-2 text-[11px] font-medium"
+              style={{ width: COUNT_W, userSelect: "none", ...head }}
+              title={col !== "count" ? metrics[col] : counted ? `counted in the ${counted.toLocaleString()} rows on screen` : undefined}
+            >
+              <span className={col === "count" ? undefined : "truncate font-[var(--font-mono)]"}>{col === "count" ? "count" : metrics[col]}</span>
+              {arrow(col)}
+            </div>
+          ))}
           {/* this table alone, in the order it is sorted on screen */}
           <button
             onClick={(e) => {
@@ -151,18 +166,21 @@ function GroupTable({ group, title, counted, tabId }: { group: GroupResult; titl
               >
                 {render(row.value, group.field, r)}
               </div>
-              <div
-                className="shrink-0 px-2 text-right font-[var(--font-mono)] tabular-nums"
-                style={{
-                  width: COUNT_W,
-                  fontSize: r.fontSize,
-                  lineHeight: line,
-                  borderRight: "1px solid var(--border-soft)",
-                  color: "var(--text-dim)",
-                }}
-              >
-                {row.count.toLocaleString()}
-              </div>
+              {numbers.map((col) => (
+                <div
+                  key={col}
+                  className="shrink-0 px-2 text-right font-[var(--font-mono)] tabular-nums"
+                  style={{
+                    width: COUNT_W,
+                    fontSize: r.fontSize,
+                    lineHeight: line,
+                    borderRight: "1px solid var(--border-soft)",
+                    color: "var(--text-dim)",
+                  }}
+                >
+                  {shown(numberIn(row, col))}
+                </div>
+              ))}
             </div>
           ))
         )}
@@ -174,8 +192,15 @@ function GroupTable({ group, title, counted, tabId }: { group: GroupResult; titl
           flipX={exporting.right}
           items={exportItems(
             `${title} by ${group.field}`,
-            { columns: [group.field, "count"], rows: rows.map((row) => ({ [group.field]: row.value, count: row.count })) },
-            [group.field, "count"],
+            {
+              columns: [group.field, "count", ...metrics],
+              rows: rows.map((row) => ({
+                [group.field]: row.value,
+                count: row.count,
+                ...Object.fromEntries(metrics.map((m, i) => [m, row.values?.[i] ?? null])),
+              })),
+            },
+            [group.field, "count", ...metrics],
           )}
           onClose={() => setExporting(null)}
         />
