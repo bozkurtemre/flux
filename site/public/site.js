@@ -4168,7 +4168,11 @@
   // ---- the ledger: Crossed / Stayed / Reached us ----
   const ACTIONS = {
     search: ["your query, to graylog.acme.io, with the token it needs", "the lines you read, rendered on your Mac", "nothing"],
-    watch: ["the saved query, to your source, every minute while Flux is open", "the matches, the island, the notification", "nothing"],
+    watch: [
+      "the saved query, to your source, every minute while Flux runs, the window closed to the menu bar too",
+      "the matches, the island, the notification",
+      "nothing",
+    ],
     trace: ["one text search, to every stream of the connection", "the lanes and the lines", "nothing"],
     claude: [
       "the agent's calls, over 127.0.0.1:4319, behind the token Flux made; lines and counts come back, never a token",
