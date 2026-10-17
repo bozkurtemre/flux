@@ -17,15 +17,18 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCopy,
+  CircleCheck,
+  CircleX,
   Columns3,
   Download,
   Filter,
   Fingerprint,
   FoldVertical,
   Gauge,
+  GitPullRequest,
   Link2,
   MoreVertical,
-  PanelRight,
+  OctagonAlert,
   Pencil,
   Play,
   Plus,
@@ -34,6 +37,7 @@ import {
   RotateCw,
   Save,
   Search,
+  SearchCheck,
   SearchCode,
   Server,
   Settings2,
@@ -109,6 +113,15 @@ const MCP_BUTTON: [number, number] = [W - PAD - 12 - 11, MAIN_BOTTOM + 12];
 const MCP_POPOVER = { right: PAD + 12, bottom: H - MAIN_BOTTOM - 1 + 26 - 2, w: 320 };
 const COPY_COMMAND: [number, number] = [W - MCP_POPOVER.right - MCP_POPOVER.w + 12 + 78 + 8 + 50, H - MCP_POPOVER.bottom - 12 - 30 - 12 - 11];
 const TERMINAL_AT: [number, number] = [EXPLORER_X + 520, TERMINAL_Y + 32 + 46];
+// Errors, drawn in place of the explorer: its header, then the list with the error picked beside it
+const ERRORS_BUTTON: [number, number] = [PAD + 18, TOP + 6 + 28 + 4 + 14];
+const ERRORS_BODY = TOP + 40 + 6;
+const DETAIL_W = 450;
+const DETAIL_X = RIGHT_STRIPE_X - DETAIL_W;
+const ERROR_ROW_H = 50;
+const NEW_ROW: [number, number] = [EXPLORER_X + 230, ERRORS_BODY + 30 + ERROR_ROW_H / 2];
+const ASK_CLAUDE: [number, number] = [DETAIL_X + 16 + 64, ERRORS_BODY + 16 + 18 + 8 + 18 + 6 + 16 + 12 + 13];
+const WHO_IT_HITS: [number, number] = [DETAIL_X + 250, ERRORS_BODY + 330];
 
 type Chrome = {
   /** The connection, stream and count the status bar names for the tab in front. */
@@ -118,6 +131,9 @@ type Chrome = {
   queries?: boolean;
   mcp?: boolean;
   terminal?: boolean;
+  /** Errors in front of the explorer, and whether its stripe button has news on it. */
+  errors?: boolean;
+  news?: boolean;
 };
 
 type Scene = {
@@ -253,8 +269,8 @@ const SCENES: Scene[] = [
     title: "Let Flux watch it",
     text: (
       <>
-        Right-click a saved query and <b>Watch for new matches</b>: Flux tells you when they arrive, while it is open — or, with{" "}
-        <b>Alert when › Nothing arrives</b>, when a cron or a webhook goes quiet.
+        Right-click a saved query and <b>Watch for new matches</b>: Flux tells you when they arrive — or, with <b>Alert when › Nothing arrives</b>,
+        when a cron or a webhook goes quiet. Closing the window leaves it watching from the menu bar.
       </>
     ),
     beats: [
@@ -278,6 +294,37 @@ const SCENES: Scene[] = [
         {l === 3 && <Balloon />}
       </>
     ),
+  },
+  {
+    title: "Catch the error you never had",
+    text: (
+      <>
+        Every five minutes Flux counts each project's failures — an error level or a 5xx status — by message, with ids and numbers masked. One it
+        never had is <b>new</b>, a resolved one returning is <b>back</b>, and one at four times its usual rate is <b>escalating</b>.
+      </>
+    ),
+    beats: [
+      { at: [760, 420], hold: 1400, say: "A new error is announced" },
+      { at: ERRORS_BUTTON, click: true, hold: 1100, say: "Errors, on the left" },
+      { at: NEW_ROW, click: true, hold: 1400, say: "One it never had before" },
+      { at: WHO_IT_HITS, hold: 2400, say: "Who it hits, and after which merge" },
+      { at: ASK_CLAUDE, click: true, hold: 3000, say: "Ask Claude to fix it" },
+    ],
+    chrome: (l) => ({ connections: 1, tab: ORDERS, errors: l >= 1, news: l < 2 }),
+    draw: (l) =>
+      l >= 1 ? (
+        <ErrorsScreen picked={l >= 2} />
+      ) : (
+        <>
+          <Explorer>
+            <Tree selected="orders" />
+          </Explorer>
+          <Editor>
+            <Console tab="orders" query="level:ERROR" results />
+          </Editor>
+          <ErrorBalloon />
+        </>
+      ),
   },
   {
     title: "Hand it to Claude Code",
@@ -468,7 +515,7 @@ function Stage({ scene, scale }: { scene: Scene; scale: number }) {
         }}
       >
         <TitleBar />
-        <LeftStripe terminal={chrome.terminal} />
+        <LeftStripe terminal={chrome.terminal} errors={chrome.errors} news={chrome.news} />
         <RightStripe queries={chrome.queries} />
         <StatusBar {...chrome} />
         {scene.draw(landed)}
@@ -588,13 +635,19 @@ function TitleBar() {
   );
 }
 
-function StripeButton({ children, active, badge }: { children: ReactNode; active?: boolean; badge?: string }) {
+function StripeButton({ children, active, badge, dot }: { children: ReactNode; active?: boolean; badge?: string; dot?: string }) {
   return (
     <span
       className="relative flex size-7 items-center justify-center rounded-md"
       style={{ background: active ? "var(--stripe-active)" : undefined, color: "var(--text-dim)" }}
     >
       {children}
+      {dot && (
+        <span
+          className="absolute top-[4px] right-[4px] size-[6px] rounded-full"
+          style={{ background: dot, boxShadow: "0 0 0 1.5px var(--bg-window)" }}
+        />
+      )}
       {badge && (
         <span
           className="absolute -right-[5px] -bottom-[3px] rounded-[3px] px-[2px] text-[6.5px] leading-[9px] font-bold tracking-[0.02em]"
@@ -607,11 +660,14 @@ function StripeButton({ children, active, badge }: { children: ReactNode; active
   );
 }
 
-function LeftStripe({ terminal }: { terminal?: boolean }) {
+function LeftStripe({ terminal, errors, news }: { terminal?: boolean; errors?: boolean; news?: boolean }) {
   return (
     <div className="flex w-9 flex-col items-center gap-1 py-1.5" style={box({ left: PAD, top: TOP, bottom: H - MAIN_BOTTOM })}>
-      <StripeButton active>
+      <StripeButton active={!errors}>
         <Server size={16} />
+      </StripeButton>
+      <StripeButton active={errors} dot={news ? "var(--red)" : undefined}>
+        <OctagonAlert size={16} />
       </StripeButton>
       <StripeButton badge="BETA">
         <Activity size={16} />
@@ -635,9 +691,6 @@ function RightStripe({ queries }: { queries?: boolean }) {
     <div className="flex w-9 flex-col items-center gap-1 py-1.5" style={box({ left: RIGHT_STRIPE_X, top: TOP, bottom: H - MAIN_BOTTOM })}>
       <StripeButton>
         <Bell size={16} />
-      </StripeButton>
-      <StripeButton>
-        <PanelRight size={16} />
       </StripeButton>
       <StripeButton active={queries}>
         <Bookmark size={16} />
@@ -1308,6 +1361,341 @@ function Balloon() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** What a new error says in the corner when it is first seen. */
+function ErrorBalloon() {
+  return (
+    <div
+      className="flux-in z-30 rounded-[10px] px-4 py-3"
+      style={box({
+        left: BALLOON.x,
+        top: BALLOON.y,
+        width: 360,
+        background: "var(--bg-tool)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 14px 40px rgba(0,0,0,.55)",
+      })}
+    >
+      <div className="flex gap-2.5">
+        <CircleX size={16} style={{ color: "var(--red)" }} className="mt-px shrink-0" />
+        <div className="min-w-0">
+          <p className="truncate pr-5 text-[13px] font-semibold">New error in Payments</p>
+          <p className="mt-0.5 text-[13px]" style={dim}>
+            card vault timed out after &lt;num&gt; ms — first seen after #482
+          </p>
+          <div className="mt-2.5 flex gap-2">
+            <span
+              className="flex h-[24px] items-center rounded-[4px] px-2.5 text-[12px]"
+              style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--accent-text)" }}
+            >
+              Show
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const HOT = "#f0883e";
+const ERRORS: {
+  chip: [string, string];
+  template: string;
+  sample: string;
+  project: string;
+  events: string;
+  first: string;
+  last: string;
+  spark: number[];
+  heat?: string;
+  after?: string;
+}[] = [
+  {
+    chip: ["new", "var(--red)"],
+    template: "card vault timed out after <num> ms",
+    sample: "card vault timed out after 5000 ms",
+    project: "Payments",
+    events: "37",
+    first: "18m ago",
+    last: "1m ago",
+    spark: [...Array(22).fill(0), 9, 28],
+    after: "#482",
+  },
+  {
+    chip: ["escalating", HOT],
+    template: "upstream returned HTTP <num> from ledger",
+    sample: "upstream returned HTTP 503 from ledger",
+    project: "Gateway",
+    events: "2,140",
+    first: "9d ago",
+    last: "now",
+    spark: [3, 2, 4, 3, 2, 3, 4, 3, 2, 3, 3, 4, 2, 3, 3, 2, 4, 3, 3, 2, 3, 6, 14, 21],
+    heat: "↑6×",
+  },
+  {
+    chip: ["back", "var(--amber)"],
+    template: "webhook signature mismatch for merchant <num>",
+    sample: "webhook signature mismatch for merchant 4471",
+    project: "Payments",
+    events: "64",
+    first: "3d ago",
+    last: "4m ago",
+    spark: [...Array(21).fill(0), 2, 0, 3],
+  },
+  {
+    chip: ["open", "var(--text-muted)"],
+    template: "session expired for user <num>",
+    sample: "session expired for user 1842",
+    project: "Wallet",
+    events: "812",
+    first: "12d ago",
+    last: "2m ago",
+    spark: [5, 4, 6, 5, 4, 5, 3, 4, 5, 6, 5, 4, 5, 4, 6, 5, 4, 5, 6, 5, 4, 5, 6, 5],
+  },
+  {
+    chip: ["open", "var(--text-muted)"],
+    template: "slow query on orders took <num> ms",
+    sample: "slow query on orders took 2314 ms",
+    project: "Orders",
+    events: "95",
+    first: "5d ago",
+    last: "11m ago",
+    spark: [1, 0, 2, 1, 0, 1, 2, 0, 1, 1, 0, 2, 1, 0, 1, 2, 1, 0, 1, 1, 2, 0, 1, 1],
+  },
+];
+const ERROR_COLUMNS = "grid grid-cols-[70px_minmax(0,1fr)_86px_80px_52px_62px_62px] items-center gap-3";
+
+function Chip({ label, color }: { label: string; color: string }) {
+  return (
+    <span
+      className="justify-self-start rounded px-1.5 py-px text-[9.5px] font-semibold tracking-wide uppercase"
+      style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function Bars({ values, color, height }: { values: number[]; color: string; height: number }) {
+  const top = Math.max(1, ...values);
+  return (
+    <span className="flex items-end gap-px" style={{ height }}>
+      {values.map((v, i) => (
+        <span
+          key={i}
+          className="flex-1 rounded-[1px]"
+          style={{ height: `${v ? Math.max(12, (v / top) * 100) : 6}%`, background: v ? color : "var(--border)" }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** ErrorsView: the filters, the list with its last day per error, and the error picked beside it. */
+function ErrorsScreen({ picked }: { picked: boolean }) {
+  const e = ERRORS[0];
+  return (
+    <>
+      <div
+        className="island-editor flex items-center gap-2 px-3"
+        style={box({ left: EXPLORER_X, top: TOP, width: RIGHT_STRIPE_X - EXPLORER_X, height: 40 })}
+      >
+        <span className="text-[13px] font-semibold">Errors</span>
+        <span className="text-[11.5px]" style={muted}>
+          looked 2m ago · every 5 minutes
+        </span>
+        <RefreshCw size={13} style={dim} />
+        <span className="ml-auto flex items-center gap-2">
+          <span className="flex h-[26px] w-[180px] items-center gap-1.5 rounded px-2" style={{ background: "var(--bg-input)" }}>
+            <Search size={11} style={muted} />
+            <span className="text-[12px]" style={muted}>
+              Filter…
+            </span>
+          </span>
+          <span className="flex rounded-[5px] p-px" style={{ background: "var(--bg-input)" }}>
+            {(
+              [
+                ["New", picked ? "0" : "1"],
+                ["Open", "4"],
+                ["Ignored", "0"],
+                ["Resolved", "2"],
+                ["All", "6"],
+              ] as const
+            ).map(([label, n]) => (
+              <span
+                key={label}
+                className="flex h-[22px] items-center gap-1.5 rounded-[4px] px-2 text-[11.5px]"
+                style={{ background: label === "Open" ? "var(--bg-active)" : undefined, color: label === "Open" ? "var(--text)" : "var(--text-dim)" }}
+              >
+                {label}
+                <span style={{ color: label === "New" && n !== "0" ? "var(--red)" : "var(--text-muted)" }}>{n}</span>
+              </span>
+            ))}
+          </span>
+        </span>
+      </div>
+
+      <div
+        className="island-editor flex flex-col"
+        style={box({ left: EXPLORER_X, top: ERRORS_BODY, width: DETAIL_X - 6 - EXPLORER_X, height: MAIN_BOTTOM - ERRORS_BODY })}
+      >
+        <div
+          className={`${ERROR_COLUMNS} h-[30px] shrink-0 px-3 text-[11px] font-medium`}
+          style={{ ...dim, borderBottom: "1px solid var(--border-soft)" }}
+        >
+          <span />
+          <span>Error</span>
+          <span>Last 24 hours</span>
+          <span>Project</span>
+          <span className="text-right">Events</span>
+          <span className="text-right">First seen</span>
+          <span className="text-right">Last seen</span>
+        </div>
+        {ERRORS.map((row, i) => (
+          <div
+            key={row.template}
+            className={`${ERROR_COLUMNS} px-3`}
+            style={{
+              height: ERROR_ROW_H,
+              background: picked && i === 0 ? "var(--bg-active)" : undefined,
+              borderBottom: "1px solid var(--border-soft)",
+            }}
+          >
+            <Chip label={picked && i === 0 ? "open" : row.chip[0]} color={picked && i === 0 ? "var(--text-muted)" : row.chip[1]} />
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate font-[var(--font-mono)] text-[12px]">{row.template}</span>
+              <span className="flex min-w-0 items-center gap-2 text-[11px]" style={muted}>
+                <span className="truncate font-[var(--font-mono)]">{row.sample}</span>
+                {row.after && (
+                  <span className="flex shrink-0 items-center gap-1" style={{ color: "var(--cyan)" }}>
+                    <GitPullRequest size={10} /> after {row.after}
+                  </span>
+                )}
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-[56px] shrink-0">
+                <Bars values={row.spark} color={row.heat ? HOT : "var(--red)"} height={18} />
+              </span>
+              {row.heat && (
+                <span className="text-[10.5px] font-medium" style={{ color: HOT }}>
+                  {row.heat}
+                </span>
+              )}
+            </span>
+            <span className="truncate text-[12px]" style={dim}>
+              {row.project}
+            </span>
+            <span className="text-right text-[12px] tabular-nums">{row.events}</span>
+            <span className="text-right text-[11.5px]" style={dim}>
+              {row.first}
+            </span>
+            <span className="text-right text-[11.5px]" style={dim}>
+              {row.last}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="island-editor flex flex-col p-4"
+        style={box({ left: DETAIL_X, top: ERRORS_BODY, width: DETAIL_W, height: MAIN_BOTTOM - ERRORS_BODY })}
+      >
+        {!picked ? (
+          <p className="m-auto px-6 text-center text-[12px]" style={muted}>
+            Pick an error for who it hits, the version and the merge it came with, its last day and its latest lines.
+          </p>
+        ) : (
+          <div className="flux-in flex flex-col">
+            <div className="flex h-[18px] items-center gap-2">
+              <Chip label="open" color="var(--text-muted)" />
+              <span className="text-[11.5px]" style={muted}>
+                Payments
+              </span>
+            </div>
+            <p className="mt-2 h-[18px] font-[var(--font-mono)] text-[13px]">{e.template}</p>
+            <p className="mt-1.5 h-[16px] font-[var(--font-mono)] text-[11.5px]" style={dim}>
+              {e.sample}
+            </p>
+            <div className="mt-3 flex gap-1.5">
+              <span
+                className="flex h-[26px] items-center gap-1.5 rounded-[4px] px-2.5 text-[12px] font-medium whitespace-nowrap"
+                style={{ background: "var(--accent)", color: "var(--accent-text)" }}
+              >
+                <ClaudeIcon size={12} /> Ask Claude to fix
+              </span>
+              {(
+                [
+                  [SearchCheck, "Investigate"],
+                  [CircleCheck, "Resolve"],
+                ] as const
+              ).map(([Glyph, label]) => (
+                <span
+                  key={label}
+                  className="flex h-[26px] items-center gap-1.5 rounded-[4px] px-2.5 text-[12px] whitespace-nowrap"
+                  style={{ border: "1px solid var(--border)" }}
+                >
+                  <Glyph size={12} />
+                  {label}
+                </span>
+              ))}
+            </div>
+            <div className="mt-4 grid grid-cols-[86px_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-[12px]">
+              <span style={muted}>Events</span>
+              <span>37 seen since Flux first looked</span>
+              <span style={muted}>First seen</span>
+              <span>
+                18m ago <span style={muted}>· in version 3.4.1</span>
+              </span>
+              <span style={muted}>After</span>
+              <span className="flex items-center gap-1" style={{ color: "var(--accent)" }}>
+                <GitPullRequest size={11} /> #482 Retry card vault calls once <span style={muted}>· merged 6m before</span>
+              </span>
+            </div>
+            <p className="mt-4 mb-2 text-[12px] font-semibold">
+              Who it hits{" "}
+              <span className="font-normal" style={muted}>
+                in its last 37 lines
+              </span>
+            </p>
+            <div className="mb-2.5 flex gap-1.5">
+              {["31 user ids", "29 order ids"].map((t) => (
+                <span key={t} className="rounded-[4px] px-2 py-0.5 text-[12px]" style={{ background: "var(--bg-input)" }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+            {(
+              [
+                ["route", "/v1/charges", 92],
+                ["host", "api-2", 71],
+                ["app_version", "3.4.1", 100],
+              ] as const
+            ).map(([field, value, share]) => (
+              <div key={field} className="mb-1.5 grid grid-cols-[96px_minmax(0,1fr)_34px] items-center gap-3 text-[12px]">
+                <span className="font-[var(--font-mono)] text-[11.5px]" style={muted}>
+                  {field}
+                </span>
+                <span className="relative h-[16px] overflow-hidden rounded-[3px]" style={{ background: "var(--bg-input)" }}>
+                  <span
+                    className="absolute inset-y-0 left-0"
+                    style={{ width: `${share}%`, background: "color-mix(in srgb, var(--accent) 35%, transparent)" }}
+                  />
+                  <span className="relative px-1.5 font-[var(--font-mono)] text-[11px] leading-[16px]">{value}</span>
+                </span>
+                <span className="text-right text-[11px]" style={dim}>
+                  {share}%
+                </span>
+              </div>
+            ))}
+            <p className="mt-3 mb-2 text-[12px] font-semibold">Last 24 hours</p>
+            <Bars values={e.spark} color="var(--red)" height={56} />
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
