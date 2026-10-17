@@ -3,6 +3,37 @@
 Notable changes per release. Versions follow [semantic versioning](https://semver.org);
 `make bump-patch|minor|major` writes the version, commits and tags in one step.
 
+## 0.42.0
+
+### Added
+
+- **Errors**, above Monitor on the left. Every five minutes each project's failures are counted by
+  their message, with ids and numbers masked. An error the project never had is announced as new,
+  with the pull request merged just before it; one you resolved that comes back, as back; and a
+  known one running at four times its usual rate, as escalating. Pick one to see who it hits, the
+  version it came in and its latest lines, and **Ask Claude to fix** it. An error can be snoozed,
+  or ignored unless it escalates.
+- With a query watched or a project's errors looked at, closing the window leaves Flux in the menu
+  bar, still watching. Its icon has Open Flux and Quit Flux; Settings › Advanced › Window closed
+  turns it off.
+- A group by table works out metrics per value beside the count, as in
+  `| group by route | p95(took_ms), max(took_ms)`: avg, min, max, sum, unique, and any percentile
+  from p50 to p99.
+- The tour has a step for Errors.
+
+### Changed
+
+- Notifications and Queries open beside Monitor and Errors too.
+- The value inspector closes from a ✕ beside copy in its header; its button on the right stripe is
+  gone.
+
+### Fixed
+
+- On local files and containers, the deploy radar and the Monitor counted no failures.
+- ⌘R, ⌘W and the explorer's other keys acted on consoles hidden behind Monitor or Errors.
+- A console opened from Search Everywhere, a link or an alert while Monitor or Errors was in front
+  stayed hidden behind it.
+
 ## 0.41.0
 
 ### Added
