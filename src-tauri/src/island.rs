@@ -67,6 +67,8 @@ pub fn island_present(app: AppHandle, visible: bool) -> Result<(), String> {
 /// main window is told what to open. Done here, since a minimized webview may not run for a while.
 #[tauri::command]
 pub fn island_open(app: AppHandle, key: String) -> Result<(), String> {
+    // from the menu bar too: Flux comes back to the Dock with its window
+    crate::background::leave(&app);
     let main = app.get_webview_window("main").ok_or("no main window")?;
     main.unminimize().map_err(|e| e.to_string())?;
     main.show().map_err(|e| e.to_string())?;

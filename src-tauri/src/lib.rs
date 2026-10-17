@@ -1,3 +1,4 @@
+mod background;
 mod cache;
 mod island;
 mod local;
@@ -63,6 +64,8 @@ pub fn run() {
             local::local_list,
             local::local_read,
             usage::usage_read,
+            background::background_enter,
+            background::background_leave,
         ])
         .setup(|app| {
             // The system's About panel draws the bundle's icon, which a development build does
@@ -167,6 +170,13 @@ pub fn run() {
                 window.app_handle().exit(0);
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app, _event| {
+            // opening Flux again while it watches from the menu bar brings its window back
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                background::leave(_app);
+            }
+        });
 }

@@ -3,9 +3,21 @@ title: Watch
 description: Be told when new matches arrive, or when they stop.
 ---
 
-Right-click a saved query in the **Queries** tool window and choose **Watch for new matches**. While Flux is open, the query is asked every minute (or the interval you choose) and new matches are announced with a notification, a sound if you like, and a row on the island.
+Right-click a saved query in the **Queries** tool window and choose **Watch for new matches**. While Flux runs, the query is asked every minute (or the interval you choose) and new matches are announced with a notification, a sound if you like, and a row on the island.
 
 **Alert when › Nothing arrives** turns a watch around: it fires when fewer than so many lines arrive in a round, which is how a cron or a webhook that went quiet makes itself heard.
+
+## New errors
+
+Every five minutes, Flux counts each project's failures by template — the message with its ids and numbers masked. The first look takes the day before as what the project already has; after that, a template it never had is a **new error**, announced on the island and as a notification, together with the pull request merged into the project's repository shortly before it, when there was one. A known error that suddenly runs at four times its usual hourly rate is announced as **escalating**.
+
+**Errors**, above Monitor on the left, lists each project's errors with their last 24 hours, filtered by project and by **New**, **Open**, **Ignored** or **Resolved**. Pick one to see who it hits — how many users and orders, which routes, hosts and versions — the version it was first seen in, the merge it came after, and its latest lines; double-click it for a console on its lines.
+
+**Ask Claude to fix** investigates the error's newest line and pastes the case into the terminal where Claude Code runs. From the same place or its right-click menu you can also **Investigate** it, find where it is logged, start a Jira issue, **snooze** it for an hour or a day, **ignore** it unless it escalates, or **Resolve** it: a resolved error that comes back is announced again. **Settings › Advanced › New errors** turns the looks off.
+
+## With the window closed
+
+While a query is watched or a project's errors are being looked at, closing the window does not quit Flux: it leaves the Dock and stays in the menu bar, still watching. **Open Flux** in its menu brings the window back, and **Quit Flux** quits. **Settings › Advanced › Window closed** turns this off, and the red button quits again.
 
 ## The island
 

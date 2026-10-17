@@ -571,9 +571,23 @@ export function AdvancedPage({ s, patch, onReset }: { s: Settings; patch: Patch;
           </Row>
         )}
       </Section>
+      <Section title="New errors">
+        <Row
+          label="Errors never seen before"
+          hint="Every five minutes each project's failures are counted by template. One the project did not have in the day before, or one back after it was resolved, is announced with the merge it followed, and listed in Errors, under Monitor on the left."
+        >
+          <Checkbox checked={a.newErrors !== false} onChange={(v) => set("newErrors", v)} label="Announce them" />
+        </Row>
+      </Section>
       <Section title="Watched queries">
         <Row label="Check every" hint="How often a watched query asks what has arrived since the last round. 0 stops the rounds.">
           <Num value={a.watchSeconds} onChange={(v) => set("watchSeconds", v)} min={0} max={3600} suffix="seconds" />
+        </Row>
+        <Row
+          label="Window closed"
+          hint="While a query is watched or a project's errors are being looked at, closing the window leaves Flux in the menu bar, still watching. Quit it from there."
+        >
+          <Checkbox checked={a.keepWatching !== false} onChange={(v) => set("keepWatching", v)} label="Keep watching from the menu bar" />
         </Row>
         <Row label="Alert sound" hint="What a warning or an error sounds like outside the window. A query reported as info is always silent.">
           <span className="flex items-center gap-2">

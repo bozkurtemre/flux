@@ -1,10 +1,11 @@
 // What the island shows, as plain data: it lives in a window of its own, under the notch, and
 // a window of its own has no store — the main window works the list out and hands it over.
 
-export type IslandState = "running" | "following" | "alert" | "quiet" | "watching" | "mcp" | "update" | "deploy" | "regressed" | "done" | "failed";
+export type IslandState =
+  "running" | "following" | "alert" | "error" | "hot" | "quiet" | "watching" | "mcp" | "update" | "deploy" | "regressed" | "done" | "failed";
 
 export interface IslandItem {
-  /** `run:<tab>`, `follow:<tab>`, `watch:<query>`, `mcp:<tool>`, `update:<version>`, `deploy:<project>|<pr url>` or `term:<terminal>`: what a click on the row goes back to. */
+  /** `run:<tab>`, `follow:<tab>`, `watch:<query>`, `mcp:<tool>`, `update:<version>`, `deploy:<project>|<pr url>`, `error:<project>|<template>` or `term:<terminal>`: what a click on the row goes back to. */
   key: string;
   title: string;
   detail: string;
@@ -17,6 +18,8 @@ export const CHIP: Record<IslandState, { label: string; color: string }> = {
   running: { label: "running", color: "#e5a33a" },
   following: { label: "following", color: "#5fb865" },
   alert: { label: "new matches", color: "#e5534b" },
+  error: { label: "new error", color: "#e5534b" },
+  hot: { label: "escalating", color: "#f0883e" },
   quiet: { label: "gone quiet", color: "#e5534b" },
   watching: { label: "watching", color: "#4b8ef0" },
   mcp: { label: "MCP call", color: "#d97757" },
@@ -28,7 +31,21 @@ export const CHIP: Record<IslandState, { label: string; color: string }> = {
 };
 
 /** Worst first: the order the pill counts in and the colour it leads with. */
-const ORDER: IslandState[] = ["alert", "regressed", "failed", "quiet", "running", "deploy", "done", "mcp", "update", "following", "watching"];
+const ORDER: IslandState[] = [
+  "alert",
+  "error",
+  "hot",
+  "regressed",
+  "failed",
+  "quiet",
+  "running",
+  "deploy",
+  "done",
+  "mcp",
+  "update",
+  "following",
+  "watching",
+];
 
 /** `4s`, `3m`, `2h` — how long since, or how long for. */
 export function ago(ms: number): string {
@@ -48,6 +65,8 @@ export function took(ms: number): string {
 export function headline(items: IslandItem[]): string {
   const words: Record<IslandState, string> = {
     alert: "with new matches",
+    error: "new errors",
+    hot: "escalating",
     quiet: "gone quiet",
     running: "running",
     mcp: "MCP call",

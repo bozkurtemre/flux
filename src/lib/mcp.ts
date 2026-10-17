@@ -141,7 +141,7 @@ export const TOOLS = [
   {
     name: "save_query",
     description:
-      "Save a query in the person's Flux, watched by default: while Flux is open it is asked every round and new matches are announced on the island and as a notification. Use it to leave a watch behind after a deploy, on the errors the change could bring. Saving the same query on the same streams again updates it instead of adding a second. It writes only to Flux's own list of saved queries, never to the source.",
+      "Save a query in the person's Flux, watched by default: while Flux runs, its window open or closed into the menu bar, it is asked every round and new matches are announced on the island and as a notification. Use it to leave a watch behind after a deploy, on the errors the change could bring. Saving the same query on the same streams again updates it instead of adding a second. It writes only to Flux's own list of saved queries, never to the source.",
     inputSchema: {
       type: "object",
       properties: {
@@ -149,7 +149,7 @@ export const TOOLS = [
         streams: { type: "array", items: { type: "string" }, description: "Stream ids the query searches; ask list_streams for them" },
         query: { type: "string", description: "Lucene query, e.g. level:ERROR AND route:/v1/charges" },
         name: { type: "string", description: "What the person sees in the Queries panel; the query's first line when omitted" },
-        watch: { type: "boolean", description: "Announce new matches while Flux is open; true when omitted" },
+        watch: { type: "boolean", description: "Announce new matches while Flux runs; true when omitted" },
         every: { type: "number", description: "How often the watch asks, in seconds, 15 to 3600; Flux's setting when omitted" },
         quiet_below: {
           type: "number",

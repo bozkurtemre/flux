@@ -5,6 +5,7 @@ import {
   Bookmark,
   Gauge,
   Bug,
+  OctagonAlert,
   ChevronDown,
   FileInput,
   FileOutput,
@@ -14,7 +15,6 @@ import {
   Keyboard,
   MoreVertical,
   Palette,
-  PanelRight,
   Plug,
   RefreshCw,
   Search,
@@ -162,8 +162,21 @@ export function TitleBar() {
 }
 
 export function LeftStripe() {
-  const { showTerminal, toggleTerminal, showFields, toggleFields, showEndpoints, toggleEndpoints, view, setView, showExplorer, setShowExplorer } =
-    useApp();
+  const {
+    showTerminal,
+    toggleTerminal,
+    showFields,
+    toggleFields,
+    showEndpoints,
+    toggleEndpoints,
+    view,
+    setView,
+    showExplorer,
+    setShowExplorer,
+    errorLedgers,
+  } = useApp();
+  // errors nobody has looked at yet, new or back after they were resolved
+  const news = Object.values(errorLedgers).reduce((n, l) => n + Object.values(l.errors).filter((e) => e.news).length, 0);
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
       <StripeButton
@@ -177,6 +190,14 @@ export function LeftStripe() {
         }}
       >
         <Server size={16} />
+      </StripeButton>
+      <StripeButton
+        active={view === "errors"}
+        tip={news ? `Errors — ${news} not looked at yet` : "Errors"}
+        dot={news ? "var(--red)" : undefined}
+        onClick={() => setView(view === "errors" ? "explorer" : "errors")}
+      >
+        <OctagonAlert size={16} />
       </StripeButton>
       <StripeButton
         active={view === "monitor"}
@@ -201,9 +222,7 @@ export function LeftStripe() {
 }
 
 export function RightStripe() {
-  const { tabs, activeTab, patchTab, rightTool, toggleRightTool, noticeLog } = useApp();
-  const tab = tabs.find((t) => t.id === activeTab);
-  const rows = !!tab?.page?.rows.length;
+  const { rightTool, toggleRightTool, noticeLog } = useApp();
   const waiting = worstOf(noticeLog);
   return (
     <div className="flex w-9 shrink-0 flex-col items-center gap-1 py-1.5">
@@ -214,15 +233,6 @@ export function RightStripe() {
         onClick={() => toggleRightTool("notifications")}
       >
         <Bell size={16} />
-      </StripeButton>
-      <StripeButton
-        // there is nothing to inspect until a query has returned a row
-        tip={rows ? "Value inspector" : "Value inspector — run a query first"}
-        disabled={!rows}
-        active={tab?.selectedRow != null}
-        onClick={() => tab && patchTab(tab.id, { selectedRow: tab.selectedRow == null ? 0 : undefined })}
-      >
-        <PanelRight size={16} />
       </StripeButton>
       <StripeButton tip="Queries" active={rightTool === "queries"} onClick={() => toggleRightTool("queries")}>
         <Bookmark size={16} />

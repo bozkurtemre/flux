@@ -99,6 +99,12 @@ export interface AdvancedSettings {
   watchSeconds: number;
   /** Which macOS sound a watched query's alert makes; "none" for a silent one. */
   watchSound: string;
+  /** Closing the window leaves Flux watching from the menu bar, when it has something to
+   *  watch. Absent is on. */
+  keepWatching?: boolean;
+  /** Each project's errors are read every few minutes, and one never seen before is announced.
+   *  Absent is on. */
+  newErrors?: boolean;
   fieldCacheMinutes: number;
   confirmOnClose: boolean;
   /** A project's own id fields, besides the trace, request and order ids every service has. */

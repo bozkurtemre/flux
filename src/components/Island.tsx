@@ -96,7 +96,7 @@ function useDeployRadar(on: boolean): Radar[] {
 }
 
 export function Island() {
-  const { tabs, savedQueries, watchLog, settings, mcpCall, update, islandMutedUntil, commandDone } = useApp();
+  const { tabs, savedQueries, watchLog, settings, mcpCall, update, islandMutedUntil, commandDone, errorLedgers } = useApp();
   const radar = useDeployRadar(settings.appearance.island && settings.appearance.deployRadar !== false);
 
   const items: IslandItem[] =
@@ -137,6 +137,21 @@ export function Island() {
                 at: last?.at,
               };
             }),
+          // the newest three errors nobody has looked at yet
+          ...Object.entries(errorLedgers)
+            .flatMap(([projectId, ledger]) => Object.values(ledger.errors).map((e) => ({ projectId, e })))
+            .filter(({ e }) => e.news)
+            .sort((a, b) => b.e.lastSeen - a.e.lastSeen)
+            .slice(0, 3)
+            .map(({ projectId, e }) => ({
+              key: `error:${projectId}|${e.template}`,
+              title: `${settings.projects.find((p) => p.id === projectId)?.name ?? "A project"}${
+                e.news === "back" ? ": back after it was resolved" : e.news === "escalating" ? ": running hot" : ""
+              }`,
+              detail: e.deploy && e.news === "new" ? `${e.template} · after ${e.deploy.label}` : e.template,
+              state: e.news === "escalating" ? ("hot" as const) : ("error" as const),
+              at: e.news === "back" ? e.lastSeen : e.firstSeen,
+            })),
           ...radar.map((r) => ({
             key: r.key,
             title: r.title,
@@ -195,6 +210,7 @@ export function Island() {
       if (kind === "watch") app.openSavedQuery(id);
       else if (kind === "update") void app.installUpdate();
       else if (kind === "deploy") void openUrl(id.slice(id.indexOf("|") + 1));
+      else if (kind === "error") app.showError(id.slice(0, id.indexOf("|")), id.slice(id.indexOf("|") + 1));
       else if (kind === "term") {
         app.setActiveTerminal(id);
         if (!app.showTerminal) app.toggleTerminal();

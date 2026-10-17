@@ -19,6 +19,7 @@ import { ServiceMapWindow } from "./components/ServiceMapWindow";
 import { InvestigationWindow } from "./components/InvestigationWindow";
 import { Island } from "./components/Island";
 import { NotificationCenter } from "./components/NotificationCenter";
+import { ErrorsView } from "./components/ErrorsView";
 import { NameQuery, SavedQueries } from "./components/SavedQueries";
 import { EndpointsPanel } from "./components/EndpointsPanel";
 import { MonitorView } from "./components/MonitorView";
@@ -35,7 +36,7 @@ import { parseQuery } from "@/lib/query";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { AUTH_CALLBACK } from "@/lib/cloud";
 import { failureReason } from "@/lib/progress";
-import { watchEvery } from "@/lib/queries";
+import { backgroundWatch, watchEvery } from "@/lib/queries";
 import { promoter } from "@/lib/promoter";
 import { tellShortcut, toldShortcuts } from "@/lib/settings";
 import { clientFor } from "@/store";
@@ -109,11 +110,25 @@ export default function App() {
     });
   }, [init]);
 
+  // A console brought to the front from anywhere — Search Everywhere, a link, a trace, an alert's
+  // Open — is one to look at, so the explorer comes back in front of the Monitor or the Errors.
+  // Only a tab coming forward does it: a query finishing behind them stays behind them.
+  useEffect(
+    () =>
+      useApp.subscribe((s, was) => {
+        if (s.view !== "explorer" && s.activeTab && (s.activeTab !== was.activeTab || s.tabs.length > was.tabs.length)) s.setView("explorer");
+      }),
+    [],
+  );
+
   // Cmd+Enter runs the active console, the JetBrains shortcut.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && e.target.closest("input, textarea, .cm-editor") !== null;
-      if (!typing) {
+      // the tree's, the consoles' and the inspector's keys act only on what is on screen: behind
+      // the Monitor or the Errors they would run a query or close a tab nobody can see
+      const explorer = useApp.getState().view === "explorer";
+      if (!typing && explorer) {
         const { move, expandSelected, openSelected } = useApp.getState();
         if (e.key === "ArrowDown") return (e.preventDefault(), move(1));
         if (e.key === "ArrowUp") return (e.preventDefault(), move(-1));
@@ -122,7 +137,7 @@ export default function App() {
         if (e.key === "Enter") return (e.preventDefault(), openSelected());
       }
       // ⌥⏎ investigates the selected row, as the IDE's ⌥⏎ offers what can be done about a line
-      if (e.altKey && e.key === "Enter" && activeTab && !typing) {
+      if (e.altKey && e.key === "Enter" && activeTab && !typing && explorer) {
         const app = useApp.getState();
         const tab = app.tabs.find((t) => t.id === activeTab);
         const row = tab?.selectedRow != null ? tab.page?.rows[tab.selectedRow] : undefined;
@@ -133,14 +148,14 @@ export default function App() {
         }
       }
       // the console has its own Mod-Enter; running it here as well would start the query twice
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && activeTab && !typing) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && activeTab && !typing && explorer) {
         e.preventDefault();
         void runQuery(activeTab);
       }
       // Cmd+R re-runs the query rather than reloading the window, which is what the webview
       // would otherwise do with it.
       // ⌘1–⌘8 are the tabs in order and ⌘9 the last, as a browser's are
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key) && explorer) {
         const { tabs, setActive } = useApp.getState();
         const n = Number(e.key);
         const tab = n === 9 ? tabs[tabs.length - 1] : tabs[n - 1];
@@ -150,16 +165,17 @@ export default function App() {
         }
       }
       // ⌘S keeps the query, as it saves a file everywhere else
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && activeTab) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s" && activeTab && explorer) {
         e.preventDefault();
         useApp.getState().saveActiveQuery();
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "r" && activeTab) {
+      // elsewhere it is still kept from the webview, which would reload the window with it
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "r") {
         e.preventDefault();
-        void runQuery(activeTab);
+        if (activeTab && explorer) void runQuery(activeTab);
       }
       // Escape closes the inspector, but only when it is the frontmost thing open
-      if (e.key === "Escape" && !typing) {
+      if (e.key === "Escape" && !typing && explorer) {
         const app = useApp.getState();
         const covered = modalInFront() || app.showSearch || document.querySelector("[data-find]");
         const open = app.tabs.find((t) => t.id === app.activeTab);
@@ -171,7 +187,7 @@ export default function App() {
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "w" && activeTab) {
         e.preventDefault();
-        useApp.getState().closeTab(activeTab);
+        if (explorer) useApp.getState().closeTab(activeTab);
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
@@ -282,8 +298,9 @@ export default function App() {
     return () => clearInterval(beat);
   }, [connectionIds]);
 
-  // Watched queries, every minute while the window is open. Nothing runs when Flux is closed —
-  // there is no service behind it, and an alert that lies about that would be worse than none.
+  // Watched queries, every minute while Flux runs: with the window open, or closed into the menu
+  // bar. Nothing runs once Flux has quit — there is no service behind it, and an alert that lies
+  // about that would be worse than none.
   // one heartbeat, and each watched query decides on it whether its own round is owed; the
   // beat does nothing at all when none of them is
   const watching = useApp((z) => z.savedQueries.some((q) => watchEvery(q, z.settings.advanced.watchSeconds) > 0));
@@ -293,12 +310,30 @@ export default function App() {
     return () => clearInterval(beat);
   }, [watching]);
 
+  // Each project's errors, five minutes apart: the first look takes the day before as what the
+  // project already knew, every later one reads what has failed since (lib/errors)
+  const lookingForErrors = useApp((z) => z.settings.advanced.newErrors !== false && z.settings.projects.some((p) => p.streams.length));
+  useEffect(() => {
+    if (!lookingForErrors) return;
+    const first = setTimeout(() => void useApp.getState().checkErrors(), 20_000);
+    const beat = setInterval(() => void useApp.getState().checkErrors(), 5 * 60_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(beat);
+    };
+  }, [lookingForErrors]);
+
   // `flux://open?…` links: the one Flux was started by, and any clicked while it is running.
   // The plugin hands both over as URLs; what they mean is decided in the store.
   useEffect(() => {
     if (!ready) return;
     // a sign-in link is the door's to answer, not a view to open
-    const open = (urls: string[] | null) => urls?.filter((u) => !u.startsWith(AUTH_CALLBACK)).forEach((u) => useApp.getState().openLink(u));
+    const open = (urls: string[] | null) => {
+      const views = urls?.filter((u) => !u.startsWith(AUTH_CALLBACK)) ?? [];
+      // a view opened from outside is one to look at, so a Flux watching from the menu bar comes back
+      if (views.length) void invoke("background_leave").catch(() => {});
+      views.forEach((u) => useApp.getState().openLink(u));
+    };
     void getCurrent()
       .then(open)
       .catch(() => {});
@@ -390,10 +425,27 @@ export default function App() {
   }, []);
 
   // Sessions outlive the app on purpose, so closing the window is a question, not a given.
+  // With something to watch it is not closing at all: the window goes and Flux stays in the
+  // menu bar, watching, until it is quit from there (src-tauri/src/background.rs).
+  const quitting = useRef(false);
   useEffect(() => {
     const win = getCurrentWindow();
     const pending = win.onCloseRequested((e) => {
-      const { terminals, settings, tmuxMissing, killAllTerminals } = useApp.getState();
+      const { terminals, settings, tmuxMissing, killAllTerminals, savedQueries } = useApp.getState();
+      if (!quitting.current && settings.advanced.keepWatching !== false) {
+        // a project is watched for its new errors, and for its deploys when it names a repository
+        const radar = settings.appearance.island && settings.appearance.deployRadar !== false;
+        const errors = settings.advanced.newErrors !== false;
+        const status = backgroundWatch(
+          savedQueries.filter((q) => watchEvery(q, settings.advanced.watchSeconds) > 0).length,
+          settings.projects.filter((p) => p.streams.length && (errors || (radar && p.github))).length,
+        );
+        if (status) {
+          e.preventDefault();
+          void invoke("background_enter", { status }).catch((err: unknown) => console.error("could not watch from the menu bar", err));
+          return;
+        }
+      }
       const action = quitAction(settings.terminal.onQuit, terminals.length, settings.terminal.engine === "tmux" && !tmuxMissing);
       if (action === "leave") return;
       e.preventDefault(); // the answer needs a round trip, so the window waits for it
@@ -403,7 +455,12 @@ export default function App() {
       }
       setAskQuit(true);
     });
-    return () => void pending.then((stop) => stop());
+    // Quit Flux in the menu bar: the window is back by now, and closes the way it always did
+    const quit = listen("quit", () => {
+      quitting.current = true;
+      void win.close();
+    });
+    return () => void Promise.all([pending, quit]).then((stops) => stops.forEach((stop) => stop()));
   }, []);
 
   // a desktop app never shows the webview's own menu; text fields keep theirs
@@ -458,65 +515,71 @@ export default function App() {
         <LeftStripe />
         <Group orientation="vertical" className="min-h-0 flex-1">
           <Panel minSize="20">
-            {view === "monitor" && <MonitorView />}
-            {/* hidden rather than unmounted: tabs, scroll and panel sizes are where they were */}
-            <div className="h-full" style={{ display: view === "monitor" ? "none" : undefined }}>
-              <Group
-                orientation="horizontal"
-                className="h-full min-h-0"
-                // the tree's width is kept when a drag ends, not at every step of it: a write per step
-                // re-rendered the window under the pointer, and the drag lagged behind it
-                // dragged shut, the column counts as hidden, and the width it had is kept for its return
-                onLayoutChanged={(_, meta) => {
-                  const panel = explorerPanel.current;
-                  if (!meta.isUserInteraction || !panel) return;
-                  if (panel.isCollapsed()) setShowExplorer(false);
-                  else setExplorerSize(panel.getSize().asPercentage);
-                }}
-              >
-                <Panel panelRef={explorerPanel} collapsible collapsedSize={0} defaultSize={explorerStart} minSize="14" maxSize="50">
-                  <Group orientation="vertical" className="h-full min-h-0">
-                    <Panel minSize="20">
-                      <div className="island h-full">
-                        <ConnectionExplorer />
+            <Group orientation="horizontal" className="h-full min-h-0">
+              <Panel minSize="30">
+                {view === "monitor" && <MonitorView />}
+                {view === "errors" && <ErrorsView />}
+                {/* hidden rather than unmounted: tabs, scroll and panel sizes are where they were */}
+                <div className="h-full" style={{ display: view !== "explorer" ? "none" : undefined }}>
+                  <Group
+                    orientation="horizontal"
+                    className="h-full min-h-0"
+                    // the tree's width is kept when a drag ends, not at every step of it: a write per step
+                    // re-rendered the window under the pointer, and the drag lagged behind it
+                    // dragged shut, the column counts as hidden, and the width it had is kept for its return
+                    onLayoutChanged={(_, meta) => {
+                      const panel = explorerPanel.current;
+                      if (!meta.isUserInteraction || !panel) return;
+                      if (panel.isCollapsed()) setShowExplorer(false);
+                      else setExplorerSize(panel.getSize().asPercentage);
+                    }}
+                  >
+                    <Panel panelRef={explorerPanel} collapsible collapsedSize={0} defaultSize={explorerStart} minSize="14" maxSize="50">
+                      <Group orientation="vertical" className="h-full min-h-0">
+                        <Panel minSize="20">
+                          <div className="island h-full">
+                            <ConnectionExplorer />
+                          </div>
+                        </Panel>
+                        <Separator className="h-1.5" style={{ display: showFields ? undefined : "none" }} />
+                        {/* the fields of what is on screen, under the tree of what can be asked */}
+                        <Panel
+                          panelRef={fieldsPanel}
+                          collapsible
+                          collapsedSize={0}
+                          defaultSize={0}
+                          minSize="10"
+                          maxSize="70"
+                          onResize={(size) => useApp.getState().showFields && size.asPercentage > 1 && setFieldsSize(size.asPercentage)}
+                        >
+                          <FieldsPanel />
+                        </Panel>
+                      </Group>
+                    </Panel>
+                    <Separator className="w-1.5" style={{ display: showExplorer ? undefined : "none" }} />
+                    <Panel minSize="30">
+                      <div className="island-editor h-full">
+                        <EditorArea />
                       </div>
                     </Panel>
-                    <Separator className="h-1.5" style={{ display: showFields ? undefined : "none" }} />
-                    {/* the fields of what is on screen, under the tree of what can be asked */}
-                    <Panel
-                      panelRef={fieldsPanel}
-                      collapsible
-                      collapsedSize={0}
-                      defaultSize={0}
-                      minSize="10"
-                      maxSize="70"
-                      onResize={(size) => useApp.getState().showFields && size.asPercentage > 1 && setFieldsSize(size.asPercentage)}
-                    >
-                      <FieldsPanel />
-                    </Panel>
                   </Group>
-                </Panel>
-                <Separator className="w-1.5" style={{ display: showExplorer ? undefined : "none" }} />
-                <Panel minSize="30">
-                  <div className="island-editor h-full">
-                    <EditorArea />
-                  </div>
-                </Panel>
-                <Separator className="w-1.5" style={{ display: rightTool ? undefined : "none" }} />
-                <Panel
-                  panelRef={queriesPanel}
-                  collapsible
-                  collapsedSize={0}
-                  defaultSize={0}
-                  minSize="12"
-                  maxSize="40"
-                  onResize={(size) => useApp.getState().rightTool && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
-                >
-                  {/* one dock, whichever tool window the stripe asked for */}
-                  {rightTool === "notifications" ? <NotificationCenter /> : <SavedQueries />}
-                </Panel>
-              </Group>
-            </div>
+                </div>
+              </Panel>
+              <Separator className="w-1.5" style={{ display: rightTool ? undefined : "none" }} />
+              {/* the right dock stands beside whichever view is in front, not inside the explorer */}
+              <Panel
+                panelRef={queriesPanel}
+                collapsible
+                collapsedSize={0}
+                defaultSize={0}
+                minSize="12"
+                maxSize="40"
+                onResize={(size) => useApp.getState().rightTool && size.asPercentage > 1 && setQueriesSize(size.asPercentage)}
+              >
+                {/* one dock, whichever tool window the stripe asked for */}
+                {rightTool === "notifications" ? <NotificationCenter /> : <SavedQueries />}
+              </Panel>
+            </Group>
           </Panel>
           <Separator className="h-1.5" style={{ display: bottomOpen ? undefined : "none" }} />
           {/* collapsed rather than unmounted: the height you dragged it to survives hiding it,

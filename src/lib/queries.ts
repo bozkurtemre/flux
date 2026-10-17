@@ -20,7 +20,7 @@ export interface SavedQuery {
   rangeSeconds: number;
   /** Seconds since the epoch: the list is newest first. */
   savedAt: number;
-  /** Watched: while the window is open, new matches are reported as they arrive. */
+  /** Watched: while Flux runs, new matches are reported as they arrive. */
   watch?: boolean;
   /** How often this one looks, in seconds. Absent means whatever Settings says. */
   watchSeconds?: number;
@@ -73,6 +73,16 @@ export function remember<T extends { query: string; streamLabel: string }>(histo
 export function watchEvery(query: { watch?: boolean; watchSeconds?: number }, fallback: number): number {
   if (!query.watch) return 0;
   return Math.max(0, query.watchSeconds ?? fallback);
+}
+
+/** What Flux goes on watching with its window closed, as the menu bar says it, or null when
+ *  there is nothing, and closing the window quits. */
+export function backgroundWatch(queries: number, projects: number): string | null {
+  const what = [
+    queries && `${queries} ${queries === 1 ? "query" : "queries"}`,
+    projects && `${projects} ${projects === 1 ? "project" : "projects"}`,
+  ].filter(Boolean);
+  return what.length ? `Watching ${what.join(" and ")}` : null;
 }
 
 /**

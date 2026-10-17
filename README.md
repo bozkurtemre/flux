@@ -39,6 +39,12 @@ comparing two endpoints is two tabs rather than two rounds of editing a filter.
 - **Search Everywhere** — `⇧⇧` to jump to any stream, endpoint, project or action.
 - **Workspaces** — open a folder and Flux keeps that folder's stream grouping and layout
   in a `.flux` directory inside it, the way an IDE keeps `.idea`.
+- **New errors** — every five minutes each project's failures are counted by template, and
+  one it never had before, or one back after it was resolved, is announced with the pull
+  request merged just before it, as is a known one that escalates. Errors, beside the Monitor,
+  lists them with who they hit, their last day and latest lines, and hands one to Claude Code to fix.
+- **Menu bar** — with something to watch, closing the window leaves Flux in the menu bar,
+  still watching, rather than quitting.
 - **MCP server** — while Flux is open, an agent in your terminal can read the same logs
   through the same connections: connections, streams, searches, counts and endpoints, as
   JSON. After a deploy it can leave a saved query behind for Flux to watch. Loopback only,

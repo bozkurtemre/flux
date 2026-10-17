@@ -42,6 +42,20 @@ import { journeyOf } from "@/lib/journey";
 import { messageField, templateOf } from "@/lib/patterns";
 import type { Evidence } from "@/lib/investigate";
 import { mergesCommand, readMerges, type Marker } from "@/lib/deploys";
+import { ERROR_FIELDS, errorQueryFrom } from "@/lib/monitor";
+import {
+  absorb,
+  BASELINE_MS,
+  DEPLOY_MS,
+  deployBefore,
+  emptyLedger,
+  errorQuery,
+  rateOf,
+  readLedger,
+  writeLedger,
+  type ErrorLedger,
+  type KnownError,
+} from "@/lib/errors";
 import { connectionFor, linkToView, readLink, type LinkedView } from "@/lib/link";
 import { draftForPattern, draftForRow, issueUrl, type Draft } from "@/lib/jira";
 import { ideName, ideUrl, localPath, sourceRefs, type SourceRef } from "@/lib/source";
@@ -166,12 +180,12 @@ interface State {
   showTerminal: boolean;
   /** Endpoints shares the terminal's place at the bottom; one of the two is shown at a time. */
   showEndpoints: boolean;
-  /** The main area: the explorer and its consoles, or the Monitor dashboard in their place. */
-  view: "explorer" | "monitor";
+  /** The main area: the explorer and its consoles, or the Monitor or the Errors in their place. */
+  view: "explorer" | "monitor" | "errors";
   /** The tour, played again over the IDE from Help or Find Action. */
   showTour: boolean;
   setShowTour: (show: boolean) => void;
-  /** How many times the explorer has come back from the Monitor: each one plays its shimmer once. */
+  /** How many times the explorer has come back from the Monitor or the Errors: each one plays its shimmer once. */
   returns: number;
   /** What the Monitor watches, kept while it is closed: a connection, and one stream or all of them. */
   monitorScope: { connId?: string; streamId?: string };
@@ -254,7 +268,7 @@ interface State {
   killAllTerminals: () => Promise<void>;
   toggleTerminal: () => void;
   toggleEndpoints: () => void;
-  setView: (view: "explorer" | "monitor") => void;
+  setView: (view: "explorer" | "monitor" | "errors") => void;
   setMonitorScope: (scope: { connId?: string; streamId?: string }) => void;
   /** Ask every connection whether it is there. Quiet: nothing is notified, the tree shows it. */
   checkConnections: () => Promise<void>;
@@ -318,7 +332,7 @@ interface State {
   renameSavedQuery: (id: string, name: string) => void;
   /** Queries arriving from a set-up file, kept with this workspace like any other. */
   addSavedQueries: (queries: SavedQuery[]) => void;
-  /** Watch a saved query: new matches are reported while the window is open. */
+  /** Watch a saved query: new matches are reported while Flux runs, the window open or closed into the menu bar. */
   toggleWatch: (id: string) => void;
   /** How often this one looks, in seconds; undefined hands it back to the setting. */
   /** Keep a saved query whole, new or replacing the one with its id: what an agent's save_query lands in. */
@@ -346,6 +360,26 @@ interface State {
   /** Each watched query's last round: when it looked, and what it found. */
   /** What each watched query's last round found, and, for a silence watch, whether it is quiet. */
   watchLog: Record<string, { at: number; found: number; quiet?: boolean }>;
+  /** Each project's errors by template, as the last look left them (lib/errors). */
+  errorLedgers: Record<string, ErrorLedger>;
+  /** Reads each project's failures since the last look, and announces the errors it never had. */
+  checkErrors: () => Promise<void>;
+  /** The error the Errors view has selected. */
+  errorFocus: { projectId: string; template: string } | null;
+  /** The Errors view, on one error: what an alert about it opens. The error is no longer news. */
+  showError: (projectId: string, template: string) => void;
+  /** Selects an error in the Errors view, which is looking at it: it is no longer news. */
+  focusError: (focus: { projectId: string; template: string } | null) => void;
+  /** A console on an error's lines; the error is no longer news. */
+  openError: (projectId: string, template: string) => void;
+  /** Resolved, an error is news again the next time it is seen; reopened, it is an open one. */
+  resolveError: (projectId: string, template: string, resolved: boolean) => void;
+  /** Every error's news looked at, without opening each. */
+  seeErrors: () => void;
+  /** Snoozed for an hour or a day, ignored until it escalates, or announced as before (null). */
+  muteError: (projectId: string, template: string, how: "hour" | "day" | "ignore" | null) => void;
+  /** Investigate on one of an error's lines, in a console on its lines: the case, ready for Claude. */
+  investigateError: (projectId: string, template: string, row: Record<string, unknown>) => Promise<void>;
   /** Up to two rows picked for comparing, from whichever tabs they were in. */
   picks: Pick[];
   showCompare: boolean;
@@ -437,6 +471,8 @@ export const useApp = create<State>((set, get) => ({
   picks: [],
   showCompare: false,
   watchLog: {},
+  errorLedgers: {},
+  errorFocus: null,
 
   togglePick: (tabId) => {
     const tab = get().tabs.find((t) => t.id === tabId);
@@ -1291,6 +1327,150 @@ export const useApp = create<State>((set, get) => ({
     );
   },
 
+  checkErrors: async () => {
+    const { settings } = get();
+    if (settings.advanced.newErrors === false) return;
+    for (const project of settings.projects.filter((p) => p.streams.length)) {
+      const conn = settings.connections.find((c) => c.id === project.connectionId);
+      if (!conn) continue;
+      const client = clientFor(conn);
+      const streams = project.streams;
+      const signal = AbortSignal.timeout(60_000);
+      const now = Date.now();
+      try {
+        let ledger = get().errorLedgers[project.id] ?? (await readLedger(project.id));
+        if (!ledger) {
+          // what a failure is, from what the lines carry, as the deploy radar and the Monitor decide it
+          const sample = await client.messages({
+            query: "*",
+            streams,
+            timerange: absolute(new Date(now - 60 * 60_000), new Date(now)),
+            fields: ["timestamp", "message", ...ERROR_FIELDS],
+            size: 200,
+            signal,
+          });
+          const query = errorQueryFrom(sample.rows);
+          if (!query) continue;
+          ledger = emptyLedger(query, messageField(sample.columns));
+        }
+        const from = Math.max(ledger.checkedTo, now - BASELINE_MS);
+        // ponytail: the newest 500 failures of each look; a new template among more than that in
+        // five minutes waits for a quieter look
+        const page = await client.messages({
+          query: ledger.query,
+          streams,
+          timerange: absolute(new Date(from), new Date(now)),
+          fields: ["timestamp", ledger.field],
+          size: 500,
+          signal,
+        });
+        const { ledger: next, news } = absorb(ledger, page.rows, now);
+        // a new error is put down to the merge just before it, asked of `gh` as the timeline asks
+        if (news.length && project.github) {
+          const earliest = Math.min(...news.map((e) => e.firstSeen));
+          const out = await invoke<string>("terminal_run", {
+            program: settings.terminal.shell.trim(),
+            args: ["-l", "-c", mergesCommand(project.github, new Date(earliest - DEPLOY_MS), new Date(now))],
+          }).catch(() => "[]");
+          const merges = readMerges(out);
+          for (const e of news) {
+            const deploy = deployBefore(merges, e.firstSeen);
+            if (deploy) next.errors[e.template] = { ...next.errors[e.template], deploy };
+          }
+        }
+        set({ errorLedgers: { ...get().errorLedgers, [project.id]: next } });
+        void writeLedger(project.id, next);
+
+        const fresh = news.map((e) => next.errors[e.template]);
+        const { mark, sound } = alarm("error", settings.advanced.watchSound);
+        for (const e of fresh.slice(0, 3)) {
+          const title = `${e.news === "back" ? "An error is back" : e.news === "escalating" ? "An error is escalating" : "New error"} in ${project.name}`;
+          const body =
+            e.news === "escalating"
+              ? `${e.template} — ${hotLine(e, now)}`
+              : e.deploy
+                ? `${e.template} — first seen after ${e.deploy.label}`
+                : e.template;
+          get().notify("error", title, body, [{ label: "Show", run: () => get().showError(project.id, e.template) }]);
+          void announce(`${mark} ${title}`, body, sound).catch(() => {});
+        }
+        if (fresh.length > 3) {
+          get().notify("error", `${fresh.length - 3} more errors to look at in ${project.name}`, "Errors lists them all.", [
+            { label: "Show", run: () => get().setView("errors") },
+          ]);
+        }
+      } catch {
+        /* a source that does not answer is asked again on the next look */
+      }
+    }
+  },
+
+  showError: (projectId, template) => {
+    get().setView("errors");
+    get().focusError({ projectId, template });
+  },
+
+  focusError: (focus) => {
+    set({ errorFocus: focus });
+    const ledger = focus && get().errorLedgers[focus.projectId];
+    const error = ledger && focus ? ledger.errors[focus.template] : undefined;
+    if (ledger && error?.news)
+      keepLedger(set, get, focus!.projectId, { ...ledger, errors: { ...ledger.errors, [error.template]: { ...error, news: undefined } } });
+  },
+
+  openError: (projectId, template) => {
+    const { settings, errorLedgers } = get();
+    const project = settings.projects.find((p) => p.id === projectId);
+    const ledger = errorLedgers[projectId];
+    const error = ledger?.errors[template];
+    if (!project || !ledger || !error) return;
+    // back to a little before the last time it was seen, so its lines are on screen
+    const seconds = Math.min(7 * 86_400, Math.max(15 * 60, Math.ceil((Date.now() - error.lastSeen) / 1000) + 5 * 60));
+    // a console is in the explorer, which the Errors view stands in place of
+    get().setView("explorer");
+    runSomewhere(set, get, {
+      name: project.name,
+      query: errorQuery(ledger, template),
+      connId: project.connectionId,
+      streamIds: project.streams,
+      streamLabel: project.name,
+      rangeSeconds: seconds,
+    });
+    if (error.news) keepLedger(set, get, projectId, { ...ledger, errors: { ...ledger.errors, [template]: { ...error, news: undefined } } });
+  },
+
+  resolveError: (projectId, template, resolved) => {
+    const ledger = get().errorLedgers[projectId];
+    const error = ledger?.errors[template];
+    if (!error) return;
+    // resolved is neither snoozed nor ignored: it is announced again the moment it is back
+    const next = { ...error, news: undefined, resolvedAt: resolved ? Date.now() : undefined, snoozedUntil: undefined, ignored: undefined };
+    keepLedger(set, get, projectId, { ...ledger, errors: { ...ledger.errors, [template]: next } });
+  },
+
+  muteError: (projectId, template, how) => {
+    const ledger = get().errorLedgers[projectId];
+    const error = ledger?.errors[template];
+    if (!error) return;
+    const until = how === "hour" ? Date.now() + 3_600_000 : how === "day" ? Date.now() + 86_400_000 : undefined;
+    const next: KnownError = { ...error, news: undefined, resolvedAt: undefined, snoozedUntil: until, ignored: how === "ignore" || undefined };
+    keepLedger(set, get, projectId, { ...ledger, errors: { ...ledger.errors, [template]: next } });
+  },
+
+  investigateError: async (projectId, template, row) => {
+    get().openError(projectId, template);
+    const tabId = get().activeTab;
+    if (tabId) await get().investigate(tabId, row);
+  },
+
+  seeErrors: () => {
+    for (const [projectId, ledger] of Object.entries(get().errorLedgers)) {
+      if (!Object.values(ledger.errors).some((e) => e.news)) continue;
+      const errors = Object.fromEntries(Object.entries(ledger.errors).map(([t, e]) => [t, { ...e, news: undefined }]));
+      keepLedger(set, get, projectId, { ...ledger, errors });
+    }
+  },
+
   deleteSavedQuery: (id) => {
     set({
       savedQueries: get().savedQueries.filter((q) => q.id !== id),
@@ -1306,7 +1486,7 @@ export const useApp = create<State>((set, get) => ({
     persist(get);
   },
 
-  setView: (view) => set((s) => ({ view, returns: s.view === "monitor" && view === "explorer" ? s.returns + 1 : s.returns })),
+  setView: (view) => set((s) => ({ view, returns: s.view !== "explorer" && view === "explorer" ? s.returns + 1 : s.returns })),
   setMonitorScope: (monitorScope) => set({ monitorScope }),
 
   toggleEndpoints: () => set({ showEndpoints: !get().showEndpoints, showTerminal: false }),
@@ -2145,6 +2325,19 @@ async function followAcross(
  * A query goes back to the console for the stream it belongs to, rather than landing in
  * whichever one happens to be in front. Saved and run-before both arrive here.
  */
+/** How hot an escalating error runs, as an alert says it. */
+function hotLine(e: KnownError, now: number): string {
+  const rate = rateOf(e, now);
+  if (!rate) return "running hot";
+  return `${Math.round(rate.lastHour)} in the last hour, ${Math.round(rate.lastHour / Math.max(rate.usual, 1))}× its usual`;
+}
+
+/** A ledger changed here rather than by a look: kept in the store and in the cache. */
+function keepLedger(set: Setter, get: Getter, projectId: string, ledger: ErrorLedger) {
+  set({ errorLedgers: { ...get().errorLedgers, [projectId]: ledger } });
+  void writeLedger(projectId, ledger);
+}
+
 function runSomewhere(
   set: Setter,
   get: Getter,
@@ -2169,7 +2362,7 @@ function runSomewhere(
   } else {
     set({ activeTab: tabId });
   }
-  get().patchTab(tabId, { query: q.query, rangeSeconds: q.rangeSeconds, savedQueryId, offset: 0 });
+  get().patchTab(tabId, { query: q.query, rangeSeconds: q.rangeSeconds, savedQueryId, offset: 0, streamIds: q.streamIds });
   void get().runQuery(tabId);
 }
 

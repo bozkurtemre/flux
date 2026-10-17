@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { due, nameFor, remember, unsaved, upsert, watchEvery, type SavedQuery, quietVerdict } from "./queries";
+import { backgroundWatch, due, nameFor, quietVerdict, remember, type SavedQuery, unsaved, upsert, watchEvery } from "./queries";
 
 const query = (over: Partial<SavedQuery> = {}): SavedQuery => ({
   id: "q1",
@@ -116,5 +116,14 @@ describe("a watch for silence", () => {
     expect(quietVerdict(4, 10, true)).toBeNull();
     expect(quietVerdict(12, 10, true)).toBe("back");
     expect(quietVerdict(12, 10, false)).toBeNull();
+  });
+});
+
+describe("watching with the window closed", () => {
+  it("says what goes on being watched, and is nothing when nothing is", () => {
+    expect(backgroundWatch(1, 0)).toBe("Watching 1 query");
+    expect(backgroundWatch(3, 2)).toBe("Watching 3 queries and 2 projects");
+    expect(backgroundWatch(0, 1)).toBe("Watching 1 project");
+    expect(backgroundWatch(0, 0)).toBeNull();
   });
 });

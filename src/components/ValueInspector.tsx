@@ -73,6 +73,8 @@ export function ValueInspector({ tab }: { tab: Tab }) {
   useEffect(() => {
     if (!row) return;
     const onKey = (e: KeyboardEvent) => {
+      // not from behind the Monitor or the Errors, where the panel is out of sight
+      if (useApp.getState().view !== "explorer") return;
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
         setFinding(true);
@@ -203,6 +205,16 @@ export function ValueInspector({ tab }: { tab: Tab }) {
         >
           {copied ? <Check size={11} /> : <Copy size={11} />}
           {copied ? "copied" : "copy"}
+        </button>
+        {/* Escape closes it too; this is for the mouse */}
+        <button
+          onClick={() => useApp.getState().patchTab(tab.id, { selectedRow: undefined })}
+          data-tip="Close"
+          data-tip-key="Esc"
+          className="flex size-[18px] items-center justify-center rounded hover:bg-[var(--bg-hover)]"
+          style={{ color: "var(--text-dim)" }}
+        >
+          <X size={11} />
         </button>
       </div>
 

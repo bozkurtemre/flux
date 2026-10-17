@@ -38,6 +38,12 @@ export const GETTING_STARTED = `# Getting started
 - **⌥⏎** on a row — or **Investigate** at the top of its menu — makes a case of it: the request across every service, how often it happens and since when, who else it hits and what they share, the line of code that wrote it with the change behind that line, and what was merged in the last two days.
 - **Ask Claude to fix** pastes the case into the terminal where Claude Code runs, asking it to find the cause, fix it on a branch with a test, and open a draft pull request. **Copy report** gives the same case as Markdown.
 
+## New errors
+
+- Every five minutes each project's failures are counted by template. One the project did not have in the day before — or one back after it was **resolved** — is announced on the island and as a notification, with the pull request merged just before it. So is a known one that suddenly runs at four times its usual hourly rate: it is **escalating**.
+- **Errors**, above Monitor on the left, lists each project's errors with their last 24 hours, filtered by project and by New, Open, Ignored or Resolved. Pick one for who it hits — how many users and orders, which routes, hosts and versions — the version it was first seen in, the merge it came after, and its latest lines; double-click opens its lines in a console.
+- **Ask Claude to fix** investigates the error's newest line and pastes the case into the terminal where Claude Code runs. **Investigate**, find where it is logged, start a Jira issue, **snooze** it for an hour or a day, **ignore** it unless it escalates, or resolve it, from the same place or its right-click menu.
+
 ## The service map
 
 - **⇧⌘M** (or Service Map on a connection) draws the services as the logs see them: a step between two services is a request whose id appears in one and then the other. Thicker is busier, red is failing; a service opens its console, a step traces one request that took it.
@@ -49,7 +55,8 @@ export const GETTING_STARTED = `# Getting started
 
 ## Keep what works
 
-- **⌘S** saves a query by name, with the workspace. **Watch** one to be told when new matches arrive, while Flux is open — or, with **Alert when › Nothing arrives**, when it goes quiet: a cron that stopped, a webhook that no longer comes. A silence is reported once when it starts and once when it ends.
+- **⌘S** saves a query by name, with the workspace. **Watch** one to be told when new matches arrive while Flux runs — or, with **Alert when › Nothing arrives**, when it goes quiet: a cron that stopped, a webhook that no longer comes. A silence is reported once when it starts and once when it ends.
+- With a query watched or a project's errors looked at, closing the window leaves Flux in the **menu bar**, still watching; **Open Flux** there brings the window back and **Quit Flux** quits. **Settings › Advanced › Window closed** turns it off.
 - The **History** tab keeps every query you ran.
 - **Copy a link** to a view, from the console's toolbar or by right-clicking a saved query or one in the History, and anyone with the same Graylog opens it in their own Flux.
 

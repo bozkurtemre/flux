@@ -39,7 +39,7 @@ Every tool reads; only `save_query` writes, and only to Flux's own saved queries
 
 ## Leave a watch behind
 
-After a deploy, ask the agent to keep an eye on what the change could break. It calls `save_query` with the connection, the streams and a Lucene query, and the query appears in the **Queries** tool window, watched: while Flux is open it is asked every round and new matches are announced on the island and as a notification, exactly as a watch you set yourself.
+After a deploy, ask the agent to keep an eye on what the change could break. It calls `save_query` with the connection, the streams and a Lucene query, and the query appears in the **Queries** tool window, watched: while Flux runs it is asked every round and new matches are announced on the island and as a notification, exactly as a watch you set yourself.
 
 ```sh
 › I just deployed the retry change to payments. Watch for charge errors for me.
