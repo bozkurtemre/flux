@@ -61,11 +61,14 @@ Requires [Node 24+](https://nodejs.org), [pnpm 11+](https://pnpm.io) and a
 ```sh
 make install     # dependencies
 make hooks       # install the pre-commit quality gate
-make dev         # run with hot reload
+make dev-signed  # run with hot reload, signed so the keychain does not ask for the tokens
 make app         # build Flux.app
 ```
 
-`make` on its own lists every target.
+`make` on its own lists every target. `make dev-signed` signs each development build with the
+Developer ID and the app's bundle identifier between the link and the run, so the keychain takes
+it for the same app as the release and reads it the connection tokens without asking. `make dev`
+runs unsigned, and every rebuild is a new app to the keychain, which asks again.
 
 ## First run
 

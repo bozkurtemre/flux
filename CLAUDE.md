@@ -28,7 +28,8 @@ Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/do
   in its place, and keeps the token itself only when the keychain refused it, until a save
   succeeds; so it is still not a file to commit, share or sync. The keychain lets in the build
   that stored a token without asking only while the signature matches: releases are signed with
-  the Developer ID, and a dev build is asked once, so run `make dev-signed` against real tokens.
+  the Developer ID, and so is a dev build run with `make dev-signed`, which the keychain takes for
+  the same app. Always run Flux that way; `make dev` is unsigned and asked again after each rebuild.
 - **Each source kind is an adapter, and the sources are the only backend.** A connection names
   its kind (Graylog, Elasticsearch through Kibana, or local files and Docker); `src/lib/datasource.ts` is the contract
   every adapter answers, and `clientFor()` in the store is the only place that picks one. Code

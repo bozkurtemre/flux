@@ -11,6 +11,13 @@ APP := $(CARGO_DIR)/target/release/bundle/macos/Flux.app
 SIGN_ID ?= $(shell security find-identity -v -p codesigning | awk -F'"' 'NR==1 {print $$2}')
 SIGN_ENV = $(if $(SIGN_ID),APPLE_SIGNING_IDENTITY="$(SIGN_ID)",)
 
+# A development build is signed as the release is, with the Developer ID and the app's own bundle
+# identifier, so the keychain takes it for the same app and reads it the tokens the release stored
+# without asking. Unsigned, every rebuild is a new caller and asks again (docs/adr/0012).
+DEV_SIGN_ID ?= $(shell security find-identity -v -p codesigning | awk -F'"' '/Developer ID Application:/ {print $$2; exit}')
+BUNDLE_ID ?= $(shell node -p "require('./src-tauri/tauri.conf.json').identifier")
+HOST_TRIPLE = $(shell rustc -vV | sed -n 's/^host: //p' | tr 'a-z-' 'A-Z_')
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -23,8 +30,15 @@ install: ## Install JavaScript dependencies
 	$(PNPM) install
 
 .PHONY: dev
-dev: ## Run the app with hot reload
+dev: ## Run the app with hot reload, unsigned: the keychain asks for the tokens after every rebuild
 	$(PNPM) tauri dev
+
+.PHONY: dev-signed
+dev-signed: ## Run with hot reload, signed as the release is, so the keychain does not ask (ARGS= go to tauri dev)
+	@test -n '$(DEV_SIGN_ID)' || { echo 'no "Developer ID Application" identity in the keychain; pass DEV_SIGN_ID="..."'; exit 1; }
+	SIGN_ID='$(DEV_SIGN_ID)' BUNDLE_ID='$(BUNDLE_ID)' \
+		CARGO_TARGET_$(HOST_TRIPLE)_RUNNER='$(CURDIR)/scripts/sign-and-run.sh' \
+		$(PNPM) tauri dev $(ARGS)
 
 .PHONY: build
 build: ## Type-check and bundle the front end
