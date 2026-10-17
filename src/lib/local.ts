@@ -24,18 +24,28 @@ const DOCKER_TIME = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z)\s/;
  */
 export function toLiqe(query: string): string {
   const q = query.trim() || "*";
-  return q
-    .replace(/_exists_:([\w.@-]+)/g, "$1:*")
-    .replace(/(^|[\s(!+-])([\w.@-]+):((?:\\.|[^\s()"[\]{}])+)/g, (whole, lead: string, field: string, value: string) => {
-      if (!value.includes("/") || (value.startsWith("/") && value.length > 1 && value.endsWith("/") && !value.endsWith("\\/"))) return whole;
-      const literal = value.replace(/\\(.)/g, "$1");
-      const pattern = literal
-        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-        .replace(/\//g, "\\/")
-        .replace(/\*/g, ".*")
-        .replace(/\?/g, ".");
-      return `${lead}${field}:/^${pattern}$/i`;
-    });
+  return (
+    q
+      .replace(/_exists_:([\w.@-]+)/g, "$1:*")
+      // `level:(ERROR OR FATAL)` is Lucene's and not liqe's: each term takes the field instead,
+      // which is how the error query the radar, the Monitor and New errors write reads here
+      .replace(/(^|[\s(!+-])([\w.@-]+):\(([^()]*)\)/g, (_, lead: string, field: string, inner: string) => {
+        const terms = inner.replace(/"(?:\\.|[^"\\])*"|[^\s()]+/g, (t) =>
+          /^(AND|OR|NOT|&&|\|\|)$/.test(t) ? t : t.replace(/^([-+!]?)/, `$1${field}:`),
+        );
+        return `${lead}(${terms})`;
+      })
+      .replace(/(^|[\s(!+-])([\w.@-]+):((?:\\.|[^\s()"[\]{}])+)/g, (whole, lead: string, field: string, value: string) => {
+        if (!value.includes("/") || (value.startsWith("/") && value.length > 1 && value.endsWith("/") && !value.endsWith("\\/"))) return whole;
+        const literal = value.replace(/\\(.)/g, "$1");
+        const pattern = literal
+          .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+          .replace(/\//g, "\\/")
+          .replace(/\*/g, ".*")
+          .replace(/\?/g, ".");
+        return `${lead}${field}:/^${pattern}$/i`;
+      })
+  );
 }
 
 interface Loaded {

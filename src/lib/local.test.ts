@@ -27,6 +27,12 @@ describe("the console's Lucene, over rows in memory", () => {
     expect(search('route:"/v1/wallet"')).toEqual([200]);
     expect(search("-route:/v1/wallet")).toEqual([502, 504]);
   });
+
+  it("reads a field over a group of values, as the error query writes it", () => {
+    expect(search("level:(ERROR OR WARN)")).toEqual([502, 504]);
+    expect(search('level:(ERROR OR "INFO") AND httpStatusCode:>=500')).toEqual([502]);
+    expect(search("httpStatusCode:>=500 OR level:(INFO)").sort()).toEqual([200, 502, 504]);
+  });
 });
 
 describe("counting in memory", () => {
